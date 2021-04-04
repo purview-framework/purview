@@ -1,7 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Lib
     ( run
@@ -25,14 +27,56 @@ import           Control.Monad
 import qualified Control.Monad.State as MS
 import           Control.Concurrent
 import           Text.RawString.QQ (r)
+import           Data.Aeson
+import           GHC.Generics
+import           Data.String (fromString)
 
 -- kind [attr] [more]
 
-run :: IO ()
-run = do
+-- goal:
+-- get a counter working
+
+-- Generic stuff
+data Message = Message String
+
+data Component state b = Component
+  { initialize :: state
+  , handlers   :: state -> Message -> state
+  , render     :: state -> Html
+  }
+
+data Route state b = Route
+  { location :: String
+  , component :: Component state b
+  }
+
+type Routes a b = [Route a b]
+
+-- My app
+data Todo = Todo
+  { name :: String
+  , done :: Bool
+  } deriving (Generic, Show)
+
+newtype TodoState = TodoState [Todo]
+
+defaultTodoState = TodoState []
+
+todoComponent = Component
+  { initialize = defaultTodoState
+  , handlers = \state message -> state
+  , render = \state -> p "hello"
+  }
+
+todo = [ Route "/" todoComponent ]
+
+runTodo = run todo
+
+run :: Routes a b -> IO ()
+run routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler <- requestHandler
+  requestHandler <- requestHandler routes
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions webSocketHandler requestHandler
 
@@ -73,14 +117,18 @@ page = docTypeHtml $ do
   body $ do
     p "A list of natural numbers:"
 
-requestHandler :: IO Wai.Application
-requestHandler =
+renderComponent :: Component a b -> LazyText.Text
+renderComponent Component{ render, initialize } = blaze $ render initialize
+
+requestHandler :: Routes a b -> IO Wai.Application
+requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    Sc.get "/" $
-      Sc.html $ blaze page
+    mapM_
+      (\Route{ location, component } ->
+          Sc.get (fromString location) $ Sc.html $ renderComponent component) routes
 
 webSocketHandler :: WS.ServerApp
 webSocketHandler pending = do
