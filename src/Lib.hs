@@ -37,11 +37,12 @@ import           Data.String (fromString)
 -- get a counter working
 
 -- Generic stuff
-data Message = Message String
+newtype Message b = Message b
+  -- Hello
 
 data Component state b = Component
   { initialize :: state
-  , handlers   :: state -> Message -> state
+  , handlers   :: state -> Message b -> state
   , render     :: state -> Html
   }
 
@@ -62,9 +63,13 @@ newtype TodoState = TodoState [Todo]
 
 defaultTodoState = TodoState []
 
+data MyMessages = Hello
+
 todoComponent = Component
   { initialize = defaultTodoState
-  , handlers = \state message -> state
+  , handlers = \state (Message message) ->
+      case message of
+        Hello -> state
   , render = \state -> p "hello"
   }
 
@@ -86,8 +91,7 @@ blaze h = LazyText.pack $ renderHtml h
 
 websocketScript :: Text
 websocketScript = [r|
-  function connect()
-  {
+  function connect() {
     var ws = new WebSocket("ws://localhost:8001");
 
     ws.onopen = () => {
@@ -106,6 +110,7 @@ websocketScript = [r|
     window.onbeforeunload = evt => {
       socket.close();
     };
+    global.ws = ws;
   }
   connect();
 |]
