@@ -4,6 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Lib
     ( run
@@ -20,7 +23,7 @@ import Network.Wai.Internal ( Response(ResponseBuilder) )
 import qualified Network.Wai.Handler.Warp as Warp
 
 import           Text.Blaze.Html5 as H
-import           Text.Blaze.Html5.Attributes as A
+import           Text.Blaze.Html5.Attributes as A hiding (id)
 import           Text.Blaze.Html.Renderer.String
 
 import           Control.Monad
@@ -37,21 +40,26 @@ import           Data.String (fromString)
 -- get a counter working
 
 -- Generic stuff
-newtype Message b = Message b
-  -- Hello
+-- newtype Message b = Message b
 
-data Component state b = Component
+data Component state messages = Component
   { initialize :: state
-  , handlers   :: state -> Message b -> state
+  , handlers   :: state -> messages -> state
   , render     :: state -> Html
   }
 
-data Route state b = Route
+data Route state messages = Route
   { location :: String
-  , component :: Component state b
+  , component :: Component state messages
   }
 
-type Routes a b = [Route a b]
+type Routes = forall a b. [Route a b]
+
+defaultComponent = Component
+  { initialize = id
+  , handlers   = const
+  , render     = \s -> p "default"
+  }
 
 -- My app
 data Todo = Todo
@@ -65,19 +73,38 @@ defaultTodoState = TodoState []
 
 data MyMessages = Hello
 
-todoComponent = Component
+todoComponent :: Component TodoState MyMessages
+todoComponent = defaultComponent
   { initialize = defaultTodoState
-  , handlers = \state (Message message) ->
+  , handlers = \state message ->
       case message of
         Hello -> state
   , render = \state -> p "hello"
   }
 
-todo = [ Route "/" todoComponent ]
+class Wrap a where
+  winitialize :: a -> a
+  whandlers :: a -> b -> a
+
+data WrapRoute = forall a . Wrap a => WrapRoute a
+
+-- unwrapRoute :: exists p. Wrap a => WrapRoute a -> a
+
+instance Wrap WrapRoute where
+  winitialize = undefined
+  whandlers = undefined
+
+-- unwrapRoute (WrapRoute a) = a
+
+
+todo =
+  [ WrapRoute $ Route "/" todoComponent
+  , WrapRoute $ Route "/users" defaultComponent
+  ]
 
 runTodo = run todo
 
-run :: Routes a b -> IO ()
+run :: [WrapRoute] -> IO ()
 run routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -125,15 +152,19 @@ page = docTypeHtml $ do
 renderComponent :: Component a b -> LazyText.Text
 renderComponent Component{ render, initialize } = blaze $ render initialize
 
-requestHandler :: Routes a b -> IO Wai.Application
+requestHandler :: [WrapRoute] -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
     mapM_
-      (\Route{ location, component } ->
-          Sc.get (fromString location) $ Sc.html $ renderComponent component) routes
+      (\(WrapRoute wrappedRoute) ->
+         let
+           Route{ location, component } = wrappedRoute
+         in
+          Sc.get (fromString location) $ Sc.html $ renderComponent component)
+      routes
 
 webSocketHandler :: WS.ServerApp
 webSocketHandler pending = do
