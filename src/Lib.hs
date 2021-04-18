@@ -1,12 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Lib
     ( run
@@ -38,73 +32,62 @@ import           Data.String (fromString)
 
 -- goal:
 -- get a counter working
+--data
 
--- Generic stuff
--- newtype Message b = Message b
+data Attributex
+  = OnClick
+  deriving Show
+
+type Tagx = String
+
+data Htmlx =
+  Htmlx Tagx [Attributex] [Htmlx]
+  | Text String
+  deriving Show
+
+textx = Text
+
+test = Htmlx "p" [] [textx "", Htmlx "x" [] [textx "hey"]]
+
 
 data Component state messages = Component
   { initialize :: state
   , handlers   :: state -> messages -> state
-  , render     :: state -> Html
+  , render     :: state -> Htmlx
   }
-
-data Route state messages = Route
-  { location :: String
-  , component :: Component state messages
-  }
-
-type Routes = forall a b. [Route a b]
 
 defaultComponent = Component
   { initialize = id
   , handlers   = const
-  , render     = \s -> p "default"
+  , render     = \state -> Htmlx "p" [] [textx "default"]
   }
 
+--
 -- My app
-data Todo = Todo
-  { name :: String
-  , done :: Bool
-  } deriving (Generic, Show)
+--
+newtype Counter = Counter
+  { count :: Int } deriving Show
 
-newtype TodoState = TodoState [Todo]
+defaultCounterState = Counter { count = 0 }
 
-defaultTodoState = TodoState []
-
-data MyMessages = Hello
-
-todoComponent :: Component TodoState MyMessages
-todoComponent = defaultComponent
-  { initialize = defaultTodoState
+counter = defaultComponent
+  { initialize = defaultCounterState
   , handlers = \state message ->
       case message of
-        Hello -> state
-  , render = \state -> p "hello"
+        "increment" -> state { count = count state + 1 }
+        "decrement" -> state { count = count state - 1 }
+  , render = \state -> Htmlx "p" [] [textx ("count: " <> show (count state))]
+  }
+--
+-- End
+--
+
+data Route a b  = Route
+  { location :: String
+  , component :: Component a b
   }
 
-class Wrap a where
-  winitialize :: a -> a
-  whandlers :: a -> b -> a
-
-data WrapRoute = forall a . Wrap a => WrapRoute a
-
--- unwrapRoute :: exists p. Wrap a => WrapRoute a -> a
-
-instance Wrap WrapRoute where
-  winitialize = undefined
-  whandlers = undefined
-
--- unwrapRoute (WrapRoute a) = a
-
-
-todo =
-  [ WrapRoute $ Route "/" todoComponent
-  , WrapRoute $ Route "/users" defaultComponent
-  ]
-
-runTodo = run todo
-
-run :: [WrapRoute] -> IO ()
+run :: Component a b -> IO ()
 run routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -150,21 +133,16 @@ page = docTypeHtml $ do
     p "A list of natural numbers:"
 
 renderComponent :: Component a b -> LazyText.Text
-renderComponent Component{ render, initialize } = blaze $ render initialize
+renderComponent Component{ render, initialize } =
+  fromString . show $ render initialize
 
-requestHandler :: [WrapRoute] -> IO Wai.Application
+requestHandler :: Component a b -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    mapM_
-      (\(WrapRoute wrappedRoute) ->
-         let
-           Route{ location, component } = wrappedRoute
-         in
-          Sc.get (fromString location) $ Sc.html $ renderComponent component)
-      routes
+    Sc.get "/" $ Sc.html $ renderComponent routes
 
 webSocketHandler :: WS.ServerApp
 webSocketHandler pending = do
@@ -172,7 +150,7 @@ webSocketHandler pending = do
   conn <- WS.acceptRequest pending
 
   WS.withPingThread conn 30 (pure ()) $ do
-    (msg :: Text) <- WS.receiveData conn
+    msg <- WS.receiveData conn
     WS.sendTextData conn $ ("initial> " :: Text) <> msg
 
     forever $ do
