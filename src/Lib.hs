@@ -35,24 +35,28 @@ import           Data.String (fromString)
 -- get a counter working
 --data
 
-newtype Attributex
+newtype Attribute
   = OnClick String
   deriving Show
 
 type Tag = String
 
 data Html
-  = Html Tag [Attributex] [Html]
+  = Html Tag [Attribute] [Html]
   | Text String
   | XComponent (forall a b. Component a b)
 
+renderAttributes :: [Attribute] -> LazyText.Text
+renderAttributes = foldr handle ""
+  where
+    handle (OnClick str) rest = "bridge-click=\""<> fromString str <> "\"" <> rest
+
 renderHtml :: Html -> LazyText.Text
 renderHtml (Html tag attrs html) =
-  "<" <> fromString tag <> ">"
+  "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
   <> foldr (<>) "" (fmap renderHtml html)
   <> "</" <> fromString tag <> ">"
 renderHtml (Text str) = fromString str
-
 
 text = Text
 
@@ -124,12 +128,24 @@ websocketScript = [r|
     };
 
     window.onbeforeunload = evt => {
-      socket.close();
+      ws.close();
     };
 
     window.ws = ws;
   }
   connect();
+
+  function logEvents(event) {
+    var clickValue = event.target.getAttribute("bridge-click");
+    if (clickValue) {
+      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue }));
+    }
+  }
+
+  function bindEvents() {
+    document.getRootNode().addEventListener("click", logEvents);
+  }
+  bindEvents();
 |]
 
 wrapHtml :: LazyText.Text -> LazyText.Text
@@ -166,6 +182,7 @@ webSocketHandler pending = do
 
   WS.withPingThread conn 30 (pure ()) $ do
     msg <- WS.receiveData conn
+    print $ ("msg> " :: Text) <> msg
     WS.sendTextData conn $ ("initial> " :: Text) <> msg
 
     forever $ do
