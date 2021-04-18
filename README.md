@@ -26,10 +26,11 @@ handlers' state message = case message of
 
 render' :: State -> Html
 render' state =
-  div [] [ div [onClick "increment"] [text "increment"]
-         , text ("count: " <> show (count state))
-         , div [onClick "decrement"] [text "decrement"]
-         ]
+  div [] 
+    [ div [ onClick "increment" ] [ text "increment" ]
+    , text ("count: " <> show (count state))
+    , div [ onClick "decrement" ] [ text "decrement" ]
+    ]
 
 counter = Component
   { initialize = defaultCounterState
