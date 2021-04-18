@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -16,9 +17,9 @@ import qualified Network.Wai as Wai
 import Network.Wai.Internal ( Response(ResponseBuilder) )
 import qualified Network.Wai.Handler.Warp as Warp
 
-import           Text.Blaze.Html5 as H
-import           Text.Blaze.Html5.Attributes as A hiding (id)
-import           Text.Blaze.Html.Renderer.String
+-- import           Text.Blaze.Html5 as H
+-- import           Text.Blaze.Html5.Attributes as A hiding (id)
+-- import           Text.Blaze.Html.Renderer.String
 
 import           Control.Monad
 import qualified Control.Monad.State as MS
@@ -34,32 +35,37 @@ import           Data.String (fromString)
 -- get a counter working
 --data
 
-data Attributex
-  = OnClick
+newtype Attributex
+  = OnClick String
   deriving Show
 
-type Tagx = String
+type Tag = String
 
-data Htmlx =
-  Htmlx Tagx [Attributex] [Htmlx]
+data Html
+  = Html Tag [Attributex] [Html]
   | Text String
-  deriving Show
+  | XComponent (forall a b. Component a b)
 
-textx = Text
+renderHtml :: Html -> LazyText.Text
+renderHtml (Html tag attrs html) =
+  "<" <> fromString tag <> ">"
+  <> foldr (<>) "" (fmap renderHtml html)
+  <> "</" <> fromString tag <> ">"
+renderHtml (Text str) = fromString str
 
-test = Htmlx "p" [] [textx "", Htmlx "x" [] [textx "hey"]]
 
+text = Text
 
 data Component state messages = Component
   { initialize :: state
   , handlers   :: state -> messages -> state
-  , render     :: state -> Htmlx
+  , render     :: state -> Html
   }
 
 defaultComponent = Component
   { initialize = id
   , handlers   = const
-  , render     = \state -> Htmlx "p" [] [textx "default"]
+  , render     = \state -> Html "p" [] [text "default"]
   }
 
 --
@@ -76,7 +82,12 @@ counter = defaultComponent
       case message of
         "increment" -> state { count = count state + 1 }
         "decrement" -> state { count = count state - 1 }
-  , render = \state -> Htmlx "p" [] [textx ("count: " <> show (count state))]
+  , render = \state ->
+      Html "div" []
+      [ Html "div" [OnClick "increment"] [text "increment"]
+      , text ("count: " <> show (count state))
+      , Html "div" [OnClick "decrement"] [text "decrement"]
+      ]
   }
 --
 -- End
@@ -95,11 +106,6 @@ run routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions webSocketHandler requestHandler
 
--- | Render some Blaze Html
-blaze :: Html -> LazyText.Text
-blaze h = LazyText.pack $ renderHtml h
-
-websocketScript :: Text
 websocketScript = [r|
   function connect() {
     var ws = new WebSocket("ws://localhost:8001");
@@ -120,21 +126,30 @@ websocketScript = [r|
     window.onbeforeunload = evt => {
       socket.close();
     };
-    global.ws = ws;
+
+    window.ws = ws;
   }
   connect();
 |]
 
-page = docTypeHtml $ do
-  H.head $ do
-    H.title "Natural numbers"
-    script $ toHtml websocketScript
-  body $ do
-    p "A list of natural numbers:"
+wrapHtml :: LazyText.Text -> LazyText.Text
+wrapHtml body =
+  "<html><head>"
+  <> "<script>" <> websocketScript <> "</script>"
+  <> "</head><body>"<> body <> "</body></html>"
+
+-- page = docTypeHtml $ do
+--   H.head $ do
+--     H.title "Natural numbers"
+--     script $ toHtml websocketScript
+--   body $ do
+--     p "A list of natural numbers:"
+
+runCounter = run counter
 
 renderComponent :: Component a b -> LazyText.Text
 renderComponent Component{ render, initialize } =
-  fromString . show $ render initialize
+  renderHtml $ render initialize
 
 requestHandler :: Component a b -> IO Wai.Application
 requestHandler routes =
@@ -142,7 +157,7 @@ requestHandler routes =
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    Sc.get "/" $ Sc.html $ renderComponent routes
+    Sc.get "/" $ Sc.html $ wrapHtml $ renderComponent routes
 
 webSocketHandler :: WS.ServerApp
 webSocketHandler pending = do
