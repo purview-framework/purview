@@ -2,7 +2,7 @@
 
 An experiment to see how haskell can work with the new HOT TREND of sending updated HTML over websockets instead of silly old things like "APIs".  What front end?
 
-The main library, that doesn't really do anything fancy yet, is in `src/Lib.hs`.  It's just replacing the entirety of the html each time.
+The main library, that doesn't really do anything fancy yet, is in `src/Lib.hs`.  It's just replacing the entirety of the html each time it recieves an event from the front end.
 
 Tested with artillery with 1000 users doing two requests (the increment & decrement below) and it didn't freak out, but 5000 certainly killed it.  It got about 200 req/s, which while not terrible for doing very little besides slapping some things together, I'd like to see how high it can get.  That only got the cheapest digital ocean vps to 7% CPU and used "fuck-all" ram so I'm not sure what's killing it.  I might have to do actual programming.  The response time is about 30 ms which is acceptable for an FPS counter.
 
