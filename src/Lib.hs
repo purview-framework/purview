@@ -4,10 +4,9 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib
-    ( run
-    ) where
+module Lib where
 
+import Prelude hiding (div)
 import qualified Web.Scotty as Sc
 import           Data.Text (Text)
 import qualified Data.Text.Lazy as LazyText
@@ -18,10 +17,6 @@ import qualified Network.Wai as Wai
 import Network.Wai.Internal ( Response(ResponseBuilder) )
 import qualified Network.Wai.Handler.Warp as Warp
 
--- import           Text.Blaze.Html5 as H
--- import           Text.Blaze.Html5.Attributes as A hiding (id)
--- import           Text.Blaze.Html.Renderer.String
-
 import           Control.Monad
 import qualified Control.Monad.State as MS
 import           Control.Concurrent
@@ -29,12 +24,6 @@ import           Text.RawString.QQ (r)
 import           Data.Aeson
 import           GHC.Generics
 import           Data.String (fromString)
-
--- kind [attr] [more]
-
--- goal:
--- get a counter working
---data
 
 newtype Attribute
   = OnClick String
@@ -45,7 +34,7 @@ type Tag = String
 data Html
   = Html Tag [Attribute] [Html]
   | Text String
-  | XComponent (forall a b. Component a b)
+  | XComponent (forall a b. Component a b) -- haven't tested this out yet
 
 renderAttributes :: [Attribute] -> LazyText.Text
 renderAttributes = foldr handle ""
@@ -60,7 +49,13 @@ renderHtml (Html tag attrs html) =
 renderHtml (Text str) = fromString str
 
 text = Text
+html = Html
+onClick = OnClick
+div = Html "div"
 
+--
+-- How the user can define components
+--
 data Component state messages = Component
   { initialize :: state
   , handlers   :: state -> messages -> state
@@ -74,35 +69,14 @@ defaultComponent = Component
   }
 
 --
--- My app
+-- Handling for connecting, sending events, and replacing html
 --
-newtype Counter = Counter
-  { count :: Int } deriving Show
-
-defaultCounterState = Counter { count = 0 }
-
-counter = defaultComponent
-  { initialize = defaultCounterState
-  , handlers = \state message ->
-      case message of
-        "increment" -> state { count = count state + 1 }
-        "decrement" -> state { count = count state - 1 }
-  , render = \state ->
-      Html "div" []
-      [ Html "div" [OnClick "increment"] [text "increment"]
-      , text ("count: " <> show (count state))
-      , Html "div" [OnClick "decrement"] [text "decrement"]
-      ]
-  }
+-- For now it's nothing fancy with a single event binding on the
+-- top level <html> element, which I copied from phoenix live view.
 --
--- End
+-- Definitely easier than dealing with binding/unbinding when updating
+-- the html.
 --
-
--- data Route a b  = Route
---   { location :: String
---   , component :: Component a b
---   }
-
 websocketScript = [r|
   function connect() {
     var ws = new WebSocket("ws://localhost:8001");
@@ -117,6 +91,7 @@ websocketScript = [r|
       console.log(JSON.parse( m ));
       var event = JSON.parse(evt.data);
       if (event.event === "setHtml") {
+        // cool enough for now
         document.body.innerHTML = event.message;
       }
     };
@@ -152,8 +127,6 @@ wrapHtml body =
   <> "<script>" <> websocketScript <> "</script>"
   <> "</head><body>"<> body <> "</body></html>"
 
-runCounter = run counter
-
 renderComponent :: Component a b -> LazyText.Text
 renderComponent Component{ render, initialize } =
   renderHtml $ render initialize
@@ -183,26 +156,41 @@ data Event = Event
 instance FromJSON Event where
 instance ToJSON Event where
 
+--
+-- This is the main event loop of handling messages from the websocket
+--
+-- pretty much just get a message, then run the message via the component
+-- handler, and then send the "setHtml" back downstream to tell it to replace
+-- the html with the new.
+--
+looper conn component = do
+  msg <- WS.receiveData conn
+
+  let event = (decode msg :: Maybe Event)
+      newComponent = case event of
+        Nothing -> component
+        Just event ->
+          let
+            newState = handlers component (initialize component) (message event)
+          in
+            component { initialize = newState }
+
+      newHtml = renderComponent newComponent
+
+  -- print $ ("msg> " :: Text) <> fromString (show event)
+
+  WS.sendTextData
+    conn
+    (encode $ Event { event = "setHtml", message = LazyText.unpack newHtml })
+
+  looper conn newComponent
+
+
 webSocketHandler :: Component a String -> WS.ServerApp
 webSocketHandler component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
 
   WS.withPingThread conn 30 (pure ()) $ do
-    forever $ do
-      msg <- WS.receiveData conn
-
-      let event = (decode msg :: Maybe Event)
-          newHtml = case event of
-            Nothing -> renderComponent component
-            Just event ->
-              let newState = (handlers component) (initialize component) (message event)
-              in renderComponent (component { initialize = newState })
-
-      print $ ("msg> " :: Text) <> fromString (show event)
-
-      WS.sendTextData
-        conn
-        (encode $ Event { event = "setHtml", message = LazyText.unpack newHtml })
-
-      -- threadDelay $ 1 * 1000000
+    putStrLn "ws connected"
+    looper conn component

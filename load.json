@@ -1,0 +1,15 @@
+config:
+  target: "ws://157.230.88.154:8001"
+  phases:
+    - duration: 10
+      arrivalRate: 100
+  ws:
+    # Ignore SSL certificate errors
+    # - useful in *development* with self-signed certs
+    rejectUnauthorized: false
+scenarios:
+  - engine: "ws"
+    flow:
+      - send: "{ \"event\": \"hello\", \"message\" : \"increment\" }"
+      - think: 1
+      - send: "{ \"event\": \"hello\", \"message\" : \"decrement\" }"
