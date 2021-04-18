@@ -1,6 +1,6 @@
 # bridge
 
-An experiment to see how haskell can work with the new HOT TREND of sending updated HTML over websockets instead of silly old things like "APIs".  What front end?
+An experiment to see how haskell can work with the new HOT TREND of sending updated HTML over websockets instead of silly old things like "using APIs".  What front end?
 
 The main library, that doesn't really do anything fancy yet, is in `src/Lib.hs`.  It's just replacing the entirety of the html each time it recieves an event from the front end.
 
