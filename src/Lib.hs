@@ -98,18 +98,10 @@ counter = defaultComponent
 -- End
 --
 
-data Route a b  = Route
-  { location :: String
-  , component :: Component a b
-  }
-
-run :: Component a b -> IO ()
-run routes = do
-  let port = 8001
-  let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler <- requestHandler routes
-  Warp.runSettings settings
-    $ WaiWs.websocketsOr WS.defaultConnectionOptions webSocketHandler requestHandler
+-- data Route a b  = Route
+--   { location :: String
+--   , component :: Component a b
+--   }
 
 websocketScript = [r|
   function connect() {
@@ -122,6 +114,11 @@ websocketScript = [r|
     ws.onmessage = evt => {
       var m = evt.data;
       console.log( m );
+      console.log(JSON.parse( m ));
+      var event = JSON.parse(evt.data);
+      if (event.event === "setHtml") {
+        document.body.innerHTML = event.message;
+      }
     };
 
     ws.onclose = function() {
@@ -161,7 +158,15 @@ renderComponent :: Component a b -> LazyText.Text
 renderComponent Component{ render, initialize } =
   renderHtml $ render initialize
 
-requestHandler :: Component a b -> IO Wai.Application
+run :: Component a String -> IO ()
+run routes = do
+  let port = 8001
+  let settings = Warp.setPort port Warp.defaultSettings
+  requestHandler <- requestHandler routes
+  Warp.runSettings settings
+    $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler routes) requestHandler
+
+requestHandler :: Component a String -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -176,20 +181,28 @@ data Event = Event
   } deriving (Generic, Show)
 
 instance FromJSON Event where
+instance ToJSON Event where
 
-webSocketHandler :: WS.ServerApp
-webSocketHandler pending = do
+webSocketHandler :: Component a String -> WS.ServerApp
+webSocketHandler component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
 
   WS.withPingThread conn 30 (pure ()) $ do
-    -- msg <- WS.receiveData conn
-    -- print $ ("msg> " :: Text) <> msg
-    -- WS.sendTextData conn $ ("initial> " :: Text) <> msg
-
     forever $ do
       msg <- WS.receiveData conn
-      let x = (decode msg :: Maybe Event)
-      print $ ("msg> " :: Text) <> fromString (show x)
-      -- WS.sendTextData conn ("loop data" :: Text)
+
+      let event = (decode msg :: Maybe Event)
+          newHtml = case event of
+            Nothing -> renderComponent component
+            Just event ->
+              let newState = (handlers component) (initialize component) (message event)
+              in renderComponent (component { initialize = newState })
+
+      print $ ("msg> " :: Text) <> fromString (show event)
+
+      WS.sendTextData
+        conn
+        (encode $ Event { event = "setHtml", message = LazyText.unpack newHtml })
+
       -- threadDelay $ 1 * 1000000
