@@ -181,10 +181,12 @@ webSocketHandler pending = do
   conn <- WS.acceptRequest pending
 
   WS.withPingThread conn 30 (pure ()) $ do
-    msg <- WS.receiveData conn
-    print $ ("msg> " :: Text) <> msg
-    WS.sendTextData conn $ ("initial> " :: Text) <> msg
+    -- msg <- WS.receiveData conn
+    -- print $ ("msg> " :: Text) <> msg
+    -- WS.sendTextData conn $ ("initial> " :: Text) <> msg
 
     forever $ do
-      WS.sendTextData conn ("loop data" :: Text)
-      threadDelay $ 1 * 1000000
+      msg <- WS.receiveData conn
+      print $ ("msg> " :: Text) <> msg
+      -- WS.sendTextData conn ("loop data" :: Text)
+      -- threadDelay $ 1 * 1000000
