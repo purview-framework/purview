@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -154,13 +155,6 @@ wrapHtml body =
   <> "<script>" <> websocketScript <> "</script>"
   <> "</head><body>"<> body <> "</body></html>"
 
--- page = docTypeHtml $ do
---   H.head $ do
---     H.title "Natural numbers"
---     script $ toHtml websocketScript
---   body $ do
---     p "A list of natural numbers:"
-
 runCounter = run counter
 
 renderComponent :: Component a b -> LazyText.Text
@@ -175,6 +169,14 @@ requestHandler routes =
 
     Sc.get "/" $ Sc.html $ wrapHtml $ renderComponent routes
 
+
+data Event = Event
+  { event :: String
+  , message :: String
+  } deriving (Generic, Show)
+
+instance FromJSON Event where
+
 webSocketHandler :: WS.ServerApp
 webSocketHandler pending = do
   putStrLn "ws connected"
@@ -187,6 +189,7 @@ webSocketHandler pending = do
 
     forever $ do
       msg <- WS.receiveData conn
-      print $ ("msg> " :: Text) <> msg
+      let x = (decode msg :: Maybe Event)
+      print $ ("msg> " :: Text) <> fromString (show x)
       -- WS.sendTextData conn ("loop data" :: Text)
       -- threadDelay $ 1 * 1000000
