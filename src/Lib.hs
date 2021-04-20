@@ -131,7 +131,7 @@ renderComponent :: Component a b -> LazyText.Text
 renderComponent Component{ render, initialize } =
   renderHtml $ render initialize
 
-run :: Component a String -> IO ()
+run :: Component a Text -> IO ()
 run routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -139,7 +139,7 @@ run routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler routes) requestHandler
 
-requestHandler :: Component a String -> IO Wai.Application
+requestHandler :: Component a Text -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -149,8 +149,8 @@ requestHandler routes =
 
 
 data Event = Event
-  { event :: String
-  , message :: String
+  { event :: Text
+  , message :: Text
   } deriving (Generic, Show)
 
 instance FromJSON Event where
@@ -181,12 +181,12 @@ looper conn component = do
 
   WS.sendTextData
     conn
-    (encode $ Event { event = "setHtml", message = LazyText.unpack newHtml })
+    (encode $ Event { event = "setHtml", message = LazyText.toStrict newHtml })
 
   looper conn newComponent
 
 
-webSocketHandler :: Component a String -> WS.ServerApp
+webSocketHandler :: Component a Text -> WS.ServerApp
 webSocketHandler component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
