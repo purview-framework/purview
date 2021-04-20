@@ -36,12 +36,12 @@ data Html
   | Text String
   | XComponent (forall a b. Component a b) -- haven't tested this out yet
 
-renderAttributes :: [Attribute] -> LazyText.Text
+renderAttributes :: [Attribute] -> Text
 renderAttributes = foldr handle ""
   where
     handle (OnClick str) rest = "bridge-click=\""<> fromString str <> "\"" <> rest
 
-renderHtml :: Html -> LazyText.Text
+renderHtml :: Html -> Text
 renderHtml (Html tag attrs html) =
   "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
   <> foldr (<>) "" (fmap renderHtml html)
@@ -121,13 +121,13 @@ websocketScript = [r|
   bindEvents();
 |]
 
-wrapHtml :: LazyText.Text -> LazyText.Text
+wrapHtml :: Text -> Text
 wrapHtml body =
   "<html><head>"
   <> "<script>" <> websocketScript <> "</script>"
   <> "</head><body>"<> body <> "</body></html>"
 
-renderComponent :: Component a b -> LazyText.Text
+renderComponent :: Component a b -> Text
 renderComponent Component{ render, initialize } =
   renderHtml $ render initialize
 
@@ -145,7 +145,7 @@ requestHandler routes =
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    Sc.get "/" $ Sc.html $ wrapHtml $ renderComponent routes
+    Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ renderComponent routes
 
 
 data Event = Event
@@ -181,7 +181,7 @@ looper conn component = do
 
   WS.sendTextData
     conn
-    (encode $ Event { event = "setHtml", message = LazyText.toStrict newHtml })
+    (encode $ Event { event = "setHtml", message = newHtml })
 
   looper conn newComponent
 
