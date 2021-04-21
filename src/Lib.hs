@@ -57,15 +57,15 @@ div = Html "div"
 -- How the user can define components
 --
 data Component state messages = Component
-  { initialize :: state
+  { state      :: state
   , handlers   :: state -> messages -> state
   , render     :: state -> Html
   }
 
 defaultComponent = Component
-  { initialize = id
-  , handlers   = const
-  , render     = \state -> Html "p" [] [text "default"]
+  { state    = id
+  , handlers = const
+  , render   = \state -> Html "p" [] [text "default"]
   }
 
 --
@@ -123,13 +123,16 @@ websocketScript = [r|
 
 wrapHtml :: Text -> Text
 wrapHtml body =
-  "<html><head>"
+  "<html>"
+  <> "<head>"
   <> "<script>" <> websocketScript <> "</script>"
-  <> "</head><body>"<> body <> "</body></html>"
+  <> "</head>"
+  <> "<body>"<> body <> "</body>"
+  <> "</html>"
 
 renderComponent :: Component a b -> Text
-renderComponent Component{ render, initialize } =
-  renderHtml $ render initialize
+renderComponent Component{ render, state } =
+  renderHtml $ render state
 
 run :: Component a Text -> IO ()
 run routes = do
@@ -171,9 +174,9 @@ looper conn component = do
         Nothing -> component
         Just event ->
           let
-            newState = handlers component (initialize component) (message event)
+            newState = handlers component (state component) (message event)
           in
-            component { initialize = newState }
+            component { state = newState }
 
       newHtml = renderComponent newComponent
 

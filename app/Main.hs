@@ -24,7 +24,7 @@ render' state =
     ]
 
 counter = Component
-  { initialize = defaultCounterState
+  { state = defaultCounterState
   , handlers = handlers'
   , render = render'
   }
