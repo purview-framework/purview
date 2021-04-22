@@ -5,6 +5,7 @@ module Main where
 
 import System.Process
 import System.IO
+import System.IO.Error
 
 import GHC.Generics
 
@@ -73,6 +74,12 @@ instance ToJSON ServerMsg where
 catchAny :: IO a -> (SomeException -> IO a) -> IO a
 catchAny = Control.Exception.catch
 
+bool :: (e -> Bool) -> (e -> Maybe e)
+bool f x = if f x then Just x else Nothing
+
+tryBool :: Exception e => (e -> Bool) -> IO a -> IO (Either e a)
+tryBool f = tryJust (bool f)
+
 runServer :: IO ()
 runServer = do
   (hin, hout, err) <- mkProcess ""
@@ -81,40 +88,19 @@ runServer = do
   hSetBuffering err LineBuffering
   hSetBuffering hout LineBuffering
 
-  void $ forkIO $ do
-    threadDelay 3000000
+  void $ forkIO $ forever $ do
+    threadDelay 10000000
     print "sending it"
     hPutStrLn hin ":?"
 
   forever $ do
-    has <- catchAny (hWaitForInput hout 10)
-      $ \e -> do
-        print "eh"
-        pure False
-    case has of
-      False -> do
+    ready <- tryBool isEOFError $ hReady hout
+    case ready of
+      Right True -> do
         print =<< hGetLine hout
-        hPutStrLn hin ":r"
-      True -> do
-        print =<< hGetLine hout
-        pure ()
-    print =<< hGetLine err
-    print . show $ has
---    catchAny
---      (print =<< hGetLine hout)
---      $ \e -> do
---        -- hPutStrLn hin ":r"
---        print "err"
+      _ -> pure ()
 
---    hIsOpen err >>= print
---    hIsOpen hout >>= print
---    hIsOpen hin >>= print
-
-    threadDelay 100000
-  threadDelay 50000000
-    -- print =<< hGetLine err
-  -- print err
-  -- print hout
+    threadDelay 50000
 
 mkProcess :: FilePath -> IO (Handle, Handle, Handle)
 mkProcess tsserverLocation = do
