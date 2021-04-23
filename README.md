@@ -61,3 +61,10 @@ It's not awful, but stringly typed messages are gross and a sin against SPJ.
 
 
 Since it's still tiny it could go anywhere.  CSS styling the components?  Allow adding JS to optimistically update things that might fail?  The sky's the limit.
+
+### Installation
+
+1. Install [stack](https://docs.haskellstack.org/en/stable/README/)
+2. `stack build`
+3. `stack exec bridge-exe` for just running the example above
+4. `stack exec bridge` for the ~ experimental ~ and not-currently working repl
