@@ -53,6 +53,7 @@ It's not awful, but stringly typed messages are gross and a sin against SPJ.
 * Actually diff the html (though who knows, sending the entire html every time might be smaller than your API request currently)
 * Development environment (hot reloading, printing messages to/from the server)
 * Allowing CSS + JS snippets in components
+* Tests
 * Performance
 * Type the messages or die trying
 * Collect ideas
