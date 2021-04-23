@@ -25,8 +25,8 @@ import Data.Maybe (fromJust)
 
 import Lib
 
-data ServerMsg = ServerMsg {
-  name :: String
+data ServerMsg = ServerMsg
+  { name :: String
   , code :: String
   } deriving Generic
 
@@ -71,28 +71,23 @@ instance ToJSON ServerMsg where
 
 -- runServer :: (TChan ServerMsg) -> IO ()
 
-catchAny :: IO a -> (SomeException -> IO a) -> IO a
-catchAny = Control.Exception.catch
-
 bool :: (e -> Bool) -> (e -> Maybe e)
 bool f x = if f x then Just x else Nothing
 
 tryBool :: Exception e => (e -> Bool) -> IO a -> IO (Either e a)
 tryBool f = tryJust (bool f)
 
-runServer :: IO ()
-runServer = do
+runServer :: TChan String -> IO ()
+runServer messages = do
   (hin, hout, err) <- mkProcess ""
 
-  hSetBuffering hin LineBuffering
-  hSetBuffering err LineBuffering
-  hSetBuffering hout LineBuffering
+  -- send things to stdin
+  forkIO $ forever $ do
+    message <- atomically $ readTChan messages
+    print $ "Sending: " <> message
+    hPutStrLn hin message
 
-  void $ forkIO $ forever $ do
-    threadDelay 10000000
-    print "sending it"
-    hPutStrLn hin ":?"
-
+  -- read output
   forever $ do
     ready <- tryBool isEOFError $ hReady hout
     case ready of
@@ -104,36 +99,25 @@ runServer = do
 
 mkProcess :: FilePath -> IO (Handle, Handle, Handle)
 mkProcess tsserverLocation = do
---  (hin, hout, err, pid) <-
---    runInteractiveProcess "stack"
---        [ "ghci"
---        , "--main-is"
---        , "bridge:exe:bridge"
-----        , "--ghci-options"
-----        , "\"main-is bridge:exe:bridge\""
-----        , "--main-is bridge:exe:bridge"
---        -- , "bridge:exe:bridge"
---        ]
---        Nothing
---        Nothing
+  (hin, hout, err, pid) <- createProcess_ "ghci"
+    (proc "stack"
+          [ "ghci"
+          , "--main-is"
+          , "bridge:exe:bridge-exe"
+          ])
+    { std_in  = CreatePipe
+    , std_out = CreatePipe
+    , std_err = CreatePipe
+    , create_group = True
+    }
 
-  (hin, hout, err, pid) <-
-    createProcess_ "ghci" (proc "stack"
-                            [ "ghci"
-                            , "--main-is"
-                            , "bridge:exe:bridge"
---                            , "--ghci-options"
---                            , "\"main-is bridge:exe:bridge\""
---                            , "--main-is"
---                            , "bridge:exe:bridge"
-                            -- , "--ghci-options \"main-is bridge:exe:bridge\" --main-is bridge:exe:bridge"
-                            ])
-        { std_in  = CreatePipe
-        , std_out = CreatePipe
-        , std_err = CreatePipe
-        , create_group = True }
+  let (hin', hout', err') = (fromJust hin, fromJust hout, fromJust err)
 
-  return (fromJust hin, fromJust hout, fromJust err)
+  hSetBuffering hin' LineBuffering
+  hSetBuffering err' LineBuffering
+  hSetBuffering hout' LineBuffering
+
+  return (hin', hout', err')
 
 --
 -- Files
@@ -164,17 +148,13 @@ data ReplEvent =
   Command String
   | Code String
 
-repl :: (TChan ReplEvent) -> IO ()
+repl :: TChan ReplEvent -> IO ()
 repl up = forever $ do
   s <- getLine
   case s of
     ":q" -> atomically $ writeTChan up (Command ":q") -- write msg kill
     _    -> atomically $ writeTChan up (Code s)
   -- putStrLn $ "> " <> s
-
---
--- Connect the dots
---
 
 -- handleCode :: String -> ServerMsg
 -- handleCode raw =
@@ -188,12 +168,34 @@ repl up = forever $ do
 --       , code=compiled'
 --     }
 
-main = runServer
+--
+-- Connect the dots
+--
+setupCommand = "import Control.Concurrent"
+startCommand = "server <- forkIO $ main"
+endCommand   = "killThread server"
 
--- main :: IO ()
--- main = do
---   -- setup the channels
---   fromRepl <- atomically (newTChan :: STM (TChan ReplEvent))
+main :: IO ()
+main = do
+  toServer <- atomically (newTChan :: STM (TChan String))
+
+  void . forkIO $ runServer toServer
+
+  fromRepl <- atomically (newTChan :: STM (TChan ReplEvent))
+  threadDelay 10000000
+
+  threadDelay 1000000
+  print "setup"
+  atomically $ writeTChan toServer setupCommand
+
+  threadDelay 1000000
+  print "start"
+  atomically $ writeTChan toServer startCommand
+
+  threadDelay 1000000
+  print "kill"
+  atomically $ writeTChan toServer endCommand
+
 --   toRepl   <- atomically (newTChan :: STM (TChan String))
 --
 --   fromFileWatcher <- atomically (newTChan :: STM (TChan String))
@@ -204,16 +206,17 @@ main = runServer
 --   -- run the stuff
 --   fileWatchPid <- forkIO runFileWatcher
 --   -- serverPid    <- forkIO (runServer toServer)
---   replPid      <- forkIO (repl fromRepl)
---
---   forever $ do
---     msg <- atomically $ readTChan fromRepl
---     case msg of
---       Command ":q" -> do
---         mapM_ killThread [fileWatchPid, replPid]
---         -- mapM_ killThread [fileWatchPid, serverPid, replPid]
---         putStrLn "-- shutdown --"
---       Code s -> do
---         putStrLn $ "code " <> s
---         -- atomically $ writeTChan toServer (handleCode s)
---         pure ()
+
+  replPid <- forkIO (repl fromRepl)
+
+  forever $ do
+    msg <- atomically $ readTChan fromRepl
+    case msg of
+      Command ":q" -> do
+        -- mapM_ killThread [fileWatchPid, replPid]
+        -- mapM_ killThread [fileWatchPid, serverPid, replPid]
+        putStrLn "-- shutdown --"
+      Code s -> do
+        putStrLn $ "code " <> s
+        -- atomically $ writeTChan toServer (handleCode s)
+        pure ()
