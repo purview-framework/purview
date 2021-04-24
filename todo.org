@@ -1,0 +1,26 @@
+#+TITLE: Todo
+
+* Developer experience
+** See messages the server is receiving and sending
+** Send a message from the repl
+** See state from the repl
+** There may be a way to get hot reloading faster
+Seems kind of like it takes a moment for firefox to realize that the
+websocket connect has been severed, maybe send a message from the server
+to the frontend to retry connecting with a tiny delay?  Freakishly fast
+hot reloading seems in grasp
+
+* Building a weather forecast display
+This will shake out how to use an API,
+https://api.weather.gov/gridpoints/TOP/31,80/forecast
+
+* Building a registration form
+This will help provide the building blocks for the checkout
+
+** Sending messages on blur
+** Handling a form submit
+
+* Building a checkout
+It should be possible to build a fully functioning, complicated checkout
+process with this library.  Google maps for address autocomplete, stripe
+for the payment processor.
