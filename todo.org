@@ -22,6 +22,8 @@ render :: State -> m Html ?
 
 I super wanna avoid prescribing the "m"
 
+user provided run function?
+
 * Building a registration form
 This will help provide the building blocks for the checkout
 
