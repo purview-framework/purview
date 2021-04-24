@@ -14,7 +14,8 @@ import Control.Monad.STM
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
 import Control.Exception
-import Data.Text
+import Data.Text hiding (isInfixOf)
+import Data.List (isInfixOf)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 
 -- file watching
@@ -35,42 +36,6 @@ instance ToJSON ServerMsg where
 --
 -- Server
 --
--- wsapp :: TChan ServerMsg -> WS.ServerApp
--- wsapp fromControl pending = do
---   putStrLn "ws connected"
---   conn <- WS.acceptRequest pending
---   WS.forkPingThread conn 30
---
---   (msg :: Txt.Text) <- WS.receiveData conn
---   WS.sendTextData conn $ ("initial> " :: Txt.Text) <> msg
---
---   forever $ do
---     msg <- atomically $ readTChan fromControl
---     WS.sendTextData conn $ (decodeUtf8 (encode msg))
---     threadDelay $ 1 * 1000000
-
--- scottyApp :: IO Wai.Application
--- scottyApp =
---   Sc.scottyApp $ do
---     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
---     --Sc.middleware S.logStdoutDev
---
---     Sc.get "/" $
---       Sc.file "./repl/index.html"
-
--- runServer :: (TChan ServerMsg) -> IO ()
--- runServer fromControl = do
---   let port = 8000
---   let settings = Warp.setPort port Warp.defaultSettings
---   sapp <- scottyApp
---   Warp.runSettings settings
---     $ WaiWs.websocketsOr
---     WS.defaultConnectionOptions
---     (wsapp fromControl)
---     sapp
-
--- runServer :: (TChan ServerMsg) -> IO ()
-
 bool :: (e -> Bool) -> (e -> Maybe e)
 bool f x = if f x then Just x else Nothing
 
@@ -91,8 +56,8 @@ runServer messages = do
   forever $ do
     ready <- tryBool isEOFError $ hReady hout
     case ready of
-      Right True -> do
-        print =<< hGetLine hout
+      Right True ->
+        hGetLine hout >>= print
       _ -> pure ()
 
     threadDelay 50000
@@ -115,7 +80,7 @@ mkProcess tsserverLocation = do
 
   hSetBuffering hin' LineBuffering
   hSetBuffering err' LineBuffering
-  hSetBuffering hout' LineBuffering
+  -- hSetBuffering hout' LineBuffering
 
   return (hin', hout', err')
 
@@ -164,19 +129,6 @@ repl up = forever $ do
   case s of
     ":q" -> atomically $ writeTChan up (Command ":q") -- write msg kill
     _    -> atomically $ writeTChan up (Code s)
-  -- putStrLn $ "> " <> s
-
--- handleCode :: String -> ServerMsg
--- handleCode raw =
---   let
---     syntax'        = syntax . (clex 0 0) $ raw
---     compiled'      = compile syntax'
---     (fnName, _, _) = head syntax'
---   in
---     ServerMsg {
---       name=fnName
---       , code=compiled'
---     }
 
 --
 -- Connect the dots
@@ -227,11 +179,12 @@ main = do
         atomically $ writeTChan toServer endCommand
         print "Server Ended"
 
-        threadDelay 1000000
+        -- threadDelay 1000000
         atomically $ writeTChan toServer reloadCommand
         print "Server Reloaded"
 
-        threadDelay 1000000
+
+        -- threadDelay 1000000
         atomically $ writeTChan toServer startCommand
         print "Server Started"
       _ -> pure ()

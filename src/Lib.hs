@@ -78,11 +78,14 @@ defaultComponent = Component
 -- the html.
 --
 websocketScript = [r|
+  var timeoutTime = -50;
   function connect() {
+    timeoutTime += 50;
     var ws = new WebSocket("ws://localhost:8001");
 
     ws.onopen = () => {
       ws.send("initial from js");
+      timeoutTime = 0;
     };
 
     ws.onmessage = evt => {
@@ -100,7 +103,7 @@ websocketScript = [r|
       setTimeout(function() {
         console.debug("Attempting to reconnect");
         connect();
-      }, 1000);
+      }, timeoutTime);
     };
 
     window.onbeforeunload = evt => {
