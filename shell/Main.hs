@@ -122,23 +122,33 @@ mkProcess tsserverLocation = do
 --
 -- Files
 --
-handleFileEvent :: EventChannel -> IO ()
-handleFileEvent event = do
-  evt <- readChan event
-  putStrLn . show $ evt
-  handleFileEvent event
+isEventRelevant :: System.FSNotify.Event -> Bool
+isEventRelevant (Modified file _ _) = True
+isEventRelevant _                   = False
 
-runFileWatcher :: IO ()
-runFileWatcher = do
+handleFileEvent :: TChan String -> EventChannel -> IO ()
+handleFileEvent up eventChannel = do
+  evt <- readChan eventChannel
+
+  if isEventRelevant evt then
+    atomically $ writeTChan up "reload"
+  else
+    pure ()
+
+  handleFileEvent up eventChannel
+
+runFileWatcher :: TChan String -> IO ()
+runFileWatcher up = do
   fileEventChan <- newChan
-  forkIO $ handleFileEvent fileEventChan
+  forkIO $ handleFileEvent up fileEventChan
+
   withManager $ \mgr -> do
-    watchDirChan
+    watchTreeChan
       mgr
       "./"
       (const True)
       fileEventChan
-      -- print
+
     forever $ threadDelay 1000000
 
 --
@@ -171,9 +181,10 @@ repl up = forever $ do
 --
 -- Connect the dots
 --
-setupCommand = "import Control.Concurrent"
-startCommand = "server <- forkIO $ main"
-endCommand   = "killThread server"
+setupCommand  = "import Control.Concurrent"
+startCommand  = "server <- forkIO $ main"
+endCommand    = "killThread server"
+reloadCommand = ":r"
 
 main :: IO ()
 main = do
@@ -185,35 +196,51 @@ main = do
   threadDelay 10000000
 
   threadDelay 1000000
-  print "setup"
+  print "Setup Complete"
   atomically $ writeTChan toServer setupCommand
 
   threadDelay 1000000
-  print "start"
+  print "Server Coming Online"
   atomically $ writeTChan toServer startCommand
-
-  threadDelay 1000000
-  print "kill"
-  atomically $ writeTChan toServer endCommand
+--
+--  threadDelay 1000000
+--  print "kill"
+--  atomically $ writeTChan toServer endCommand
 
 --   toRepl   <- atomically (newTChan :: STM (TChan String))
 --
---   fromFileWatcher <- atomically (newTChan :: STM (TChan String))
+  fromFileWatcher <- atomically (newTChan :: STM (TChan String))
 --
 --   fromServer <- atomically (newTChan :: STM (TChan String))
 --   toServer   <- atomically (newTChan :: STM (TChan ServerMsg))
 --
 --   -- run the stuff
---   fileWatchPid <- forkIO runFileWatcher
+  fileWatchPid <- forkIO $ runFileWatcher fromFileWatcher
 --   -- serverPid    <- forkIO (runServer toServer)
 
   replPid <- forkIO (repl fromRepl)
+
+  fileWatchHandlerPid <- forkIO $ forever $ do
+    event <- atomically $ readTChan fromFileWatcher
+    case event of
+      "reload" -> do
+        atomically $ writeTChan toServer endCommand
+        print "Server Ended"
+
+        threadDelay 1000000
+        atomically $ writeTChan toServer reloadCommand
+        print "Server Reloaded"
+
+        threadDelay 1000000
+        atomically $ writeTChan toServer startCommand
+        print "Server Started"
+      _ -> pure ()
 
   forever $ do
     msg <- atomically $ readTChan fromRepl
     case msg of
       Command ":q" -> do
-        -- mapM_ killThread [fileWatchPid, replPid]
+        mapM_ killThread [fileWatchPid, fileWatchHandlerPid, replPid]
         -- mapM_ killThread [fileWatchPid, serverPid, replPid]
         putStrLn "-- shutdown --"
       Code s -> do
