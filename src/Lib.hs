@@ -97,7 +97,10 @@ websocketScript = [r|
     };
 
     ws.onclose = function() {
-      alert("ws closed");
+      setTimeout(function() {
+        console.debug("Attempting to reconnect");
+        connect();
+      }, 1000);
     };
 
     window.onbeforeunload = evt => {
