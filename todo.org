@@ -14,13 +14,34 @@ hot reloading seems in grasp
 This will shake out how to use an API,
 https://api.weather.gov/gridpoints/TOP/31,80/forecast
 
+This will also figure out how components can send events
+to themselves hmm.
+
+handler :: Chan -> State -> m State ?
+render :: State -> m Html ?
+
+I super wanna avoid prescribing the "m"
+
 * Building a registration form
 This will help provide the building blocks for the checkout
 
 ** Sending messages on blur
 ** Handling a form submit
 
+* Localize the registration form
+Shake out a way of doing localization, the initial request
+should be passing in the url and putting it into some state so that we
+can do "localhost:8001/en-US" / "localhost:8001/es-MX" etc, put it into
+a partially applied fn (getTranslation :: Locale -> String -> String),
+put into an across-all-components monad (maybe?)
+
 * Building a checkout
 It should be possible to build a fully functioning, complicated checkout
 process with this library.  Google maps for address autocomplete, stripe
 for the payment processor.
+
+* Thoughts on event / state locality
+I'm a fan of the idea that there's only ever one handler for events
+
+We could collect all the handlers, and then run the event through all
+(I think this is what redux does internally), but is that good?
