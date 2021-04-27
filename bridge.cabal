@@ -57,6 +57,7 @@ executable bridge-exe
   build-depends:
                   base >=4.7 && <5
                 , bridge
+                , aeson
                 , mtl >= 2.2.2
                 , text >= 1.2.4.1
                 , wai >= 3.2.3

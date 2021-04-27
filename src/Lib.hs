@@ -25,23 +25,23 @@ import           Data.Aeson
 import           GHC.Generics
 import           Data.String (fromString)
 
-newtype Attribute
-  = OnClick String
+newtype Attribute a
+  = OnClick a
   deriving Show
 
 type Tag = String
 
-data Html
-  = Html Tag [Attribute] [Html]
+data Html a
+  = Html Tag [Attribute a] [Html a]
   | Text String
   | XComponent (forall a b. Component a b) -- haven't tested this out yet
 
-renderAttributes :: [Attribute] -> Text
+renderAttributes :: Show a => [Attribute a] -> Text
 renderAttributes = foldr handle ""
   where
-    handle (OnClick str) rest = "bridge-click=\""<> fromString str <> "\"" <> rest
+    handle (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
 
-renderHtml :: Html -> Text
+renderHtml :: Show a => Html a -> Text
 renderHtml (Html tag attrs html) =
   "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
   <> foldr (<>) "" (fmap renderHtml html)
@@ -59,7 +59,7 @@ div = Html "div"
 data Component state messages = Component
   { state      :: state
   , handlers   :: state -> messages -> state
-  , render     :: state -> Html
+  , render     :: state -> Html messages
   }
 
 defaultComponent = Component
@@ -136,13 +136,13 @@ wrapHtml body =
   <> "<body>"<> body <> "</body>"
   <> "</html>"
 
-renderComponent :: Component a b -> Text
+renderComponent :: Show b => Component a b -> Text
 renderComponent Component{ render, state } =
   renderHtml $ render state
 
 type Log m = String -> m ()
 
-run :: Log IO -> Component a Text -> IO ()
+run :: (FromJSON b, Show b) => Log IO -> Component a b -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -150,7 +150,7 @@ run log routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
 
-requestHandler :: Component a Text -> IO Wai.Application
+requestHandler :: (FromJSON b, Show b) => Component a b -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -159,13 +159,13 @@ requestHandler routes =
     Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ renderComponent routes
 
 
-data Event = Event
+data Event a = Event
   { event :: Text
-  , message :: Text
+  , message :: a
   } deriving (Generic, Show)
 
-instance FromJSON Event where
-instance ToJSON Event where
+instance FromJSON a => FromJSON (Event a) where
+instance ToJSON a => ToJSON (Event a) where
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -174,11 +174,12 @@ instance ToJSON Event where
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
+looper :: (FromJSON b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
-  let event = (decode msg :: Maybe Event)
+  let event = decode msg
       newComponent = case event of
         Nothing -> component
         Just event ->
@@ -198,7 +199,7 @@ looper log conn component = do
   looper log conn newComponent
 
 
-webSocketHandler :: Log IO -> Component a Text -> WS.ServerApp
+webSocketHandler :: (FromJSON b, Show b) => Log IO -> Component a b -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending

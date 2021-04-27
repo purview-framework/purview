@@ -1,26 +1,37 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prelude hiding (div)
-import Data.Text hiding (count)
-import Lib
+import           Prelude      hiding (div)
+import           Data.Text    hiding (count)
+import           Data.Aeson
+import           GHC.Generics
+import           Lib
 
 newtype State = State
   { count :: Int } deriving Show
 
 defaultCounterState = State { count = 0 }
 
-handlers' :: State -> Text -> State
-handlers' state message = case message of
-  "increment" -> state { count = count state + 1 }
-  "decrement" -> state { count = count state - 1 }
+data Action
+  = Increment
+  | Decrement
+  deriving (Generic, Eq, Show)
 
-render' :: State -> Html
+instance ToJSON Action where
+instance FromJSON Action where
+
+handlers' :: State -> Action -> State
+handlers' state message = case message of
+  Increment -> state { count = count state + 1 }
+  Decrement -> state { count = count state - 1 }
+
+render' :: State -> Html Action
 render' state =
   div []
-    [ div [ onClick "increment" ] [ text "increment" ]
+    [ div [ onClick Increment ] [ text "increment" ]
     , text ("count: " <> show (count state))
-    , div [ onClick "decrement" ] [ text "decrement" ]
+    , div [ onClick Decrement ] [ text "decrement" ]
     ]
 
 counter = Component
