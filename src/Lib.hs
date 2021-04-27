@@ -8,7 +8,7 @@ module Lib where
 
 import Prelude hiding (div)
 import qualified Web.Scotty as Sc
-import           Data.Text (Text)
+import           Data.Text (Text, pack)
 import qualified Data.Text.Lazy as LazyText
 import           Data.ByteString.Lazy.Char8 (unpack)
 import qualified Network.Wai.Middleware.Gzip as Sc
@@ -142,7 +142,7 @@ renderComponent Component{ render, state } =
 
 type Log m = String -> m ()
 
-run :: (FromJSON b, Show b) => Log IO -> Component a b -> IO ()
+run :: (Read b, Show b) => Log IO -> Component a b -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -150,7 +150,7 @@ run log routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
 
-requestHandler :: (FromJSON b, Show b) => Component a b -> IO Wai.Application
+requestHandler :: (Read b, Show b) => Component a b -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -164,8 +164,13 @@ data Event a = Event
   , message :: a
   } deriving (Generic, Show)
 
-instance FromJSON a => FromJSON (Event a) where
-instance ToJSON a => ToJSON (Event a) where
+instance Read a => FromJSON (Event a) where
+  parseJSON (Object o) =
+      Event <$> o .: "event" <*> (read <$> o .: "message")
+
+instance Show a => ToJSON (Event a) where
+  toJSON (Event event message) =
+    object ["event" .= event, "message" .= pack (read $ show message)]
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -174,7 +179,7 @@ instance ToJSON a => ToJSON (Event a) where
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: (FromJSON b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
+looper :: (Read b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
@@ -199,7 +204,7 @@ looper log conn component = do
   looper log conn newComponent
 
 
-webSocketHandler :: (FromJSON b, Show b) => Log IO -> Component a b -> WS.ServerApp
+webSocketHandler :: (Read b, Show b) => Log IO -> Component a b -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending

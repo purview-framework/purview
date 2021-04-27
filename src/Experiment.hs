@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 -- | AAAAAAAAAAAA
 
