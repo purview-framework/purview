@@ -22,7 +22,7 @@ handlers' state message = case message of
 
 render' :: State -> Html Action
 render' state =
-  div []
+  div [ style "font-size: 48px; margin: 0 auto;" ]
     [ div [ onClick Increment ] [ text "increment" ]
     , text ("count: " <> show (count state))
     , div [ onClick Decrement ] [ text "decrement" ]

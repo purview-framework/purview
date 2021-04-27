@@ -25,8 +25,9 @@ import           Data.Aeson
 import           GHC.Generics
 import           Data.String (fromString)
 
-newtype Attribute a
+data Attribute a
   = OnClick a
+  | Style Text
   deriving Show
 
 type Tag = String
@@ -40,6 +41,7 @@ renderAttributes :: Show a => [Attribute a] -> Text
 renderAttributes = foldr handle ""
   where
     handle (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
+    handle (Style str) rest = "style=\""<> str <> "\"" <> rest
 
 renderHtml :: Show a => Html a -> Text
 renderHtml (Html tag attrs html) =
@@ -51,6 +53,7 @@ renderHtml (Text str) = fromString str
 text = Text
 html = Html
 onClick = OnClick
+style = Style
 div = Html "div"
 
 --
