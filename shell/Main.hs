@@ -49,7 +49,7 @@ runServer messages = do
   -- send things to stdin
   forkIO $ forever $ do
     message <- atomically $ readTChan messages
-    print $ "Sending: " <> message
+    putStrLn $ "ghci> " <> message
     hPutStrLn hin message
 
   -- read output
@@ -148,11 +148,11 @@ main = do
   threadDelay 10000000
 
   threadDelay 1000000
-  print "Setup Complete"
+  putStrLn "--- Setup Complete ---"
   atomically $ writeTChan toServer setupCommand
 
   threadDelay 1000000
-  print "Server Coming Online"
+  putStrLn "--- Server Coming Online ---"
   atomically $ writeTChan toServer startCommand
 --
 --  threadDelay 1000000
@@ -177,16 +177,13 @@ main = do
     case event of
       "reload" -> do
         atomically $ writeTChan toServer endCommand
-        print "Server Ended"
+        putStrLn "\x1b[31mServer Ended\x1b[0m"
 
-        -- threadDelay 1000000
         atomically $ writeTChan toServer reloadCommand
-        print "Server Reloaded"
+        putStrLn "\x1b[33mServer Reloaded\x1b[0m"
 
-
-        -- threadDelay 1000000
         atomically $ writeTChan toServer startCommand
-        print "Server Started"
+        putStrLn "\x1b[32mServer Started\x1b[0m"
       _ -> pure ()
 
   forever $ do

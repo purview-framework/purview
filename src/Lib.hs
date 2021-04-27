@@ -176,7 +176,7 @@ instance ToJSON Event where
 --
 looper log conn component = do
   msg <- WS.receiveData conn
-  log $ "\x1b[34mreceived>\x1b[0m " <> unpack msg
+  log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
   let event = (decode msg :: Maybe Event)
       newComponent = case event of
@@ -189,7 +189,7 @@ looper log conn component = do
 
       newHtml = renderComponent newComponent
 
-  log $ "\x1b[32msending>\x1b[0m " <> show newHtml
+  log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
   WS.sendTextData
     conn
