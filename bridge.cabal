@@ -34,7 +34,10 @@ library
       src
   build-depends:
                   base >=4.7 && <5
-                , mtl >= 2.2.2
+                , aeson
+                , bytestring
+                , fused-effects
+                , raw-strings-qq
                 , scotty
                 , text >= 1.2.4.1
                 , wai >= 3.2.3
@@ -42,9 +45,6 @@ library
                 , wai-websockets
                 , warp >= 3.3.14
                 , websockets
-                , raw-strings-qq
-                , aeson
-                , bytestring
   default-language: Haskell2010
 
 executable bridge-exe

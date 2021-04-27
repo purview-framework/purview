@@ -57,7 +57,7 @@ runServer messages = do
     ready <- tryBool isEOFError $ hReady hout
     case ready of
       Right True ->
-        hGetLine hout >>= print
+        hGetLine hout >>= putStrLn
       _ -> pure ()
 
     threadDelay 50000
@@ -134,7 +134,7 @@ repl up = forever $ do
 -- Connect the dots
 --
 setupCommand  = "import Control.Concurrent"
-startCommand  = "server <- forkIO $ main"
+startCommand  = "server <- forkIO $ main' putStrLn"  -- TODO: main' bleh
 endCommand    = "killThread server"
 reloadCommand = ":r"
 

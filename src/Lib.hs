@@ -10,6 +10,7 @@ import Prelude hiding (div)
 import qualified Web.Scotty as Sc
 import           Data.Text (Text)
 import qualified Data.Text.Lazy as LazyText
+import           Data.ByteString.Lazy.Char8 (unpack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.WebSockets as WS
@@ -18,7 +19,6 @@ import Network.Wai.Internal ( Response(ResponseBuilder) )
 import qualified Network.Wai.Handler.Warp as Warp
 
 import           Control.Monad
-import qualified Control.Monad.State as MS
 import           Control.Concurrent
 import           Text.RawString.QQ (r)
 import           Data.Aeson
@@ -140,13 +140,15 @@ renderComponent :: Component a b -> Text
 renderComponent Component{ render, state } =
   renderHtml $ render state
 
-run :: Component a Text -> IO ()
-run routes = do
+type Log m = String -> m ()
+
+run :: Log IO -> Component a Text -> IO ()
+run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
   requestHandler <- requestHandler routes
   Warp.runSettings settings
-    $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler routes) requestHandler
+    $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
 
 requestHandler :: Component a Text -> IO Wai.Application
 requestHandler routes =
@@ -172,8 +174,9 @@ instance ToJSON Event where
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper conn component = do
+looper log conn component = do
   msg <- WS.receiveData conn
+  log $ "\x1b[34mreceived>\x1b[0m " <> unpack msg
 
   let event = (decode msg :: Maybe Event)
       newComponent = case event of
@@ -186,20 +189,19 @@ looper conn component = do
 
       newHtml = renderComponent newComponent
 
-  -- print $ ("msg> " :: Text) <> fromString (show event)
+  log $ "\x1b[32msending>\x1b[0m " <> show newHtml
 
   WS.sendTextData
     conn
     (encode $ Event { event = "setHtml", message = newHtml })
 
-  looper conn newComponent
+  looper log conn newComponent
 
 
-webSocketHandler :: Component a Text -> WS.ServerApp
-webSocketHandler component pending = do
+webSocketHandler :: Log IO -> Component a Text -> WS.ServerApp
+webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
 
   WS.withPingThread conn 30 (pure ()) $ do
-    putStrLn "ws connected"
-    looper conn component
+    looper log conn component

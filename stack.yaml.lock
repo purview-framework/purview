@@ -3,11 +3,17 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: fused-effects-1.1.1.1@sha256:c029c5fb0b2154281221a71ff25709d2a11347fe061fa8c2398e7fe52a16008d,4932
+    pantry-tree:
+      size: 6345
+      sha256: 7d09ba6d70fc49a5fd2feef0e6b06122589b9f5e4539680c9d7933773e7273d7
+  original:
+    hackage: fused-effects-1.1.1.1@sha256:c029c5fb0b2154281221a71ff25709d2a11347fe061fa8c2398e7fe52a16008d,4932
 snapshots:
 - completed:
-    size: 565720
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/8.yaml
-    sha256: 76bf8992ff8dfe6eda9c02f81866138c2369344d5011ab39ae403457c4448b03
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/8.yaml
+    size: 567241
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/10.yaml
+    sha256: 321b3b9f0c7f76994b39e0dabafdc76478274b4ff74cc5e43d410897a335ad3b
+  original: lts-17.10

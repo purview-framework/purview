@@ -29,4 +29,9 @@ counter = Component
   , render = render'
   }
 
-main = run counter
+logger = print
+
+main = run logger counter
+
+-- so we can pass in the logger
+main' = flip run counter
