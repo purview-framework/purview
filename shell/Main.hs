@@ -145,7 +145,7 @@ main = do
   void . forkIO $ runServer toServer
 
   fromRepl <- atomically (newTChan :: STM (TChan ReplEvent))
-  threadDelay 10000000
+  threadDelay 5000000
 
   threadDelay 1000000
   putStrLn "--- Setup Complete ---"
@@ -176,14 +176,12 @@ main = do
     event <- atomically $ readTChan fromFileWatcher
     case event of
       "reload" -> do
-        atomically $ writeTChan toServer endCommand
-        putStrLn "\x1b[31mServer Ended\x1b[0m"
-
-        atomically $ writeTChan toServer reloadCommand
-        putStrLn "\x1b[33mServer Reloaded\x1b[0m"
-
-        atomically $ writeTChan toServer startCommand
-        putStrLn "\x1b[32mServer Started\x1b[0m"
+        putStrLn "\x1b[31mServer Reloading\x1b[0m"
+        mapM_ (atomically . writeTChan toServer)
+          [ endCommand
+          , reloadCommand
+          , startCommand
+          ]
       _ -> pure ()
 
   forever $ do

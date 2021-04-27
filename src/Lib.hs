@@ -173,7 +173,10 @@ instance Read a => FromJSON (Event a) where
 
 instance Show a => ToJSON (Event a) where
   toJSON (Event event message) =
-    object ["event" .= event, "message" .= pack (read $ show message)]
+    object
+      [ "event" .= event
+      , "message" .= pack (read $ show message)  -- ew
+      ]
 
 --
 -- This is the main event loop of handling messages from the websocket
