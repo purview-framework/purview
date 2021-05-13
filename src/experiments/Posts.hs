@@ -1,9 +1,10 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveGeneric #-}
 -- | Display a list of links
 
 module Posts where
 
-import Prelude hiding (div)
+import Prelude hiding (div, id)
 import Lib
 
 import Network.Wreq
@@ -35,35 +36,41 @@ getPosts =
   in
     (\result -> eitherDecode $ result ^?! responseBody) <$> request
 
-data State = State
-  { loading :: Bool }
+newtype State = State
+  { posts :: Maybe [Post] }
   deriving Show
 
-postsView :: TChan State -> State -> (Html State)
-postsView up (State loading)= do
-  -- state' <- readTChan state
-  -- HTTP request
+postView :: Post -> Html State
+postView Post{id, userId, title, body} =
+  div []
+  [ text $ show id <> " " <> show userId
+  , text title
+  , text body
+  ]
 
-  div [] [ text (show loading) ]
+postsView :: TChan State -> State -> IO (Html State)
+postsView up (State posts)= do
+
+  -- HTTP request
+  forkIO $ do
+    posts <- getPosts
+    case posts of
+      Right posts -> atomically $ writeTChan up (State (Just posts))
+      Left _      -> pure ()
+
+  pure $ case posts of
+    Nothing    -> div [] [ text "Loading..." ]
+    Just posts -> div [] (fmap postView posts)
 
 
 test = do
   state <- atomically newTChan -- (State False)
 
-  forkIO $ do
-    threadDelay 5000
-    atomically $ writeTChan state $ State True
-
-  forkIO $ do
-    threadDelay 15000
-    atomically $ writeTChan state $ State False
-
   forever $ do
     state' <- atomically $ readTChan state
-    let render = postsView state state'
+    render <- postsView state state'
     -- html <- atomically $ postsView
     print render
     -- print $ render
 
-  threadDelay 5000000
 -- main = run print postsView
