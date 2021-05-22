@@ -1,4 +1,4 @@
-# Bridge
+# Truss
 
 An experiment to see how haskell can work with the new HOT TREND of sending updated HTML over websockets instead of silly old things like "using frontend frameworks".  What front end?
 
