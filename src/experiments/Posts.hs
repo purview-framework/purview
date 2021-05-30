@@ -49,13 +49,13 @@ postView Post{id, userId, title, body} =
   ]
 
 postsView :: TChan State -> State -> IO (Html State)
-postsView up (State posts)= do
+postsView setState (State posts) = do
 
   -- HTTP request
   forkIO $ do
     posts <- getPosts
     case posts of
-      Right posts -> atomically $ writeTChan up (State (Just posts))
+      Right posts -> atomically $ writeTChan setState (State (Just posts))
       Left _      -> pure ()
 
   pure $ case posts of
