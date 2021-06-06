@@ -61,6 +61,9 @@ type Pairing f g = forall a b c. (a -> b -> c) -> f a -> g b -> c
 
 -- Well, user actions should result in movement to a new application state,
 -- so we should choose our actions from some monad which pairs with our comonad.
+class Render where
+  renderIt :: state -> value
+
 
 data Component value = forall state. Component
   { render :: state -> (state, value)
@@ -75,6 +78,19 @@ text = Component (, "text") Nothing
 div = Component (, "div") "1"
 
 x = [text, div]
+
+okay Component{render=render, state=state} =
+  let (oldState, value) = render state
+  in value
+
+hmm = fmap okay x
+
+-- y = let z = (render text)
+    -- in undefined
+
+-- y =
+--   let (Component r s) = text
+--   in undefined
 
 -- newtype ListList = LL { unLL :: Component }
 --
