@@ -50,6 +50,8 @@ library
                 , lens-aeson
                 , wreq
                 , stm
+                , mtl
+                , comonad
   default-language: Haskell2010
 
 executable bridge-exe

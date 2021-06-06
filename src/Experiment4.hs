@@ -7,6 +7,9 @@
 module Expirement4 where
 
 import Prelude hiding (div)
+
+import Control.Comonad
+
 -- import Control.Monad.State.Strict
 
 -- can I build a shadow state?
@@ -26,7 +29,40 @@ data World a = World a (World a) | Nil
 
 -- https://blog.functorial.com/posts/2016-08-07-Comonads-As-Spaces.html
 
-data Component value state = Component
+-- type role UI phantom
+-- type UI :: * -> *
+data UI action
+
+-- type Componen :: (* -> *) -> (* -> *) -> *
+-- w is the comonad
+-- m is the monad
+type Componen w m = w (UI (m ()))
+
+-- A pairing between functors f and g.
+
+-- This asserts that any sums in f can annihilate any products in g, and vice versa.
+
+-- This library provides some useful pairings, and ways of lifting pairings over various
+-- constructions on Functors.
+type Pairing f g = forall a b c. (a -> b -> c) -> f a -> g b -> c
+
+-- explore :: forall w m
+--          . Comonad w
+--         => Pairing m w
+--         -> w (UI (m ()))
+--         -> IO ()
+-- explore = undefined
+
+-- For example, you can't have a list of polymorphic functions,
+-- say [forall a. [a] -> [a]].  But you can wrap it like this:
+-- newtype ListList = LL { unLL :: forall a. [a] -> [a] }
+-- Now [ListList] is a perfectly fine type.  The downside is that you have
+-- to wrap and unwrap, with LL and unLL, which is tiresome.
+
+-- Well, user actions should result in movement to a new application state,
+-- so we should choose our actions from some monad which pairs with our comonad.
+
+data Component value = forall state. Component
   { render :: state -> (state, value)
   , state  :: state
   }
@@ -35,23 +71,36 @@ data Component value state = Component
 --   Component renderA stateA <> Component renderB stateB =
 --     Component (renderA <> renderB) (stateA <> stateB)
 
--- text = Component (, "text") Nothing
--- div = Component (, "div") "1"
+text = Component (, "text") Nothing
+div = Component (, "div") "1"
 
-class Render m where
-  renderIt :: m a -> a
+x = [text, div]
 
-data Renderable = forall a. Render a => MkRenderable a
+-- newtype ListList = LL { unLL :: Component }
+--
+-- saa = [LL text, LL div]
 
-instance Render (Component a) where
-  renderIt (Component render' state') =
-    let
-      (s1, v1) = render' state'
-    in
-      s1
+-- class Render state value where
+--   renderIt :: state -> (state, value)
 
---pack :: Render a => a -> Renderable
---pack = MkRenderable
+-- data Renderable = forall a b. Render a b => MkRenderable a b
+
+-- instance Render (Component a b) where
+--   renderIt (Component render' state') =
+--     let
+--       (s1, v1) = render' state'
+--     in
+--       state'
+--
+-- instance Render Renderable where
+--   renderIt (MkRenderable c) = renderIt c
+--
+-- pack :: Render a => a -> Renderable
+-- pack = MkRenderable
+
+-- x = [pack text, pack div]
+-- y = renderIt $ pack div
+
 --
 --bomba = Component
 --  (\state -> (state, [pack text, pack div]))
