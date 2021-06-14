@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
@@ -8,7 +9,9 @@ module Expirement4 where
 
 import Prelude hiding (div)
 
+import Control.Monad.State
 import Control.Comonad
+import Control.Comonad.Store
 
 -- import Control.Monad.State.Strict
 
@@ -31,12 +34,12 @@ data World a = World a (World a) | Nil
 
 -- type role UI phantom
 -- type UI :: * -> *
-data UI action
+-- data UI action
 
 -- type Componen :: (* -> *) -> (* -> *) -> *
 -- w is the comonad
 -- m is the monad
-type Componen w m = w (UI (m ()))
+-- type Componen w m = w (UI (m ()))
 
 -- A pairing between functors f and g.
 
@@ -61,29 +64,129 @@ type Pairing f g = forall a b c. (a -> b -> c) -> f a -> g b -> c
 
 -- Well, user actions should result in movement to a new application state,
 -- so we should choose our actions from some monad which pairs with our comonad.
-class Render where
-  renderIt :: state -> value
 
+-- can I represent the user action and put it into a monad?
+-- data Store s a = Store
+--   { here :: s
+--   , view :: s -> a
+--   }
+--
+-- instance Functor (Store s) where
+--   fmap f (Store here' view') =
+--     -- just extend it via composition
+--     Store here' (f . view')
+--
+-- instance Comonad (Store s) where
+--   extract (Store here' view') = view' here'
+--   duplicate (Store here' view') =
+--     -- hmm
+--     Store here' (\next -> Store next view')
+
+-- hmm so we can get user interactions involved here?
+-- move :: s -> Store s a -> Store s a
+-- move s store = view (duplicate store) s
+
+-- Kmett (2011) defines a monad Co w which is constructed
+-- from a comonad w. For our purposes, we think of its
+-- actions as selecting some possible future state from a
+-- collection of future states described by w. Figure 2 defines
+-- the Co w monad, and the select function which selects a
+-- future state
+
+newtype Co w a = Co
+  { runCo :: forall r. w (a -> r) -> r }
+  deriving (Functor)
+
+-- from http://comonad.com/reader/2011/monads-from-comonads/
+instance Comonad w => Applicative (Co w) where
+  pure a = Co (`extract` a)
+  mf <*> ma = mf >>= \f -> fmap f ma
+
+instance Comonad w => Monad (Co w) where
+  Co k >>= f = Co (k . extend (\wa a -> runCo (f a) wa))
+
+select :: Comonad w => Co w (a -> b) -> w a -> w b
+select co w = runCo co (extend dist w)
+  where dist fs f = fmap f fs
+
+-- so... how does this work then?
+-- moveT :: s -> Co (Store s) ()
+-- moveT s = Co (\w -> view w s ())
+
+ticker = store render 0 where
+  render count send =
+    [ div ]
+
+data Attr = forall m. Evt (String -> m ())
+
+data Flub
+  = Flub String [ Attr ] [ Flub ]
+  | Text String
+
+button = Flub "button"
+str = Text
+onClick = Evt
+
+newtype Identity a = Identity { runIdentity :: a }
+
+-- data UI action
+-- newtype Co w a = Co
+--   { runCo :: forall r. w (a -> r) -> r }
+--   deriving (Functor)
+
+type Handler a = a -> [()]
+
+type UI a = Handler a -> [Flub]
+
+fre :: UI (Co (StoreT Int Identity) ())
+fre send = do
+  send (modify ((+) (1 :: Int)))
+  [ button [] [] ]
+
+-- render :: Int -> UI (Co (StoreT Int Identity) ())
+-- flonk :: Int -> UI (Co (StoreT Int Identity) ())
+-- flonk count send =
+--    [ button [ onClick (\_ -> (send (modify ((+) 1)))) ] [ str (show count) ]]
+--
+-- goal = store render 0 where
+--   render :: Int -> (m () -> IO ()) -> [Flub]
+--   render count send =
+--     [ button [ onClick $ const (send (modify ((+) 1))) ] [ str (show count) ]]
+
+-- A specification for a user interface will be described by
+-- a comonad w which describes the type of reachable next states.
+-- The Co w monad for that comonad will describe the transitions
+-- which are allowed.
+
+--
+-- I still don't know what to do with onClick
+--
 
 data Component value = forall state. Component
   { render :: state -> (state, value)
   , state  :: state
   }
 
--- instance (Semigroup state, Semigroup value) => Semigroup (Component state value) where
---   Component renderA stateA <> Component renderB stateB =
---     Component (renderA <> renderB) (stateA <> stateB)
-
 text = Component (, "text") Nothing
 div = Component (, "div") "1"
 
+wumbo = Component (, [text, div]) Nothing
+wumbus = Component (, [wumbo, wumbo]) Nothing
+
+-- vague = okay wumbus
+
 x = [text, div]
 
-okay Component{render=render, state=state} =
-  let (oldState, value) = render state
-  in value
+-- okay Component{render=render, state=state} =
+--   let (oldState, value) = render state
+--   in value
+--
+-- hmm = fmap okay x
 
-hmm = fmap okay x
+-- soo, now we have:
+-- a way to persist the state
+-- a way for the state to change _in_ the component
+-- but no way for user events to have an effect?
 
 -- y = let z = (render text)
     -- in undefined

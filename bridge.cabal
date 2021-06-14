@@ -52,6 +52,7 @@ library
                 , stm
                 , mtl
                 , comonad
+                , containers
   default-language: Haskell2010
 
 executable bridge-exe
