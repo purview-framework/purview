@@ -179,11 +179,10 @@ listComponent = Store render []
 -- and now we can just:
 typeNReply = explore listComponent
 
-
-mad component = do
-  -- get a name
-  forever $ do
-    setComponent "" text
-    -- getClick could be a channel?  tvar?
-    input <- getClick ""
-    action input
+-- mad component = do
+--   -- get a name
+--   forever $ do
+--     setComponent "" text
+--     -- getClick could be a channel?  tvar?
+--     input <- getClick ""
+--     action input

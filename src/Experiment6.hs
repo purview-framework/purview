@@ -13,3 +13,4 @@ data Html
 component = Html "button" [ OnClick "hey" ] [ Text "click" ]
 
 -- I wonder if I already sort of have the answer to this?
+-- turns out I did and I haven't done anything with it
