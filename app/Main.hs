@@ -4,6 +4,7 @@ module Main where
 import           Prelude      hiding (div)
 import           Data.Text    hiding (count)
 import           Lib
+import Shop
 
 newtype State = State
   { count :: Int } deriving Show
@@ -22,16 +23,16 @@ handlers' state message = case message of
 
 render' :: State -> Html Action
 render' state =
-  div [ style "font-size: 48px; margin: 0 auto;" ]
+  div [ style "font-size: 48px;" ]
     [ div [ onClick Increment ] [ text "increment" ]
     , text ("count: " <> show (count state))
     , div [ onClick Decrement ] [ text "decrement" ]
     ]
 
 counter = Component
-  { state = defaultCounterState
+  { state    = defaultCounterState
   , handlers = handlers'
-  , render = render'
+  , render   = render'
   }
 
 logger = print

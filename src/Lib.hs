@@ -35,7 +35,8 @@ type Tag = String
 data Html a
   = Html Tag [Attribute a] [Html a]
   | Text String
-  | XComponent (forall a b. Component a b) -- haven't tested this out yet
+  -- | XComponent (forall a b. Component a b) -- haven't tested this out yet
+  deriving Show
 
 renderAttributes :: Show a => [Attribute a] -> Text
 renderAttributes = foldr handle ""
@@ -187,6 +188,9 @@ instance Show a => ToJSON (Event a) where
 --
 looper :: (Read b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
 looper log conn component = do
+  -- needs to be from receiveData _or_
+  -- forever $ do
+  --    state <- component (stm?)
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
