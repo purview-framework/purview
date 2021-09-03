@@ -23,7 +23,7 @@ import           Control.Concurrent
 import           Text.RawString.QQ (r)
 import           Data.Aeson
 import           GHC.Generics
-import           Data.String (fromString)
+import           Data.String (fromString, IsString)
 
 data Attribute a
   = OnClick a
@@ -162,7 +162,6 @@ requestHandler routes =
 
     Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ renderComponent routes
 
-
 data Event a = Event
   { event :: Text
   , message :: a
@@ -172,12 +171,8 @@ instance Read a => FromJSON (Event a) where
   parseJSON (Object o) =
       Event <$> o .: "event" <*> (read <$> o .: "message")
 
-instance Show a => ToJSON (Event a) where
-  toJSON (Event event message) =
-    object
-      [ "event" .= event
-      , "message" .= pack (read $ show message)  -- ew
-      ]
+instance ToJSON a => ToJSON (Event a) where
+  toEncoding = genericToEncoding defaultOptions
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -188,9 +183,6 @@ instance Show a => ToJSON (Event a) where
 --
 looper :: (Read b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
 looper log conn component = do
-  -- needs to be from receiveData _or_
-  -- forever $ do
-  --    state <- component (stm?)
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
