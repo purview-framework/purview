@@ -36,12 +36,13 @@ defaultState = State
   , cart = Cart { items = [], status = Normal, open = False }
   }
 
-cartModal = Component
-  { state = defaultState
-  , handlers = \state messages -> state
-  , render = \state -> div [] []
-  }
+cartState = Cart { items = [], status = Normal, open = False }
 
+cartModal = Component
+  { state    = cartState
+  , handlers = \state messages -> state
+  , render   = \state -> div [] []
+  }
 
 data ShopPageEvents = AddToCart
 
@@ -52,7 +53,7 @@ shopPageRender state =
   div []
     [ div [] [ text $ "The lovely item: " <> (item . shop $ state) ]
     , div [ onClick AddToCart ] [ text "add to cart" ]
-    , render cartModal state
+    , cartModal
     ]
 
 shopPage = Component

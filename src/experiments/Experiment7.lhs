@@ -91,7 +91,7 @@ let's see how it looks
 >       ( Member (Stateful s) effs
 >       , Member (State s) effs
 >       ) => s -> (s -> Eff effs (), Eff effs s)
-> useState initialState = do
+> useState initialState =
 >   (\s -> send (Put s), send Get)
 
 > stateTest ::
@@ -100,8 +100,11 @@ let's see how it looks
 >       => Eff effs String
 > stateTest = do
 >   let (setName, getName) = useState ""
+>
 >   setName "waluigi"
 >   getName
+>
+>   pure "<div></div>"
 
    state <- getState
    let y = state <> "hallo"
