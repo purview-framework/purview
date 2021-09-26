@@ -174,6 +174,13 @@ instance Read a => FromJSON (Event a) where
 instance ToJSON a => ToJSON (Event a) where
   toEncoding = genericToEncoding defaultOptions
 
+
+temp = Component
+  { state = Nothing
+  , handlers = \s m -> s
+  , render = \s -> div [] []
+  }
+
 --
 -- This is the main event loop of handling messages from the websocket
 --

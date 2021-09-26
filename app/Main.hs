@@ -4,7 +4,6 @@ module Main where
 import           Prelude      hiding (div)
 import           Data.Text    hiding (count)
 import           Lib
--- import Shop
 
 newtype State = State
   { count :: Int } deriving Show
