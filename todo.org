@@ -1,5 +1,11 @@
 #+TITLE: Todo
 
+* Applying events to components / nested components
+For now, I'm just gonna apply the event to every gd widget.
+
+Once that's done and working, tag it as the very first,
+barely working version.
+
 * Developer experience
 ** See messages the server is receiving and sending
 ** Send a message from the repl

@@ -38,6 +38,7 @@ defaultState = State
 
 cartState = Cart { items = [], status = Normal, open = False }
 
+cartModal :: Component Cart String
 cartModal = Component
   { state    = cartState
   , handlers = \state messages -> state
@@ -53,7 +54,7 @@ shopPageRender state =
   div []
     [ div [] [ text $ "The lovely item: " <> (item . shop $ state) ]
     , div [ onClick AddToCart ] [ text "add to cart" ]
-    , cartModal
+    , div [] [ SomeComponent cartModal ]
     ]
 
 shopPage = Component

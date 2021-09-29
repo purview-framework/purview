@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -10,6 +11,7 @@ import Prelude hiding (div)
 import qualified Web.Scotty as Sc
 import           Data.Text (Text, pack)
 import qualified Data.Text.Lazy as LazyText
+import           Data.ByteString.Lazy (ByteString)
 import           Data.ByteString.Lazy.Char8 (unpack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
@@ -32,11 +34,53 @@ data Attribute a
 
 type Tag = String
 
+class Render m where
+  runRender :: m -> Text
+
+instance Render SomeComponent where
+  runRender (MkSomeComponent c) = runRender c
+
+instance Show m => Render (Component s m) where
+  runRender (Component state handler render) =
+    renderHtml (render state)
+
+instance Show m => Render (Html m) where
+  runRender html = renderHtml html
+
+class Handler m where
+  handle :: m -> ByteString -> m
+
+instance Handler SomeComponent where
+  handle (MkSomeComponent c) message = MkSomeComponent $ handle c message
+
+instance Handler (Html m) where
+  handle (Html tag attrs els) message =
+    Html tag attrs $ fmap (\sub -> handle sub message) els
+  handle (Text str) message = Text str
+  handle component message = handle component message
+
+instance FromJSON m => Handler (Component s m) where
+  handle (Component state handler render) message =
+    case decode message of
+      Just m  ->
+        let
+          newState = handler state m
+          subComponents = render newState
+          applied = case subComponents of
+            Html _ _ els -> fmap (\sub -> handle sub message) els
+        in
+          Component newState handler render
+      Nothing -> Component state handler render
+
+data SomeComponent = forall a. (Render a, Handler a, Show a) => MkSomeComponent a
+
+instance Show s => Show (Component s m) where
+  show (Component st _ _) = show st
+
 data Html a
   = Html Tag [Attribute a] [Html a]
   | Text String
-  -- | XComponent (forall a b. Component a b) -- haven't tested this out yet
-  deriving Show
+  | forall a. (Render a, Handler a, Show a) => SomeComponent a
 
 renderAttributes :: Show a => [Attribute a] -> Text
 renderAttributes = foldr handle ""
@@ -50,6 +94,7 @@ renderHtml (Html tag attrs html) =
   <> foldr (<>) "" (fmap renderHtml html)
   <> "</" <> fromString tag <> ">"
 renderHtml (Text str) = fromString str
+renderHtml (SomeComponent comp) = runRender comp
 
 text = Text
 html = Html
@@ -140,13 +185,14 @@ wrapHtml body =
   <> "<body>"<> body <> "</body>"
   <> "</html>"
 
-renderComponent :: Show b => Component a b -> Text
-renderComponent Component{ render, state } =
-  renderHtml $ render state
+renderComponent :: SomeComponent -> Text
+renderComponent = runRender
+--renderComponent Component{ render, state } =
+--  renderHtml $ render state
 
 type Log m = String -> m ()
 
-run :: (Read b, Show b) => Log IO -> Component a b -> IO ()
+run :: Log IO -> SomeComponent -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -154,7 +200,7 @@ run log routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
 
-requestHandler :: (Read b, Show b) => Component a b -> IO Wai.Application
+requestHandler :: SomeComponent -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -181,6 +227,11 @@ temp = Component
   , render = \s -> div [] []
   }
 
+handleEvent :: ByteString -> SomeComponent -> SomeComponent
+handleEvent event component =
+  let newComponent = handle component event
+  in undefined
+
 --
 -- This is the main event loop of handling messages from the websocket
 --
@@ -188,21 +239,22 @@ temp = Component
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: (Read b, Show b) => Log IO -> WS.Connection -> Component a b -> IO ()
+looper :: Log IO -> WS.Connection -> SomeComponent -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
-  let event = decode msg
-      newComponent = case event of
-        Nothing -> component
-        Just event ->
-          let
-            newState = handlers component (state component) (message event)
-          in
-            component { state = newState }
+  let newTree = handle component msg
+--  let event = decode msg
+--      newComponent = case event of
+--        Nothing -> component
+--        Just event ->
+--          let
+--            newState = handlers component (state component) (message event)
+--          in
+--            component { state = newState }
 
-      newHtml = renderComponent newComponent
+      newHtml = renderComponent newTree
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
@@ -210,10 +262,10 @@ looper log conn component = do
     conn
     (encode $ Event { event = "setHtml", message = newHtml })
 
-  looper log conn newComponent
+  looper log conn newTree
 
 
-webSocketHandler :: (Read b, Show b) => Log IO -> Component a b -> WS.ServerApp
+webSocketHandler :: Log IO -> SomeComponent -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
