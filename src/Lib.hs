@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
@@ -11,7 +12,9 @@ import Prelude hiding (div)
 import qualified Web.Scotty as Sc
 import           Data.Text (Text, pack)
 import qualified Data.Text.Lazy as LazyText
-import           Data.ByteString.Lazy (ByteString)
+import           Data.Text.Encoding
+import qualified Data.ByteString as DB
+import           Data.ByteString.Lazy (ByteString, fromStrict, toStrict)
 import           Data.ByteString.Lazy.Char8 (unpack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
@@ -26,16 +29,17 @@ import           Text.RawString.QQ (r)
 import           Data.Aeson
 import           GHC.Generics
 import           Data.String (fromString, IsString)
+import           Debug.Trace
 
 data Attribute a
   = OnClick a
-  | Style Text
+  | Style ByteString
   deriving Show
 
 type Tag = String
 
 class Render m where
-  runRender :: m -> Text
+  runRender :: m -> ByteString
 
 instance Render SomeComponent where
   runRender (MkSomeComponent c) = runRender c
@@ -48,7 +52,7 @@ instance Show m => Render (Html m) where
   runRender html = renderHtml html
 
 class Handler m where
-  handle :: m -> ByteString -> m
+  handle :: m -> Value -> m
 
 instance Handler SomeComponent where
   handle (MkSomeComponent c) message = MkSomeComponent $ handle c message
@@ -57,20 +61,20 @@ instance Handler (Html m) where
   handle (Html tag attrs els) message =
     Html tag attrs $ fmap (\sub -> handle sub message) els
   handle (Text str) message = Text str
-  handle component message = handle component message
+  handle (SomeComponent a) message = SomeComponent (handle a message)
 
-instance FromJSON m => Handler (Component s m) where
+instance (Show s, FromJSON m) => Handler (Component s m) where
+  handle (Component state _ _) _ | trace ("render " <> show state) False = undefined
   handle (Component state handler render) message =
-    case decode message of
-      Just m  ->
+    case fromJSON message of
+      Success m ->
         let
           newState = handler state m
-          subComponents = render newState
-          applied = case subComponents of
-            Html _ _ els -> fmap (\sub -> handle sub message) els
+          newRender = fmap (\sub -> handle sub message) render
         in
-          Component newState handler render
-      Nothing -> Component state handler render
+          Component newState handler newRender
+      Error _ ->
+        Component state handler render
 
 data SomeComponent = forall a. (Render a, Handler a, Show a) => MkSomeComponent a
 
@@ -82,13 +86,13 @@ data Html a
   | Text String
   | forall a. (Render a, Handler a, Show a) => SomeComponent a
 
-renderAttributes :: Show a => [Attribute a] -> Text
+renderAttributes :: Show a => [Attribute a] -> ByteString
 renderAttributes = foldr handle ""
   where
     handle (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
     handle (Style str) rest = "style=\""<> str <> "\"" <> rest
 
-renderHtml :: Show a => Html a -> Text
+renderHtml :: Show a => Html a -> ByteString
 renderHtml (Html tag attrs html) =
   "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
   <> foldr (<>) "" (fmap renderHtml html)
@@ -185,7 +189,7 @@ wrapHtml body =
   <> "<body>"<> body <> "</body>"
   <> "</html>"
 
-renderComponent :: SomeComponent -> Text
+renderComponent :: SomeComponent -> ByteString
 renderComponent = runRender
 --renderComponent Component{ render, state } =
 --  renderHtml $ render state
@@ -206,19 +210,24 @@ requestHandler routes =
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ renderComponent routes
+    Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ (decodeUtf8 . toStrict $ renderComponent routes)
 
-data Event a = Event
+data Event = Event
   { event :: Text
-  , message :: a
+  , message :: Text
   } deriving (Generic, Show)
 
-instance Read a => FromJSON (Event a) where
-  parseJSON (Object o) =
-      Event <$> o .: "event" <*> (read <$> o .: "message")
+data FromEvent = FromEvent
+  { event :: Text
+  , message :: Value
+  }
 
-instance ToJSON a => ToJSON (Event a) where
-  toEncoding = genericToEncoding defaultOptions
+instance FromJSON FromEvent where
+  parseJSON (Object o) =
+      FromEvent <$> o .: "event" <*> (o .: "message")
+
+instance ToJSON Event where
+  -- toEncoding = genericToEncoding defaultOptions
 
 
 temp = Component
@@ -226,11 +235,6 @@ temp = Component
   , handlers = \s m -> s
   , render = \s -> div [] []
   }
-
-handleEvent :: ByteString -> SomeComponent -> SomeComponent
-handleEvent event component =
-  let newComponent = handle component event
-  in undefined
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -244,7 +248,12 @@ looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
-  let newTree = handle component msg
+  let
+    decoded = decode msg :: Maybe FromEvent
+    newTree = case decoded of
+      Just (FromEvent _ message) -> handle component message
+      Nothing -> component
+    -- newTree = handle component msg
 --  let event = decode msg
 --      newComponent = case event of
 --        Nothing -> component
@@ -254,13 +263,13 @@ looper log conn component = do
 --          in
 --            component { state = newState }
 
-      newHtml = renderComponent newTree
+    newHtml = renderComponent newTree
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
   WS.sendTextData
     conn
-    (encode $ Event { event = "setHtml", message = newHtml })
+    (encode $ Event { event = "setHtml", message = decodeUtf8 . toStrict $ newHtml })
 
   looper log conn newTree
 

@@ -6,6 +6,7 @@ import           Prelude      hiding (div)
 import           Data.Text    hiding (count)
 import           Data.Aeson
 import           GHC.Generics
+import           Debug.Trace
 import           Lib
 
 newtype State = State
@@ -25,11 +26,13 @@ handlers' state message = case message of
   Increment -> state { count = count state + 1 }
   Decrement -> state { count = count state - 1 }
 
-other :: Component (Maybe String) String
+other :: Component String Action
 other = Component
-  { state = Nothing
-  , handlers = \state message -> state
-  , render = \state -> div [] [ text "and me" ]
+  { state = "blank"
+  , handlers = \state message -> case message of
+      Increment -> "incremented"
+      Decrement -> "decremented"
+  , render = \state -> div [] [ text state ]
   }
 
 feh = SomeComponent other
