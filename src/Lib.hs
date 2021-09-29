@@ -41,9 +41,6 @@ type Tag = String
 class Render m where
   runRender :: m -> ByteString
 
-instance Render SomeComponent where
-  runRender (MkSomeComponent c) = runRender c
-
 instance Show m => Render (Component s m) where
   runRender (Component state handler render) =
     renderHtml (render state)
@@ -53,9 +50,6 @@ instance Show m => Render (Html m) where
 
 class Handler m where
   handle :: m -> Value -> m
-
-instance Handler SomeComponent where
-  handle (MkSomeComponent c) message = MkSomeComponent $ handle c message
 
 instance Handler (Html m) where
   handle (Html tag attrs els) message =
@@ -75,8 +69,6 @@ instance (Show s, FromJSON m) => Handler (Component s m) where
           Component newState handler newRender
       Error _ ->
         Component state handler render
-
-data SomeComponent = forall a. (Render a, Handler a, Show a) => MkSomeComponent a
 
 instance Show s => Show (Component s m) where
   show (Component st _ _) = show st
@@ -189,14 +181,12 @@ wrapHtml body =
   <> "<body>"<> body <> "</body>"
   <> "</html>"
 
-renderComponent :: SomeComponent -> ByteString
+renderComponent :: Show a => Html a -> ByteString
 renderComponent = runRender
---renderComponent Component{ render, state } =
---  renderHtml $ render state
 
 type Log m = String -> m ()
 
-run :: Log IO -> SomeComponent -> IO ()
+run :: Show a => Log IO -> Html a -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -204,7 +194,7 @@ run log routes = do
   Warp.runSettings settings
     $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
 
-requestHandler :: SomeComponent -> IO Wai.Application
+requestHandler :: Show a => Html a -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -227,14 +217,7 @@ instance FromJSON FromEvent where
       FromEvent <$> o .: "event" <*> (o .: "message")
 
 instance ToJSON Event where
-  -- toEncoding = genericToEncoding defaultOptions
-
-
-temp = Component
-  { state = Nothing
-  , handlers = \s m -> s
-  , render = \s -> div [] []
-  }
+  toEncoding = genericToEncoding defaultOptions
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -243,7 +226,7 @@ temp = Component
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Log IO -> WS.Connection -> SomeComponent -> IO ()
+looper :: Show a => Log IO -> WS.Connection -> Html a -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
@@ -253,15 +236,6 @@ looper log conn component = do
     newTree = case decoded of
       Just (FromEvent _ message) -> handle component message
       Nothing -> component
-    -- newTree = handle component msg
---  let event = decode msg
---      newComponent = case event of
---        Nothing -> component
---        Just event ->
---          let
---            newState = handlers component (state component) (message event)
---          in
---            component { state = newState }
 
     newHtml = renderComponent newTree
 
@@ -274,7 +248,7 @@ looper log conn component = do
   looper log conn newTree
 
 
-webSocketHandler :: Log IO -> SomeComponent -> WS.ServerApp
+webSocketHandler :: Show a => Log IO -> Html a -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending

@@ -1,6 +1,6 @@
-# Truss
+# Purview
 
-An experiment to see how haskell can work with the new HOT TREND of sending updated HTML over websockets instead of silly old things like "using frontend frameworks".  What front end?
+A work in progress implementation of Phoenix Liveview for Haskell
 
 The main library, that doesn't really do anything fancy yet, is in `src/Lib.hs`.  It's just replacing the entirety of the html each time it receives an event from the front end.
 

@@ -46,7 +46,8 @@ render' state =
     , feh
     ]
 
-counter = MkSomeComponent $ Component
+counter :: Html Action
+counter = SomeComponent $ Component
   { state    = defaultCounterState
   , handlers = handlers'
   , render   = render'
