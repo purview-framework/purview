@@ -31,81 +31,14 @@ import           GHC.Generics
 import           Data.String (fromString, IsString)
 import           Debug.Trace
 
-data Attribute a
-  = OnClick a
-  | Style ByteString
-  deriving Show
-
-type Tag = String
-
-class Render m where
-  runRender :: m -> ByteString
-
-instance Show m => Render (Component s m) where
-  runRender (Component state handler render) =
-    renderHtml (render state)
-
-instance Show m => Render (Html m) where
-  runRender html = renderHtml html
-
-class Handler m where
-  handle :: m -> Value -> m
-
-instance Handler (Html m) where
-  handle (Html tag attrs els) message =
-    Html tag attrs $ fmap (\sub -> handle sub message) els
-  handle (Text str) message = Text str
-  handle (SomeComponent a) message = SomeComponent (handle a message)
-
-instance (Show s, FromJSON m) => Handler (Component s m) where
-  handle (Component state _ _) _ | trace ("render " <> show state) False = undefined
-  handle (Component state handler render) message =
-    case fromJSON message of
-      Success m ->
-        let
-          newState = handler state m
-          newRender = fmap (\sub -> handle sub message) render
-        in
-          Component newState handler newRender
-      Error _ ->
-        Component state handler render
-
-instance Show s => Show (Component s m) where
-  show (Component st _ _) = show st
-
-data Html a
-  = Html Tag [Attribute a] [Html a]
-  | Text String
-  | forall a. (Render a, Handler a, Show a) => SomeComponent a
-
-renderAttributes :: Show a => [Attribute a] -> ByteString
-renderAttributes = foldr handle ""
-  where
-    handle (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
-    handle (Style str) rest = "style=\""<> str <> "\"" <> rest
-
-renderHtml :: Show a => Html a -> ByteString
-renderHtml (Html tag attrs html) =
-  "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
-  <> foldr (<>) "" (fmap renderHtml html)
-  <> "</" <> fromString tag <> ">"
-renderHtml (Text str) = fromString str
-renderHtml (SomeComponent comp) = runRender comp
+import           Component
+import           Wrapper
 
 text = Text
 html = Html
 onClick = OnClick
 style = Style
 div = Html "div"
-
---
--- How the user can define components
---
-data Component state messages = Component
-  { state      :: state
-  , handlers   :: state -> messages -> state
-  , render     :: state -> Html messages
-  }
 
 defaultComponent = Component
   { state    = id
@@ -122,64 +55,6 @@ defaultComponent = Component
 -- Definitely easier than dealing with binding/unbinding when updating
 -- the html.
 --
-websocketScript = [r|
-  var timeoutTime = -50;
-  function connect() {
-    timeoutTime += 50;
-    var ws = new WebSocket("ws://localhost:8001");
-
-    ws.onopen = () => {
-      ws.send("initial from js");
-      timeoutTime = 0;
-    };
-
-    ws.onmessage = evt => {
-      var m = evt.data;
-      console.log( m );
-      console.log(JSON.parse( m ));
-      var event = JSON.parse(evt.data);
-      if (event.event === "setHtml") {
-        // cool enough for now
-        document.body.innerHTML = event.message;
-      }
-    };
-
-    ws.onclose = function() {
-      setTimeout(function() {
-        console.debug("Attempting to reconnect");
-        connect();
-      }, timeoutTime);
-    };
-
-    window.onbeforeunload = evt => {
-      ws.close();
-    };
-
-    window.ws = ws;
-  }
-  connect();
-
-  function handleEvents(event) {
-    var clickValue = event.target.getAttribute("bridge-click");
-    if (clickValue) {
-      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue }));
-    }
-  }
-
-  function bindEvents() {
-    document.getRootNode().addEventListener("click", handleEvents);
-  }
-  bindEvents();
-|]
-
-wrapHtml :: Text -> Text
-wrapHtml body =
-  "<html>"
-  <> "<head>"
-  <> "<script>" <> websocketScript <> "</script>"
-  <> "</head>"
-  <> "<body>"<> body <> "</body>"
-  <> "</html>"
 
 renderComponent :: Show a => Html a -> ByteString
 renderComponent = runRender
