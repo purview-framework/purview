@@ -8,42 +8,44 @@
 
 module Lib where
 
-import Prelude hiding (div)
+import Prelude hiding (div, log)
 import qualified Web.Scotty as Sc
-import           Data.Text (Text, pack)
+import           Data.Text (Text)
 import qualified Data.Text.Lazy as LazyText
 import           Data.Text.Encoding
-import qualified Data.ByteString as DB
-import           Data.ByteString.Lazy (ByteString, fromStrict, toStrict)
+import           Data.ByteString.Lazy (ByteString, toStrict)
 import           Data.ByteString.Lazy.Char8 (unpack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.WebSockets as WS
 import qualified Network.Wai as Wai
-import Network.Wai.Internal ( Response(ResponseBuilder) )
 import qualified Network.Wai.Handler.Warp as Warp
-
-import           Control.Monad
-import           Control.Concurrent
-import           Text.RawString.QQ (r)
 import           Data.Aeson
 import           GHC.Generics
-import           Data.String (fromString, IsString)
-import           Debug.Trace
 
 import           Component
 import           Wrapper
 
+text :: String -> Html a
 text = Text
+
+html :: Tag -> [Attribute a] -> [Html a] -> Html a
 html = Html
+
+onClick :: a -> Attribute a
 onClick = OnClick
+
+style :: ByteString -> Attribute a
 style = Style
+
+div :: [Attribute a] -> [Html a] -> Html a
 div = Html "div"
 
+defaultComponent :: Component (a -> a) b
 defaultComponent = Component
   { state    = id
   , handlers = const
-  , render   = \state -> Html "p" [] [text "default"]
+  , render   = \_state -> Html "p" [] [text "default"]
   }
 
 --
@@ -65,12 +67,12 @@ run :: Show a => Log IO -> Html a -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler <- requestHandler routes
+  requestHandler' <- requestHandler routes
   Warp.runSettings settings
     $ WaiWs.websocketsOr
         WS.defaultConnectionOptions
         (webSocketHandler log routes)
-        requestHandler
+        requestHandler'
 
 requestHandler :: Show a => Html a -> IO Wai.Application
 requestHandler routes =
@@ -93,6 +95,7 @@ data FromEvent = FromEvent
 instance FromJSON FromEvent where
   parseJSON (Object o) =
       FromEvent <$> o .: "event" <*> (o .: "message")
+  parseJSON _ = error "fail"
 
 instance ToJSON Event where
   toEncoding = genericToEncoding defaultOptions

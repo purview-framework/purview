@@ -3,8 +3,9 @@
 module Wrapper where
 
 import           Text.RawString.QQ (r)
-import           Data.Text (Text, pack)
+import           Data.Text (Text)
 
+websocketScript :: Text
 websocketScript = [r|
   var timeoutTime = -50;
   function connect() {

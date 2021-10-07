@@ -26,10 +26,13 @@ source-repository head
   location: https://github.com/githubuser/bridge
 
 library
+  ghc-options: -Wall
   exposed-modules:
       Lib
   other-modules:
       Paths_bridge
+    , Component
+    , Wrapper
   hs-source-dirs:
       src
   build-depends:

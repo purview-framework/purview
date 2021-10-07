@@ -2,9 +2,9 @@
 {-# LANGUAGE GADTs #-}
 module Component where
 
-import           Data.ByteString.Lazy (ByteString, fromStrict, toStrict)
+import           Data.ByteString.Lazy (ByteString)
 import           Data.Aeson
-import           Data.String (fromString, IsString)
+import           Data.String (fromString)
 
 --
 -- How the user can define components
@@ -16,10 +16,10 @@ data Component state messages = Component
   }
 
 renderAttributes :: Show a => [Attribute a] -> ByteString
-renderAttributes = foldr handle ""
+renderAttributes = foldr handle' ""
   where
-    handle (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
-    handle (Style str) rest = "style=\""<> str <> "\"" <> rest
+    handle' (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
+    handle' (Style str) rest = "style=\""<> str <> "\"" <> rest
 
 renderHtml :: Show a => Html a -> ByteString
 renderHtml (Html tag attrs html) =
@@ -41,8 +41,8 @@ class Render m where
   runRender :: m -> ByteString
 
 instance Show m => Render (Component s m) where
-  runRender (Component state handler render) =
-    renderHtml (render state)
+  runRender (Component state' _ render') =
+    renderHtml (render' state')
 
 instance Show m => Render (Html m) where
   runRender html = renderHtml html
@@ -53,20 +53,20 @@ class Handler m where
 instance Handler (Html m) where
   handle (Html tag attrs els) message =
     Html tag attrs $ fmap (\sub -> handle sub message) els
-  handle (Text str) message = Text str
+  handle (Text str) _ = Text str
   handle (SomeComponent a) message = SomeComponent (handle a message)
 
 instance (Show s, FromJSON m) => Handler (Component s m) where
-  handle (Component state handler render) message =
+  handle (Component state' handler render') message =
     case fromJSON message of
       Success m ->
         let
-          newState = handler state m
-          newRender = fmap (\sub -> handle sub message) render
+          newState = handler state' m
+          newRender = fmap (\sub -> handle sub message) render'
         in
           Component newState handler newRender
       Error _ ->
-        Component state handler render
+        Component state' handler render'
 
 instance Show s => Show (Component s m) where
   show (Component st _ _) = show st
@@ -74,4 +74,4 @@ instance Show s => Show (Component s m) where
 data Html a
   = Html Tag [Attribute a] [Html a]
   | Text String
-  | forall a. (Render a, Handler a, Show a) => SomeComponent a
+  | forall b. (Render b, Handler b, Show b) => SomeComponent b
