@@ -192,7 +192,10 @@ run log routes = do
   let settings = Warp.setPort port Warp.defaultSettings
   requestHandler <- requestHandler routes
   Warp.runSettings settings
-    $ WaiWs.websocketsOr WS.defaultConnectionOptions (webSocketHandler log routes) requestHandler
+    $ WaiWs.websocketsOr
+        WS.defaultConnectionOptions
+        (webSocketHandler log routes)
+        requestHandler
 
 requestHandler :: Show a => Html a -> IO Wai.Application
 requestHandler routes =

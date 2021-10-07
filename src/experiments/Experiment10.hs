@@ -33,4 +33,4 @@ test = BaseComponent "a" "b"
 
 instance Action (BaseComponent a b) where
 
-test2 = Base (pack test)
+test2 = Html "" [] [Base (pack test)]
