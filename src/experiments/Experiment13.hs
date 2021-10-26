@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
@@ -5,7 +7,11 @@
 
 module Experiment13 where
 
+import Prelude hiding (div)
+
 import Data.Typeable
+import GHC.Generics
+import Control.Concurrent.STM.TChan
 
 {-
 
@@ -84,33 +90,193 @@ analytics.
 
 -}
 
-newtype Attribute a = OnClick a
+-- newtype Attribute a = OnClick a
+--
+-- data Purview a where
+--   Text :: String -> Purview a
+--   Html :: String -> [Attribute a] -> Purview a -> Purview a
+--   State :: state -> ((state, state -> ()) -> Purview a) -> Purview a
+--   Handler
+--     :: (Typeable action)
+--     => (action -> ())
+--     -> ((action -> ()) -> Purview a)
+--     -> Purview a
+--   -- Handler
+--   -- OnChange
+--   -- Once
+--
+-- data Action = Up | Down
+--
+-- x send = Html "div" [OnClick (send Up)] (Text "")
+--
+-- handle (state, setState) = Handler handler x
+--   where handler Up = setState Down
+--         handler Down = setState Up
+--
+-- comb' = State Up handle
+--
+-- comp (state, setState) = Html "div" [OnClick (setState (state + 1))] (Text "hello")
+--
+-- state = State (0 :: Integer)
+--
+-- comb = state comp
+
+{-
+
+Round 4 - rewriting so that components can tell themselves to rerender
+
+Actually for now let's skip that.  Ok right, setState needs to trigger a
+rerender somehow.  A handler calling setState.
+
+-}
+
+
+data Attributes = OnClick | Style
 
 data Purview a where
+  Attribute :: Attributes -> b -> Purview a -> Purview a
   Text :: String -> Purview a
-  Html :: String -> [Attribute a] -> Purview a -> Purview a
-  State :: state -> ((state, state -> ()) -> Purview a) -> Purview a
-  Handler
+  Html :: String -> Purview a -> Purview a
+  Value :: a -> Purview a
+
+  State :: state -> ((state, state -> m ()) -> Purview a) -> Purview a
+  MessageHandler
     :: (Typeable action)
-    => (action -> ())
-    -> ((action -> ()) -> Purview a)
+    => (action -> m ())
+    -> ((action -> b) -> Purview a)
     -> Purview a
-  -- Handler
-  -- OnChange
-  -- Once
+  Once :: (action -> ()) -> Purview a -> Purview a
 
-data Action = Up | Down
+-- a little bit to clean up defining these
+div = Html "div"
+text = Text
+useState = State
+onClick = Attribute OnClick
 
-x send = Html "div" [OnClick (send Up)] (Text "")
+-- nothing but display
+---- display count = div (text $ "You clicked: " <> show count <> " times")
+--
+-- -- wrap the child with a click handler, pass count down
+-- clickHandler child (count, setCount) = onClick (setCount (count + 1)) (child count)
+--
+-- -- same as useState, sort of, passes to the next fn (state, setState)
+-- clickState = useState 0
+--
+-- -- put it all together
+-- clicker = clickState (clickHandler display)
 
-handle (state, setState) = Handler handler x
-  where handler Up = setState Down
-        handler Down = setState Up
+-- now I'm redux-light
+data ArrowDirection = Up | Down
 
-comb' = State Up handle
+arrowHandler child (direction, setDirection) = MessageHandler handle (child direction)
+  where handle message = case message of
+                           Up -> setDirection Down
+                           Down -> setDirection Up
 
-comp (state, setState) = Html "div" [OnClick (setState (state + 1))] (Text "hello")
+arrowState child = useState Up (arrowHandler child)
 
-state = State (0 :: Integer)
+arrowFlipper direction send =
+  onClick (send direction) (div $ text "Flip the direction")
 
-comb = state comp
+-- we can define useEffect in terms of state and handler
+data Task = Init | Attempted
+  deriving Eq
+
+taskState = useState Init
+
+run fn (state, setState) child = MessageHandler handle (\send -> Once (send Init) child)
+  where handle Init = do
+          setState Attempted
+
+          if state == Init then
+            fn -- Only time we call the function
+          else
+            pure ()
+
+        handle Attempted = pure ()
+
+useEffect fn child = taskState (\(state, setState) -> run fn (state, setState) child)
+
+test = useEffect (print "hello") (div $ text "hi")
+
+-- and we get
+-- counter =
+--   let  x= 1
+--   in H
+
+
+
+counter :: (Integer, Integer -> m ()) -> Purview ()
+counter (count, setCount) =
+  let
+    handleClick = Attribute OnClick (setCount (count + 1))
+    style = Attribute Style ""
+  in
+    style $ handleClick $ Html "div" (Text $ "You clicked: " <> show count)
+
+manyCounters =
+  [ counter
+  , counter
+  ]
+
+sharedState =
+  let state = State 0
+  in fmap state manyCounters
+
+-- state = State (0 :: Integer)
+
+-- comb = state comp
+
+{-
+
+let's try filling in setState
+
+-}
+
+data Action = Action
+
+-- render :: TChan Action -> Purview a -> Purview a
+-- render chan (State st fn) = undefined
+
+start = do
+  receive <- newTChan
+
+  undefined
+
+{-
+
+More parts of the language:  Attribute
+
+Global?  No I think you'd just use the same state + handler?
+
+SharedState?
+
+Calling state on a bunch of component means they do share the state
+
+Or I guess it'd be shared if you only passed in the fns?
+
+-}
+
+data Test a where
+  Con :: String -> Test a
+  Par :: String -> Test a
+
+{-
+
+Testing?
+
+-}
+
+display count = div (text $ "You clicked: " <> show count <> " times")
+
+-- wrap the child with a click handler, pass count down
+clickHandler child (count, setCount) = onClick (setCount (count + 1)) (child count)
+
+-- same as useState, sort of, passes to the next fn (state, setState)
+clickState = useState 0
+
+-- put it all together
+clicker = clickState (clickHandler display)
+
+-- ahaha.  AHAHAHAHA YES!
+testClicker = clickState (clickHandler (\count -> Value count))
