@@ -48,6 +48,7 @@ library
                 , wai-websockets
                 , warp >= 3.3.14
                 , websockets
+                , hspec
                 -- Just for experiments
                 , lens
                 , lens-aeson

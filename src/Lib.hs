@@ -26,27 +26,27 @@ import           GHC.Generics
 import           Component
 import           Wrapper
 
-text :: String -> Html a
-text = Text
-
-html :: Tag -> [Attribute a] -> [Html a] -> Html a
-html = Html
-
-onClick :: a -> Attribute a
-onClick = OnClick
-
-style :: ByteString -> Attribute a
-style = Style
-
-div :: [Attribute a] -> [Html a] -> Html a
-div = Html "div"
-
-defaultComponent :: Component (a -> a) b
-defaultComponent = Component
-  { state    = id
-  , handlers = const
-  , render   = \_state -> Html "p" [] [text "default"]
-  }
+-- text :: String -> Html a
+-- text = Text
+--
+-- html :: Tag -> [Attribute a] -> [Html a] -> Html a
+-- html = Html
+--
+-- onClick :: a -> Attribute a
+-- onClick = OnClick
+--
+-- style :: ByteString -> Attribute a
+-- style = Style
+--
+-- div :: [Attribute a] -> [Html a] -> Html a
+-- div = Html "div"
+--
+-- defaultComponent :: Component (a -> a) b
+-- defaultComponent = Component
+--   { state    = id
+--   , handlers = const
+--   , render   = \_state -> Html "p" [] [text "default"]
+--   }
 
 --
 -- Handling for connecting, sending events, and replacing html

@@ -5,76 +5,48 @@ module Component where
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Aeson
 import           Data.String (fromString)
-import Data.Typeable
+import           Data.Typeable
 
-newtype Env = Env { bus :: String }
+data Attributes = OnClick | Stype
 
---
--- How the user can define components
---
-data Component state messages = Component
-  { state      :: state
-  , handlers   :: Env -> state -> messages -> state
-  , render     :: state -> Html messages
-  } deriving Typeable
+data Purview a where
+  Attribute :: Attributes -> b -> Purview a -> Purview a
+  Text :: String -> Purview a
+  Html :: String -> [Purview a] -> Purview a
+  Value :: a -> Purview a
 
-renderAttributes :: Show a => [Attribute a] -> ByteString
-renderAttributes = foldr handle' ""
-  where
-    handle' (OnClick str) rest = "bridge-click=\""<> fromString (show str) <> "\"" <> rest
-    handle' (Style str) rest = "style=\""<> str <> "\"" <> rest
+  State :: state -> ((state, state -> m ()) -> Purview a) -> Purview a
+  MessageHandler
+    :: (Typeable action)
+    => (action -> m ())
+    -> ((action -> b) -> Purview a)
+    -> Purview a
+  Once :: (action -> ()) -> Purview a -> Purview a
 
-renderHtml :: Show a => Html a -> ByteString
-renderHtml (Html tag attrs html) =
-  "<" <> fromString tag <> " " <> renderAttributes attrs <> ">"
-  <> foldr (<>) "" (fmap renderHtml html)
-  <> "</" <> fromString tag <> ">"
-renderHtml (Text str) = fromString str
-renderHtml (SomeComponent comp) = runRender comp
+-- a little bit to clean up defining these
+div = Html "div"
+text = Text
+useState = State
+onClick = Attribute OnClick
 
+renderAttributes :: [Attributes] -> [String]
+renderAttributes = undefined
 
-data Attribute a
-  = OnClick a
-  | Style ByteString
-  deriving Show
+{-
 
-type Tag = String
+Html Tag Children
 
-class Render m where
-  runRender :: m -> ByteString
+-}
 
-instance Show m => Render (Component s m) where
-  runRender (Component state' _ render') =
-    renderHtml (render' state')
+render :: [Attributes] -> Purview a -> String
+render attrs tree = case tree of
+  Html kind rest ->
+    "<" <> kind <> ">"
+    <> concatMap (render attrs) rest <>
+    "</" <> kind <> ">"
 
-instance Show m => Render (Html m) where
-  runRender html = renderHtml html
+  Text val -> val
 
-class Handler m where
-  handle :: m -> Value -> m
-
-instance Handler (Html m) where
-  handle (Html tag attrs els) message =
-    Html tag attrs $ fmap (\sub -> handle sub message) els
-  handle (Text str) _ = Text str
-  handle (SomeComponent a) message = SomeComponent (handle a message)
-
-instance (Show s, FromJSON m) => Handler (Component s m) where
-  handle (Component state' handler render') message =
-    case fromJSON message of
-      Success m ->
-        let
-          newState = handler (Env "") state' m
-          newRender = fmap (\sub -> handle sub message) render'
-        in
-          Component newState handler newRender
-      Error _ ->
-        Component state' handler render'
-
-instance Show s => Show (Component s m) where
-  show (Component st _ _) = show st
-
-data Html a
-  = Html Tag [Attribute a] [Html a]
-  | Text String
-  | forall b. (Render b, Handler b, Show b) => SomeComponent b
+  Attribute attrs x rest ->
+    case attrs of
+      OnClick -> undefined
