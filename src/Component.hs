@@ -5,15 +5,18 @@ module Component where
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Aeson
 import           Data.String (fromString)
+import Data.Typeable
+
+newtype Env = Env { bus :: String }
 
 --
 -- How the user can define components
 --
 data Component state messages = Component
   { state      :: state
-  , handlers   :: state -> messages -> state
+  , handlers   :: Env -> state -> messages -> state
   , render     :: state -> Html messages
-  }
+  } deriving Typeable
 
 renderAttributes :: Show a => [Attribute a] -> ByteString
 renderAttributes = foldr handle' ""
@@ -61,7 +64,7 @@ instance (Show s, FromJSON m) => Handler (Component s m) where
     case fromJSON message of
       Success m ->
         let
-          newState = handler state' m
+          newState = handler (Env "") state' m
           newRender = fmap (\sub -> handle sub message) render'
         in
           Component newState handler newRender

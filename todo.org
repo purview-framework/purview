@@ -1,6 +1,10 @@
 #+TITLE: Todo
 
-* Applying events to components / nested components
+* Components can send events to themselves
+
+* Events are only applied to the component they come from
+
+* DONE Applying events to components / nested components
 For now, I'm just gonna apply the event to every gd widget.
 
 Once that's done and working, tag it as the very first,

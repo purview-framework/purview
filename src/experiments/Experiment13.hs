@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds #-}
 -- |
 
 module Experiment13 where
@@ -136,7 +137,7 @@ data Attributes = OnClick | Style
 data Purview a where
   Attribute :: Attributes -> b -> Purview a -> Purview a
   Text :: String -> Purview a
-  Html :: String -> Purview a -> Purview a
+  Html :: String -> [Purview a] -> Purview a
   Value :: a -> Purview a
 
   State :: state -> ((state, state -> m ()) -> Purview a) -> Purview a
@@ -176,7 +177,7 @@ arrowHandler child (direction, setDirection) = MessageHandler handle (child dire
 arrowState child = useState Up (arrowHandler child)
 
 arrowFlipper direction send =
-  onClick (send direction) (div $ text "Flip the direction")
+  onClick (send direction) (div $ [text "Flip the direction"])
 
 -- we can define useEffect in terms of state and handler
 data Task = Init | Attempted
@@ -197,14 +198,12 @@ run fn (state, setState) child = MessageHandler handle (\send -> Once (send Init
 
 useEffect fn child = taskState (\(state, setState) -> run fn (state, setState) child)
 
-test = useEffect (print "hello") (div $ text "hi")
+test = useEffect (print "hello") (div $ [text "hi"])
 
 -- and we get
 -- counter =
 --   let  x= 1
 --   in H
-
-
 
 counter :: (Integer, Integer -> m ()) -> Purview ()
 counter (count, setCount) =
@@ -212,7 +211,7 @@ counter (count, setCount) =
     handleClick = Attribute OnClick (setCount (count + 1))
     style = Attribute Style ""
   in
-    style $ handleClick $ Html "div" (Text $ "You clicked: " <> show count)
+    style $ handleClick $ Html "div" [(Text $ "You clicked: " <> show count)]
 
 manyCounters =
   [ counter
@@ -227,21 +226,6 @@ sharedState =
 
 -- comb = state comp
 
-{-
-
-let's try filling in setState
-
--}
-
-data Action = Action
-
--- render :: TChan Action -> Purview a -> Purview a
--- render chan (State st fn) = undefined
-
-start = do
-  receive <- newTChan
-
-  undefined
 
 {-
 
@@ -257,17 +241,13 @@ Or I guess it'd be shared if you only passed in the fns?
 
 -}
 
-data Test a where
-  Con :: String -> Test a
-  Par :: String -> Test a
-
 {-
 
 Testing?
 
 -}
 
-display count = div (text $ "You clicked: " <> show count <> " times")
+display count = div [(text $ "You clicked: " <> show count <> " times")]
 
 -- wrap the child with a click handler, pass count down
 clickHandler child (count, setCount) = onClick (setCount (count + 1)) (child count)
@@ -280,3 +260,55 @@ clicker = clickState (clickHandler display)
 
 -- ahaha.  AHAHAHAHA YES!
 testClicker = clickState (clickHandler (\count -> Value count))
+
+{-
+
+let's try filling in setState
+
+-}
+
+data Action = Action
+
+-- render :: TChan Action -> Purview a -> Purview a
+-- render chan (State st fn) = undefined
+
+render :: TChan String -> [Attributes] -> Purview a -> String
+render out attrs tree = case tree of
+  Html kind rest ->
+    "<" <> kind <> ">"
+    <> concatMap (render out attrs) rest <>
+    "</" <> kind <> ">"
+
+  Text val -> val
+
+  Attribute attrs x rest ->
+    case attrs of
+      OnClick -> undefined
+
+-- since state is anonymous, we do need a way to identify it
+data EnrichedPurview a where
+  Locatable :: [Int] -> Purview a -> EnrichedPurview a
+
+{-
+
+Goal: OnClick updates State which triggers a redraw
+
+State produces an anonymous fn
+
+That anonymous fn needs a name
+
+No, OnClick needs a name.  It could change state, or log, or anything.
+
+Then, State needs a way to say "rerender" once the state has changed
+
+-}
+
+start = do
+  receive <- newTChan
+  toBrowser <- newTChan
+
+  -- interpret it all
+
+  -- then send an update
+
+  undefined
