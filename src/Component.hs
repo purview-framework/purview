@@ -7,7 +7,7 @@ import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
 
-data Attributes = OnClick | Stype
+data Attributes = OnClick | Style
 
 data Purview a where
   Attribute :: Attributes -> b -> Purview a -> Purview a
@@ -29,8 +29,10 @@ text = Text
 useState = State
 onClick = Attribute OnClick
 
-renderAttributes :: [Attributes] -> [String]
-renderAttributes = undefined
+renderAttributes :: [Attributes] -> String
+renderAttributes = concatMap renderAttribute
+  where
+    renderAttribute OnClick = " bridge-click=\"clicked\""
 
 {-
 
@@ -41,12 +43,11 @@ Html Tag Children
 render :: [Attributes] -> Purview a -> String
 render attrs tree = case tree of
   Html kind rest ->
-    "<" <> kind <> ">"
+    "<" <> kind <> renderAttributes attrs <> ">"
     <> concatMap (render attrs) rest <>
     "</" <> kind <> ">"
 
   Text val -> val
 
-  Attribute attrs x rest ->
-    case attrs of
-      OnClick -> undefined
+  Attribute attr x rest ->
+    render (attr:attrs) rest
