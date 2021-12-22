@@ -15,7 +15,7 @@ spec = parallel $ do
 
     it "can add an onclick" $ do
       let element =
-            Attribute OnClick "something"
+            Attribute OnClick 1
             $ Html "div" [Text "hello world"]
 
       render [] element `shouldBe`

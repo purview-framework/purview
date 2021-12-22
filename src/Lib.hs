@@ -14,7 +14,7 @@ import           Data.Text (Text)
 import qualified Data.Text.Lazy as LazyText
 import           Data.Text.Encoding
 import           Data.ByteString.Lazy (ByteString, toStrict)
-import           Data.ByteString.Lazy.Char8 (unpack)
+import           Data.ByteString.Lazy.Char8 (unpack, pack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.WebSockets as WS
@@ -58,12 +58,12 @@ import           Wrapper
 -- the html.
 --
 
-renderComponent :: Show a => Html a -> ByteString
-renderComponent = runRender
+renderComponent :: Show a => Purview a -> ByteString
+renderComponent = pack . render []
 
 type Log m = String -> m ()
 
-run :: Show a => Log IO -> Html a -> IO ()
+run :: Show a => Log IO -> Purview a -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -74,7 +74,7 @@ run log routes = do
         (webSocketHandler log routes)
         requestHandler'
 
-requestHandler :: Show a => Html a -> IO Wai.Application
+requestHandler :: Show a => Purview a -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -107,7 +107,7 @@ instance ToJSON Event where
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Show a => Log IO -> WS.Connection -> Html a -> IO ()
+looper :: Show a => Log IO -> WS.Connection -> Purview a -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
@@ -115,7 +115,7 @@ looper log conn component = do
   let
     decoded = decode msg :: Maybe FromEvent
     newTree = case decoded of
-      Just (FromEvent _ message) -> handle component message
+      Just (FromEvent _ message) -> apply message component
       Nothing -> component
 
     newHtml = renderComponent newTree
@@ -129,7 +129,7 @@ looper log conn component = do
   looper log conn newTree
 
 
-webSocketHandler :: Show a => Log IO -> Html a -> WS.ServerApp
+webSocketHandler :: Show a => Log IO -> Purview a -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending

@@ -51,3 +51,6 @@ render attrs tree = case tree of
 
   Attribute attr x rest ->
     render (attr:attrs) rest
+
+apply :: Typeable b => b -> Purview a -> Purview a
+apply action component = undefined
