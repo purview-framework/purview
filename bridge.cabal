@@ -87,7 +87,9 @@ test-suite bridge-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
                   base >=4.7 && <5
+                , aeson
                 , bridge
+                , bytestring
                 , mtl >= 2.2.2
                 , text >= 1.2.4.1
                 , wai >= 3.2.3

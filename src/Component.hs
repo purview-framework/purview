@@ -6,33 +6,52 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
+import           GHC.Generics
+import           Control.Concurrent
+import           Control.Monad
 
-data Attributes = OnClick | Style
+data Attributes where
+  -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
+  OnClick :: a -> Attributes
 
 data Purview a where
-  Attribute :: Attributes -> b -> Purview a -> Purview a
+  Attribute :: Attributes -> Purview a -> Purview a
   Text :: String -> Purview a
   Html :: String -> [Purview a] -> Purview a
   Value :: a -> Purview a
 
-  State :: state -> ((state, state -> m ()) -> Purview a) -> Purview a
+  State
+    :: state
+    -> ((state, state -> m ()) -> Purview a)
+    -> Purview a
+
   MessageHandler
     :: (Typeable action)
-    => (action -> m ())
-    -> ((action -> b) -> Purview a)
+    => state
+    -> (action -> state)
+    -> (state -> Purview a)
     -> Purview a
-  Once :: (action -> ()) -> Purview a -> Purview a
+
+--  MessageHandler
+--    :: (Typeable action)
+--    => (action -> IO ())
+--    -> ((action -> b) -> Purview a)
+--    -> Purview a
+  -- Once :: (action -> ()) -> Purview a -> Purview a
 
 -- a little bit to clean up defining these
 div = Html "div"
 text = Text
 useState = State
-onClick = Attribute OnClick
+onClick = Attribute . OnClick
+
+temp state setState = OnClick $ do
+  setState 1
 
 renderAttributes :: [Attributes] -> String
 renderAttributes = concatMap renderAttribute
   where
-    renderAttribute OnClick = " bridge-click=\"clicked\""
+    renderAttribute (OnClick _) = " bridge-click=\"click\""
 
 {-
 
@@ -49,8 +68,22 @@ render attrs tree = case tree of
 
   Text val -> val
 
-  Attribute attr x rest ->
+  Attribute attr rest ->
     render (attr:attrs) rest
 
+  MessageHandler state _ cont ->
+    render attrs (cont state)
+
+-- rewrite :: Purview a -> Purview a
+-- rewrite component = case component of
+--   Attribute (OnClick fn) cont ->
+--     MessageHandler handler (const $ rewrite cont)
+--     where
+--       handler "RUN" = fn
+--   e -> rewrite e
+
 apply :: Typeable b => b -> Purview a -> Purview a
-apply action component = undefined
+apply action component = case component of
+  MessageHandler state handler cont -> case cast action of
+    Just action' ->
+      MessageHandler (handler action') handler cont

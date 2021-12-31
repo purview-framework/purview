@@ -26,6 +26,7 @@ around a record
 --   Html :: String -> Purview a -> Purview a
 --   -- UseState :: state -> ((state, state -> ()) -> Purview a) -> Purview a
 --   -- Connect ::
+--
 --   Handler
 --     :: (Typeable messages)
 --     => state
