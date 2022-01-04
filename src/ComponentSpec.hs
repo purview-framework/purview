@@ -25,9 +25,8 @@ spec = parallel $ do
     it "can change state" $ do
       let handler =
             MessageHandler (0 :: Int)
-              (\action -> case action of
-                  "up" -> 1)
-              (\state -> Text (show state))
+              (\"up" -> 1)
+              (Text . show)
 
       render [] (apply "up" handler)
         `shouldBe`

@@ -6,11 +6,18 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib where
+module Lib
+  ( div
+  , text
+  , onClick
+  , Purview (..)
+  , run
+  )
+where
 
 import Prelude hiding (div, log)
 import qualified Web.Scotty as Sc
-import           Data.Text (Text)
+import           Data.Text (Text, pack)
 import qualified Data.Text.Lazy as LazyText
 import           Data.Text.Encoding
 import           Data.ByteString.Lazy (ByteString, toStrict)
@@ -58,12 +65,12 @@ import           Wrapper
 -- the html.
 --
 
-renderComponent :: Show a => Purview a -> ByteString
-renderComponent = pack . render []
+-- renderComponent :: Show a => Purview a -> ByteString
+-- renderComponent = pack . render []
 
 type Log m = String -> m ()
 
-run :: Show a => Log IO -> Purview a -> IO ()
+run :: Log IO -> Purview a -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -74,13 +81,18 @@ run log routes = do
         (webSocketHandler log routes)
         requestHandler'
 
-requestHandler :: Show a => Purview a -> IO Wai.Application
+requestHandler :: Purview a -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
     --Sc.middleware S.logStdoutDev
 
-    Sc.get "/" $ Sc.html $ LazyText.fromStrict $ wrapHtml $ (decodeUtf8 . toStrict $ renderComponent routes)
+    Sc.get "/"
+      $ Sc.html
+      $ LazyText.fromStrict
+      $ wrapHtml
+      $ Data.Text.pack
+      $ render [] routes
 
 data Event = Event
   { event :: Text
@@ -107,7 +119,7 @@ instance ToJSON Event where
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Show a => Log IO -> WS.Connection -> Purview a -> IO ()
+looper :: Log IO -> WS.Connection -> Purview a -> IO ()
 looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
@@ -118,18 +130,18 @@ looper log conn component = do
       Just (FromEvent _ message) -> apply message component
       Nothing -> component
 
-    newHtml = renderComponent newTree
+    newHtml = render [] newTree
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
   WS.sendTextData
     conn
-    (encode $ Event { event = "setHtml", message = decodeUtf8 . toStrict $ newHtml })
+    (encode $ Event { event = "setHtml", message = Data.Text.pack newHtml })
 
   looper log conn newTree
 
 
-webSocketHandler :: Show a => Log IO -> Purview a -> WS.ServerApp
+webSocketHandler :: Log IO -> Purview a -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending

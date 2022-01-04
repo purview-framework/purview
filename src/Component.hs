@@ -87,3 +87,5 @@ apply action component = case component of
   MessageHandler state handler cont -> case cast action of
     Just action' ->
       MessageHandler (handler action') handler cont
+    Nothing -> cont state
+  _ -> error "sup"
