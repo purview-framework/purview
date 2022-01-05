@@ -30,7 +30,7 @@ data Purview a where
   MessageHandler
     :: (FromJSON action)
     => state
-    -> (action -> state)
+    -> (action -> state -> state)
     -> (state -> Purview a)
     -> Purview a
 
@@ -45,11 +45,9 @@ data Purview a where
 div = Html "div"
 text = Text
 useState = State
+
 onClick :: ToJSON a => a -> Purview b -> Purview b
 onClick = Attribute . OnClick
-
-temp state setState = OnClick $ do
-  setState 1
 
 renderAttributes :: [Attributes] -> String
 renderAttributes = concatMap renderAttribute
@@ -89,6 +87,6 @@ apply :: Value -> Purview a -> Purview a
 apply action component = case component of
   MessageHandler state handler cont -> case fromJSON action of
     Success action' ->
-      MessageHandler (handler action') handler cont
+      MessageHandler (handler action' state) handler cont
     Error _ -> cont state
   _ -> error "sup"

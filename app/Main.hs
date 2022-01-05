@@ -15,8 +15,8 @@ downButton = onClick "down" $ div [ text "down" ]
 
 handler = MessageHandler 0 action
   where
-    action "up"   = 1
-    action "down" = -1
+    action "up" state   = state + 1
+    action "down" state = state - 1
 
 counter state = div
   [ upButton

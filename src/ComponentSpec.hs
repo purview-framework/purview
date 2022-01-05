@@ -26,8 +26,8 @@ spec = parallel $ do
   describe "apply" $ do
     it "can change state" $ do
       let
-        actionHandler :: String -> Int
-        actionHandler "up" = 1
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" state = 1
 
         handler =
           MessageHandler (0 :: Int)

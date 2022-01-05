@@ -1,6 +1,6 @@
 #+TITLE: Todo
 
-* Increment and decrement
+* DONE Increment and decrement
 I have the JSON
 
 But how do I turn that into what's needed to cast / apply the action?
@@ -11,7 +11,8 @@ Remember that you will be targeting these messages to specific
 components, not applying them to the whole tree.  I think.
 
 ** DONE Change state on message received
-** Put the right message in the on click
+** DONE Put the right message in the on click
+** DONE State is passed into the handler
 
 * Components can send events to themselves
 

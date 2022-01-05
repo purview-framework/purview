@@ -5,15 +5,13 @@ import Prelude hiding (div)
 import Test.Hspec
 import Lib
 
-upButton = onClick ("" :: String) $ div [ text "up" ]
-downButton = onClick ("" :: String) $ div [ text "down" ]
+upButton = onClick ("up" :: String) $ div [ text "up" ]
+downButton = onClick ("down" :: String) $ div [ text "down" ]
 
 handler = MessageHandler 0 action
   where
-    action :: String -> Int
-    action "up"    = 1
-    action "down"  = -1
-    action "click" = -2
+    action :: String -> Int -> Int
+    action "up"    _ = 1
 
 counter state = div
   [ upButton
@@ -23,7 +21,7 @@ counter state = div
 
 component = handler counter
 
-event' = "{\"event\":\"click\",\"message\":\"click\"}"
+event' = "{\"event\":\"click\",\"message\":\"up\"}"
 
 spec = parallel $ do
   describe "applying events" $ do
