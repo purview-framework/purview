@@ -1,5 +1,15 @@
 #+TITLE: Todo
 
+* Increment and decrement
+I have the JSON
+
+But how do I turn that into what's needed to cast / apply the action?
+
+Possibly move parsing the JSON into the message handler
+
+Remember that you will be targeting these messages to specific
+components, not applying them to the whole tree.  I think.
+
 * Components can send events to themselves
 
 * Events are only applied to the component they come from

@@ -9,6 +9,7 @@ import           Data.Typeable
 import           GHC.Generics
 import           Control.Concurrent
 import           Control.Monad
+import Debug.Trace
 
 data Attributes where
   -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
@@ -26,7 +27,7 @@ data Purview a where
     -> Purview a
 
   MessageHandler
-    :: (Typeable action)
+    :: (FromJSON action)
     => state
     -> (action -> state)
     -> (state -> Purview a)
@@ -82,10 +83,10 @@ render attrs tree = case tree of
 --       handler "RUN" = fn
 --   e -> rewrite e
 
-apply :: Typeable b => b -> Purview a -> Purview a
+apply :: Value -> Purview a -> Purview a
 apply action component = case component of
-  MessageHandler state handler cont -> case cast action of
-    Just action' ->
+  MessageHandler state handler cont -> case fromJSON action of
+    Success action' ->
       MessageHandler (handler action') handler cont
-    Nothing -> cont state
+    Error _ -> cont state
   _ -> error "sup"

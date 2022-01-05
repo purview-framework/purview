@@ -12,6 +12,11 @@ module Lib
   , onClick
   , Purview (..)
   , run
+  -- for testing
+  , handleEvent
+  , render
+  -- for experiment
+  , FromEvent (..)
   )
 where
 
@@ -85,7 +90,7 @@ requestHandler :: Purview a -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
-    --Sc.middleware S.logStdoutDev
+    -- Sc.middleware S.logStdoutDev
 
     Sc.get "/"
       $ Sc.html
@@ -102,7 +107,7 @@ data Event = Event
 data FromEvent = FromEvent
   { event :: Text
   , message :: Value
-  }
+  } deriving Show
 
 instance FromJSON FromEvent where
   parseJSON (Object o) =
@@ -111,6 +116,13 @@ instance FromJSON FromEvent where
 
 instance ToJSON Event where
   toEncoding = genericToEncoding defaultOptions
+
+handleEvent :: ByteString -> Purview a -> Purview a
+handleEvent message component =
+  let decoded = decode message :: Maybe FromEvent
+  in case decoded of
+    Just (FromEvent _ message) -> apply message component
+    Nothing -> component
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -125,11 +137,7 @@ looper log conn component = do
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
   let
-    decoded = decode msg :: Maybe FromEvent
-    newTree = case decoded of
-      Just (FromEvent _ message) -> apply message component
-      Nothing -> component
-
+    newTree = handleEvent msg component
     newHtml = render [] newTree
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml

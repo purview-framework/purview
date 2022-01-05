@@ -28,12 +28,12 @@ spec = parallel $ do
               (\"up" -> 1)
               (Text . show)
 
-      render [] (apply "up" handler)
-        `shouldBe`
-        "1"
-
       render [] handler
         `shouldBe`
         "0"
+
+      render [] (apply "up" handler)
+        `shouldBe`
+        "1"
 
 main = hspec spec
