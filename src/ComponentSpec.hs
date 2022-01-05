@@ -17,11 +17,11 @@ spec = parallel $ do
 
     it "can add an onclick" $ do
       let element =
-            Attribute (OnClick 1)
+            Attribute (OnClick (1 :: Integer))
             $ Html "div" [Text "hello world"]
 
       render [] element `shouldBe`
-        "<div bridge-click=\"click\">hello world</div>"
+        "<div bridge-click=1>hello world</div>"
 
   describe "apply" $ do
     it "can change state" $ do

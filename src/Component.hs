@@ -3,6 +3,7 @@
 module Component where
 
 import           Data.ByteString.Lazy (ByteString)
+import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
@@ -13,7 +14,7 @@ import Debug.Trace
 
 data Attributes where
   -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
-  OnClick :: a -> Attributes
+  OnClick :: ToJSON a => a -> Attributes
 
 data Purview a where
   Attribute :: Attributes -> Purview a -> Purview a
@@ -44,6 +45,7 @@ data Purview a where
 div = Html "div"
 text = Text
 useState = State
+onClick :: ToJSON a => a -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
 temp state setState = OnClick $ do
@@ -52,7 +54,7 @@ temp state setState = OnClick $ do
 renderAttributes :: [Attributes] -> String
 renderAttributes = concatMap renderAttribute
   where
-    renderAttribute (OnClick _) = " bridge-click=\"click\""
+    renderAttribute (OnClick action) = " bridge-click=" <> unpack (encode action)
 
 {-
 

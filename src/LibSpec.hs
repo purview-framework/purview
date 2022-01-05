@@ -5,8 +5,8 @@ import Prelude hiding (div)
 import Test.Hspec
 import Lib
 
-upButton = onClick "" $ div [ text "up" ]
-downButton = onClick "" $ div [ text "down" ]
+upButton = onClick ("" :: String) $ div [ text "up" ]
+downButton = onClick ("" :: String) $ div [ text "down" ]
 
 handler = MessageHandler 0 action
   where

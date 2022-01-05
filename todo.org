@@ -10,6 +10,9 @@ Possibly move parsing the JSON into the message handler
 Remember that you will be targeting these messages to specific
 components, not applying them to the whole tree.  I think.
 
+** DONE Change state on message received
+** Put the right message in the on click
+
 * Components can send events to themselves
 
 * Events are only applied to the component they come from

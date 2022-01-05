@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
 
@@ -11,15 +10,13 @@ data Action
   | Decrement
   deriving (Show, Generic)
 
-upButton = onClick "" $ div [ text "up" ]
-downButton = onClick "" $ div [ text "down" ]
+upButton = onClick "up" $ div [ text "up" ]
+downButton = onClick "down" $ div [ text "down" ]
 
 handler = MessageHandler 0 action
   where
-    action :: String -> Int
-    action "up"    = 1
-    action "down"  = -1
-    action "click" = -2
+    action "up"   = 1
+    action "down" = -1
 
 counter state = div
   [ upButton
