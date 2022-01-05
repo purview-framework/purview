@@ -1,7 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 module ComponentSpec where
 
 import Test.Hspec
-
+import Data.Aeson
 import Component
 
 spec = parallel $ do
@@ -23,16 +25,20 @@ spec = parallel $ do
 
   describe "apply" $ do
     it "can change state" $ do
-      let handler =
-            MessageHandler (0 :: Int)
-              (\"up" -> 1)
-              (Text . show)
+      let
+        actionHandler :: String -> Int
+        actionHandler "up" = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
 
       render [] handler
         `shouldBe`
         "0"
 
-      render [] (apply "up" handler)
+      render [] (apply (String "up") handler)
         `shouldBe`
         "1"
 

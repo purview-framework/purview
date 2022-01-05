@@ -23,12 +23,12 @@ counter state = div
 
 component = handler counter
 
-event = "{\"event\":\"click\",\"message\":\"click\"}"
+event' = "{\"event\":\"click\",\"message\":\"click\"}"
 
 spec = parallel $ do
   describe "applying events" $ do
     it "works with the event directly" $ do
-      let applied = handleEvent event component
+      let applied = handleEvent event' component
 
       render [] applied `shouldNotBe` render [] component
 
