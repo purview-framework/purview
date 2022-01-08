@@ -1,5 +1,21 @@
 #+TITLE: Todo
 
+* TODO Show server time and keep it updated
+
+So for applying this, I think we need to pass in a way
+so that apply can say re-render me.  This might actually
+be kind of elegant?  It can be the same as an event from
+then frontend.
+
+An idea: what if handlers are split between pure and impure
+handlers?
+
+** Display it statically
+
+* TODO Display users from JSON api
+
+* TODO Events are only applied to the component they come from
+
 * DONE Increment and decrement
 I have the JSON
 
@@ -15,8 +31,6 @@ components, not applying them to the whole tree.  I think.
 ** DONE State is passed into the handler
 
 * Components can send events to themselves
-
-* Events are only applied to the component they come from
 
 * DONE Applying events to components / nested components
 For now, I'm just gonna apply the event to every gd widget.

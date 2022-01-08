@@ -58,6 +58,7 @@ library
                 , comonad
                 , containers
                 , freer-simple
+                , time
   default-language: Haskell2010
 
 executable purview-tmp
@@ -70,6 +71,8 @@ executable purview-tmp
   build-depends:
                   base >=4.7 && <5
                 , purview
+                , time
+                , aeson
   default-language: Haskell2010
 
 executable purview

@@ -117,12 +117,12 @@ instance FromJSON FromEvent where
 instance ToJSON Event where
   toEncoding = genericToEncoding defaultOptions
 
-handleEvent :: ByteString -> Purview a -> Purview a
+handleEvent :: ByteString -> Purview a -> IO (Purview a)
 handleEvent message component =
   let decoded = decode message :: Maybe FromEvent
   in case decoded of
     Just (FromEvent _ message) -> apply message component
-    Nothing -> component
+    Nothing -> pure component
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -136,8 +136,9 @@ looper log conn component = do
   msg <- WS.receiveData conn
   log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
 
+  newTree <- handleEvent msg component
+
   let
-    newTree = handleEvent msg component
     newHtml = render [] newTree
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml

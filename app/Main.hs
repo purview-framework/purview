@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
 
@@ -5,10 +6,14 @@ import           Prelude      hiding (div)
 import           GHC.Generics
 import           Lib
 
-data Action
-  = Increment
-  | Decrement
-  deriving (Show, Generic)
+-- for server time example
+import           Data.Time
+import           Data.Aeson
+import           Data.Aeson.TH
+
+---------------------
+-- Stepper Example --
+---------------------
 
 upButton = onClick "up" $ div [ text "up" ]
 downButton = onClick "down" $ div [ text "down" ]
@@ -27,3 +32,27 @@ counter state = div
 logger = print
 
 main = run logger (handler counter)
+
+-------------------------
+-- Server Time Example --
+-------------------------
+
+newtype UpdateTime = Set UTCTime
+
+$(deriveJSON defaultOptions ''UpdateTime)
+
+display :: UTCTime -> Purview a
+display time = div [ text (show time) ]
+
+timeHandler = EffectHandler Nothing action
+  where
+    action (Set time) state = do
+      time <- getCurrentTime
+      pure $ Just time
+
+-- timeEffect = Effect send
+--   where send action = do
+--           time <- getCurrentTime
+--           action (Set time)
+
+-- so what would trigger the initial go

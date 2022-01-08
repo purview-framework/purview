@@ -12,6 +12,9 @@ import           Control.Concurrent
 import           Control.Monad
 import Debug.Trace
 
+-- For monad effects
+import Control.Concurrent
+
 data Attributes where
   -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
   OnClick :: ToJSON a => a -> Attributes
@@ -32,6 +35,17 @@ data Purview a where
     => state
     -> (action -> state -> state)
     -> (state -> Purview a)
+    -> Purview a
+
+  EffectHandler
+    :: (FromJSON action)
+    => state
+    -> (action -> state -> IO state)
+    -> (state -> Purview a)
+    -> Purview a
+
+  Effect
+    :: (action -> m ())
     -> Purview a
 
 --  MessageHandler
@@ -83,10 +97,22 @@ render attrs tree = case tree of
 --       handler "RUN" = fn
 --   e -> rewrite e
 
-apply :: Value -> Purview a -> Purview a
+apply :: Value -> Purview a -> IO (Purview a)
 apply action component = case component of
-  MessageHandler state handler cont -> case fromJSON action of
+  MessageHandler state handler cont -> pure $ case fromJSON action of
     Success action' ->
       MessageHandler (handler action' state) handler cont
-    Error _ -> cont state
+    Error _ ->
+      cont state
+
+  EffectHandler state handler cont -> case fromJSON action of
+    Success parsedAction -> do
+      void . forkIO $ do
+        newState <- handler parsedAction state
+        pure newState
+        pure ()
+
+      pure $ EffectHandler state handler cont
   _ -> error "sup"
+
+setState = undefined
