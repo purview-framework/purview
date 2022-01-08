@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 module Component where
@@ -8,12 +9,15 @@ import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
 import           GHC.Generics
-import           Control.Concurrent
+import           Control.Concurrent.STM.TChan
+import           Control.Monad.STM
 import           Control.Monad
 import Debug.Trace
 
 -- For monad effects
 import Control.Concurrent
+
+import Events
 
 data Attributes where
   -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
@@ -31,20 +35,20 @@ data Purview a where
     -> Purview a
 
   MessageHandler
-    :: (FromJSON action)
+    :: (FromJSON action, FromJSON state)
     => state
     -> (action -> state -> state)
     -> (state -> Purview a)
     -> Purview a
 
   EffectHandler
-    :: (FromJSON action)
+    :: (FromJSON action, FromJSON state, ToJSON state)
     => state
     -> (action -> state -> IO state)
     -> (state -> Purview a)
     -> Purview a
 
-  Effect
+  Once
     :: (action -> m ())
     -> Purview a
 
@@ -89,6 +93,9 @@ render attrs tree = case tree of
   MessageHandler state _ cont ->
     render attrs (cont state)
 
+  EffectHandler state _ cont ->
+    render attrs (cont state)
+
 -- rewrite :: Purview a -> Purview a
 -- rewrite component = case component of
 --   Attribute (OnClick fn) cont ->
@@ -97,22 +104,39 @@ render attrs tree = case tree of
 --       handler "RUN" = fn
 --   e -> rewrite e
 
-apply :: Value -> Purview a -> IO (Purview a)
-apply action component = case component of
-  MessageHandler state handler cont -> pure $ case fromJSON action of
+apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+apply eventBus (FromEvent "newState" message) component = case component of
+  MessageHandler state handler cont -> pure $ case fromJSON message of
+    Success newState ->
+      MessageHandler newState handler cont
+    Error _ ->
+      cont state
+
+  EffectHandler state handler cont -> case fromJSON message of
+    Success newState -> do
+      pure $ EffectHandler newState handler cont
+  _ -> error "sup"
+
+apply eventBus (FromEvent eventKind message) component = case component of
+  MessageHandler state handler cont -> pure $ case fromJSON message of
     Success action' ->
       MessageHandler (handler action' state) handler cont
     Error _ ->
       cont state
 
-  EffectHandler state handler cont -> case fromJSON action of
+  EffectHandler state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
         newState <- handler parsedAction state
-        pure newState
-        pure ()
+        atomically $ writeTChan eventBus $ FromEvent
+          { event = "newState"
+          , message = toJSON newState
+          }
 
       pure $ EffectHandler state handler cont
+    Error _ ->
+      pure $ cont state
+
   _ -> error "sup"
 
 setState = undefined

@@ -18,11 +18,12 @@ import           Data.Aeson.TH
 upButton = onClick "up" $ div [ text "up" ]
 downButton = onClick "down" $ div [ text "down" ]
 
-handler = MessageHandler 0 action
+handler = MessageHandler (0 :: Int) action
   where
     action "up" state   = state + 1
     action "down" state = state - 1
 
+counter :: Int -> Purview a
 counter state = div
   [ upButton
   , text $ "count: " <> show state
@@ -31,24 +32,29 @@ counter state = div
 
 logger = print
 
-main = run logger (handler counter)
+-- main = run logger (handler counter)
 
 -------------------------
 -- Server Time Example --
 -------------------------
 
-newtype UpdateTime = Set UTCTime
+data UpdateTime = UpdateTime
 
 $(deriveJSON defaultOptions ''UpdateTime)
 
-display :: UTCTime -> Purview a
-display time = div [ text (show time) ]
+display :: Maybe UTCTime -> Purview a
+display time = div
+  [ text (show time)
+  , onClick "setTime" $ div [ text "check time" ]
+  ]
 
 timeHandler = EffectHandler Nothing action
   where
-    action (Set time) state = do
+    action "setTime" state = do
       time <- getCurrentTime
       pure $ Just time
+
+main = run logger (timeHandler display)
 
 -- timeEffect = Effect send
 --   where send action = do

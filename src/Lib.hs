@@ -13,7 +13,7 @@ module Lib
   , Purview (..)
   , run
   -- for testing
-  , handleEvent
+  -- , handleEvent
   , render
   -- for experiment
   , FromEvent (..)
@@ -35,8 +35,13 @@ import qualified Network.Wai.Handler.Warp as Warp
 import           Data.Aeson
 import           GHC.Generics
 
+import           Control.Concurrent.STM.TChan
+import           Control.Monad.STM
+import           Control.Concurrent
+
 import           Component
 import           Wrapper
+import           Events
 
 -- text :: String -> Html a
 -- text = Text
@@ -99,30 +104,12 @@ requestHandler routes =
       $ Data.Text.pack
       $ render [] routes
 
-data Event = Event
-  { event :: Text
-  , message :: Text
-  } deriving (Generic, Show)
-
-data FromEvent = FromEvent
-  { event :: Text
-  , message :: Value
-  } deriving Show
-
-instance FromJSON FromEvent where
-  parseJSON (Object o) =
-      FromEvent <$> o .: "event" <*> (o .: "message")
-  parseJSON _ = error "fail"
-
-instance ToJSON Event where
-  toEncoding = genericToEncoding defaultOptions
-
-handleEvent :: ByteString -> Purview a -> IO (Purview a)
-handleEvent message component =
-  let decoded = decode message :: Maybe FromEvent
-  in case decoded of
-    Just (FromEvent _ message) -> apply message component
-    Nothing -> pure component
+-- handleEvent :: ByteString -> Purview a -> IO (Purview a)
+-- handleEvent message component =
+--   let decoded = decode message :: Maybe FromEvent
+--   in case decoded of
+--     Just (FromEvent _ message) -> apply message component
+--     Nothing -> pure component
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -131,12 +118,14 @@ handleEvent message component =
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Log IO -> WS.Connection -> Purview a -> IO ()
-looper log conn component = do
-  msg <- WS.receiveData conn
-  log $ "\x1b[34;1mreceived>\x1b[0m " <> unpack msg
+looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
+looper log eventBus connection component = do
+  message <- atomically $ readTChan eventBus
+  log $ "\x1b[34;1mreceived>\x1b[0m " <> show message
 
-  newTree <- handleEvent msg component
+  let (FromEvent eventKind eventMessage) = message
+
+  newTree <- apply eventBus message component
 
   let
     newHtml = render [] newTree
@@ -144,16 +133,28 @@ looper log conn component = do
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
   WS.sendTextData
-    conn
+    connection
     (encode $ Event { event = "setHtml", message = Data.Text.pack newHtml })
 
-  looper log conn newTree
+  looper log eventBus connection newTree
 
+webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
+webSocketMessageHandler eventBus websocketConnection = do
+  message <- WS.receiveData websocketConnection
+
+  case decode message of
+    Just fromEvent -> atomically $ writeTChan eventBus fromEvent
+    Nothing -> pure ()
+
+  webSocketMessageHandler eventBus websocketConnection
 
 webSocketHandler :: Log IO -> Purview a -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
 
+  eventBus <- newTChanIO
+
   WS.withPingThread conn 30 (pure ()) $ do
-    looper log conn component
+    forkIO $ webSocketMessageHandler eventBus conn
+    looper log eventBus conn component

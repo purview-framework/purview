@@ -10,7 +10,11 @@ then frontend.
 An idea: what if handlers are split between pure and impure
 handlers?
 
-** Display it statically
+For now let's just have a button send the event
+
+** DONE Display it on button click (and update each click)
+** Clean up apply
+** Now how to get it ticking?
 
 * TODO Display users from JSON api
 
