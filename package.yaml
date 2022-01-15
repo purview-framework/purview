@@ -21,9 +21,27 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- aeson
+- text
+- stm
+- bytestring
+- raw-strings-qq
+- warp
+- wai
+- wai-websockets
+- wai-extra
+- websockets
+- scotty
+- hspec
+- time
+
+build-tools:
+  - hspec-discover == 2.*
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Lib
 
 executables:
   purview-exe:

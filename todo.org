@@ -1,5 +1,11 @@
 #+TITLE: Todo
 
+* TODO Get typed onClicks working
+
+* TODO Display users from JSON api
+
+* TODO Events are only applied to the component they come from
+
 * TODO Show server time and keep it updated
 
 So for applying this, I think we need to pass in a way
@@ -15,10 +21,19 @@ For now let's just have a button send the event
 ** DONE Display it on button click (and update each click)
 ** Clean up apply
 ** Now how to get it ticking?
+could do something like onChange -> effect
+or onChange -> event
 
-* TODO Display users from JSON api
+there's definitely a need to send events based on changes, or once
 
-* TODO Events are only applied to the component they come from
+maybe that'll be my answer to react's useEffect, since effects are in
+effectHandlers, we just need to send an event
+
+** How to get events "hoisted" up to higher event handlers?
+Is that something that even matters with this?  What's a good example hm.
+Say you add something a cart and want the cart to close.
+That'd be a case for the GlobalMessageHandler I think.
+Or like, some kind of pub/sub.
 
 * DONE Increment and decrement
 I have the JSON

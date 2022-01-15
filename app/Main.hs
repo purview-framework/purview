@@ -48,13 +48,16 @@ display time = div
   , onClick "setTime" $ div [ text "check time" ]
   ]
 
-timeHandler = EffectHandler Nothing action
+startClock cont state = Once (\send -> send "setTime") False (cont state)
+
+timeHandler = EffectHandler Nothing handle
   where
-    action "setTime" state = do
+    handle "setTime" state = do
       time <- getCurrentTime
       pure $ Just time
+    handle _ state = pure state
 
-main = run logger (timeHandler display)
+main = run logger (timeHandler (startClock display))
 
 -- timeEffect = Effect send
 --   where send action = do

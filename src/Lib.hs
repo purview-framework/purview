@@ -127,8 +127,10 @@ looper log eventBus connection component = do
 
   newTree <- apply eventBus message component
 
+  newTree' <- runOnces eventBus newTree
+
   let
-    newHtml = render [] newTree
+    newHtml = render [] newTree'
 
   log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
 
@@ -136,7 +138,7 @@ looper log eventBus connection component = do
     connection
     (encode $ Event { event = "setHtml", message = Data.Text.pack newHtml })
 
-  looper log eventBus connection newTree
+  looper log eventBus connection newTree'
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
@@ -154,7 +156,10 @@ webSocketHandler log component pending = do
   conn <- WS.acceptRequest pending
 
   eventBus <- newTChanIO
+  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }
 
   WS.withPingThread conn 30 (pure ()) $ do
     forkIO $ webSocketMessageHandler eventBus conn
     looper log eventBus conn component
+    -- print "hello"
+    -- atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }

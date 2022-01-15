@@ -49,7 +49,10 @@ data Purview a where
     -> Purview a
 
   Once
-    :: (action -> m ())
+    :: (ToJSON action)
+    => ((action -> IO ()) -> IO ())
+    -> Bool  -- has run
+    -> Purview a
     -> Purview a
 
 --  MessageHandler
@@ -96,6 +99,9 @@ render attrs tree = case tree of
   EffectHandler state _ cont ->
     render attrs (cont state)
 
+  Once _ hasRun cont ->
+    render attrs cont
+
 -- rewrite :: Purview a -> Purview a
 -- rewrite component = case component of
 --   Attribute (OnClick fn) cont ->
@@ -115,7 +121,7 @@ apply eventBus (FromEvent "newState" message) component = case component of
   EffectHandler state handler cont -> case fromJSON message of
     Success newState -> do
       pure $ EffectHandler newState handler cont
-  _ -> error "sup"
+  x -> pure x
 
 apply eventBus (FromEvent eventKind message) component = case component of
   MessageHandler state handler cont -> pure $ case fromJSON message of
@@ -137,6 +143,33 @@ apply eventBus (FromEvent eventKind message) component = case component of
     Error _ ->
       pure $ cont state
 
-  _ -> error "sup"
+  -- Once send cont -> undefined
 
-setState = undefined
+  x -> pure x
+
+runOnces :: TChan FromEvent -> Purview a -> IO (Purview a)
+runOnces eventBus component = case component of
+  Attribute _ cont -> runOnces eventBus cont
+
+  Html kind children -> do
+    children' <- mapM (runOnces eventBus) children
+    pure $ Html kind children'
+
+  MessageHandler state _ cont -> runOnces eventBus (cont state)
+
+  EffectHandler state _ cont -> runOnces eventBus (cont state)
+
+  Once effect hasRun cont ->
+    let send message = do
+          atomically $ writeTChan eventBus $ FromEvent
+            { event = "click"
+            , message = toJSON message
+            }
+    in if not hasRun then do
+        void . forkIO $ effect send
+        rest <- runOnces eventBus cont
+        pure $ Once effect True rest
+       else
+        runOnces eventBus cont
+
+  others -> pure others

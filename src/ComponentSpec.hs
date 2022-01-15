@@ -38,8 +38,8 @@ spec = parallel $ do
         `shouldBe`
         "0"
 
-      render [] (apply (String "up") handler)
-        `shouldBe`
-        "1"
+--      render [] (apply (String "up") handler)
+--        `shouldBe`
+--        "1"
 
 main = hspec spec
