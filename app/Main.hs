@@ -52,9 +52,7 @@ startClock cont state = Once (\send -> send "setTime") False (cont state)
 
 timeHandler = EffectHandler Nothing handle
   where
-    handle "setTime" state = do
-      time <- getCurrentTime
-      pure $ Just time
+    handle "setTime" state = Just <$> getCurrentTime
     handle _ state = pure state
 
 main = run logger (timeHandler (startClock display))

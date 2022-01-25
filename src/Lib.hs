@@ -123,11 +123,13 @@ looper log eventBus connection component = do
   message <- atomically $ readTChan eventBus
   log $ "\x1b[34;1mreceived>\x1b[0m " <> show message
 
-  let (FromEvent eventKind eventMessage) = message
+  let
+    (FromEvent eventKind eventMessage) = message
+    (newTree, actions) = runOnces component
 
-  newTree <- apply eventBus message component
+  newTree' <- apply eventBus message newTree
 
-  newTree' <- runOnces eventBus newTree
+  mapM_ (atomically . writeTChan eventBus) actions
 
   let
     newHtml = render [] newTree'

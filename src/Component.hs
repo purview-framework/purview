@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
@@ -27,7 +28,7 @@ data Purview a where
   Attribute :: Attributes -> Purview a -> Purview a
   Text :: String -> Purview a
   Html :: String -> [Purview a] -> Purview a
-  Value :: a -> Purview a
+  Value :: Show a => a -> Purview a
 
   State
     :: state
@@ -50,10 +51,20 @@ data Purview a where
 
   Once
     :: (ToJSON action)
-    => ((action -> IO ()) -> IO ())
+    => ((action -> FromEvent) -> FromEvent)
     -> Bool  -- has run
     -> Purview a
     -> Purview a
+
+instance Show (Purview a) where
+  show (EffectHandler state action cont) = "EffectHandler " <> show (cont state)
+  show (MessageHandler state action cont) = "MessageHandler " <> show (cont state)
+  show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
+  show (Attribute attrs cont) = "Attr " <> show cont
+  show (Text str) = show str
+  show (Html kind children) =
+    kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
+  show (Value value) = show value
 
 --  MessageHandler
 --    :: (Typeable action)
@@ -147,29 +158,43 @@ apply eventBus (FromEvent eventKind message) component = case component of
 
   x -> pure x
 
-runOnces :: TChan FromEvent -> Purview a -> IO (Purview a)
-runOnces eventBus component = case component of
-  Attribute _ cont -> runOnces eventBus cont
+runOnces :: Purview a -> (Purview a, [FromEvent])
+runOnces component = case component of
+  Attribute attrs cont ->
+    let result = runOnces cont
+    in (Attribute attrs (fst result), snd result)
 
-  Html kind children -> do
-    children' <- mapM (runOnces eventBus) children
-    pure $ Html kind children'
+  Html kind children ->
+    let result = fmap runOnces children
+    in (Html kind (fmap fst result), concatMap snd result)
 
-  MessageHandler state _ cont -> runOnces eventBus (cont state)
+  MessageHandler state handler cont ->
+    let
+      rest = fmap runOnces cont
+    in
+      (MessageHandler state handler (\state -> fst (rest state)), snd (rest state))
 
-  EffectHandler state _ cont -> runOnces eventBus (cont state)
+  EffectHandler state handler cont ->
+    let
+      rest = fmap runOnces cont
+    in
+      (EffectHandler state handler (\state -> fst (rest state)), snd (rest state))
 
   Once effect hasRun cont ->
-    let send message = do
-          atomically $ writeTChan eventBus $ FromEvent
-            { event = "click"
+    let send message =
+          FromEvent
+            { event = "once"
             , message = toJSON message
             }
-    in if not hasRun then do
-        void . forkIO $ effect send
-        rest <- runOnces eventBus cont
-        pure $ Once effect True rest
+    in if not hasRun then
+        let
+          rest = runOnces cont
+        in
+          (Once effect True (fst rest), [effect send] <> (snd rest))
        else
-        runOnces eventBus cont
+        let
+          rest = runOnces cont
+        in
+          (Once effect True (fst rest), snd rest)
 
-  others -> pure others
+  component -> (component, [])
