@@ -4,7 +4,7 @@ module Main where
 
 import           Prelude      hiding (div)
 import           GHC.Generics
-import           Lib
+import           Purview
 
 -- for server time example
 import           Data.Time

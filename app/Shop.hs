@@ -5,7 +5,7 @@ module Shop where
 
 import           Prelude      hiding (div)
 import           Data.Text    hiding (count)
-import           Lib
+import           Purview
 
 -- newtype State = State
 --   { shop :: Shop

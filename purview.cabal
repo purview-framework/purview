@@ -25,12 +25,12 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Purview
   other-modules:
       Component
       ComponentSpec
       Events
-      LibSpec
+      PurviewSpec
       Spec
       Wrapper
       Paths_purview
@@ -90,8 +90,8 @@ test-suite purview-test
       Component
       ComponentSpec
       Events
-      Lib
-      LibSpec
+      Purview
+      PurviewSpec
       Wrapper
       Paths_purview
   hs-source-dirs:

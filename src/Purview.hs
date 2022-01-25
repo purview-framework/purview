@@ -1,19 +1,13 @@
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
-module Lib
+module Purview
   ( div
   , text
   , onClick
   , Purview (..)
   , run
   -- for testing
-  -- , handleEvent
   , render
   -- for experiment
   , FromEvent (..)
@@ -24,16 +18,12 @@ import Prelude hiding (div, log)
 import qualified Web.Scotty as Sc
 import           Data.Text (Text, pack)
 import qualified Data.Text.Lazy as LazyText
-import           Data.Text.Encoding
-import           Data.ByteString.Lazy (ByteString, toStrict)
-import           Data.ByteString.Lazy.Char8 (unpack, pack)
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.WebSockets as WS
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import           Data.Aeson
-import           GHC.Generics
 
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -43,40 +33,6 @@ import           Component
 import           Wrapper
 import           Events
 
--- text :: String -> Html a
--- text = Text
---
--- html :: Tag -> [Attribute a] -> [Html a] -> Html a
--- html = Html
---
--- onClick :: a -> Attribute a
--- onClick = OnClick
---
--- style :: ByteString -> Attribute a
--- style = Style
---
--- div :: [Attribute a] -> [Html a] -> Html a
--- div = Html "div"
---
--- defaultComponent :: Component (a -> a) b
--- defaultComponent = Component
---   { state    = id
---   , handlers = const
---   , render   = \_state -> Html "p" [] [text "default"]
---   }
-
---
--- Handling for connecting, sending events, and replacing html
---
--- For now it's nothing fancy with a single event binding on the
--- top level <html> element, which I copied from phoenix live view.
---
--- Definitely easier than dealing with binding/unbinding when updating
--- the html.
---
-
--- renderComponent :: Show a => Purview a -> ByteString
--- renderComponent = pack . render []
 
 type Log m = String -> m ()
 
@@ -104,12 +60,6 @@ requestHandler routes =
       $ Data.Text.pack
       $ render [] routes
 
--- handleEvent :: ByteString -> Purview a -> IO (Purview a)
--- handleEvent message component =
---   let decoded = decode message :: Maybe FromEvent
---   in case decoded of
---     Just (FromEvent _ message) -> apply message component
---     Nothing -> pure component
 
 --
 -- This is the main event loop of handling messages from the websocket
@@ -163,5 +113,3 @@ webSocketHandler log component pending = do
   WS.withPingThread conn 30 (pure ()) $ do
     forkIO $ webSocketMessageHandler eventBus conn
     looper log eventBus conn component
-    -- print "hello"
-    -- atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }

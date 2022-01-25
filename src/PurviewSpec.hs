@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-module LibSpec where
+module PurviewSpec where
 
 import Prelude hiding (div)
 import Test.Hspec
-import Lib
+import Purview
 
 upButton = onClick ("up" :: String) $ div [ text "up" ]
 downButton = onClick ("down" :: String) $ div [ text "down" ]

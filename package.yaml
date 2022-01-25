@@ -41,7 +41,7 @@ build-tools:
 library:
   source-dirs: src
   exposed-modules:
-    - Lib
+    - Purview
 
 executables:
   purview-exe:
