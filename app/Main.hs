@@ -11,6 +11,7 @@ import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
 
+
 ---------------------
 -- Stepper Example --
 ---------------------
@@ -34,6 +35,7 @@ logger = print
 
 -- main = run logger (handler counter)
 
+
 -------------------------
 -- Server Time Example --
 -------------------------
@@ -56,10 +58,3 @@ timeHandler = EffectHandler Nothing handle
     handle _ state = pure state
 
 main = run logger (timeHandler (startClock display))
-
--- timeEffect = Effect send
---   where send action = do
---           time <- getCurrentTime
---           action (Set time)
-
--- so what would trigger the initial go
