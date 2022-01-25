@@ -37,7 +37,7 @@ main = run logger (handler counter)
 It's not awful, but stringly typed messages are gross and a sin against SPJ.  
 
 ### Todo
-* Actually diff the html (though who knows, sending the entire html every time might be smaller than your API request currently)
+* Actually diff the html 
 * Development environment (hot reloading, printing messages to/from the server)
 * Allowing CSS + JS snippets in components
 * Tests
