@@ -19,7 +19,7 @@ downButton = onClick "down" $ div [ text "down" ]
 
 handler = MessageHandler (0 :: Int) action
   where
-    action "up" state   = state + 1
+    action "up"   state = state + 1
     action "down" state = state - 1
 
 counter :: Int -> Purview a

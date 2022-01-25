@@ -31,9 +31,7 @@ library
       ComponentSpec
       Events
       LibSpec
-      Shop
       Spec
-      Todo
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -94,8 +92,6 @@ test-suite purview-test
       Events
       Lib
       LibSpec
-      Shop
-      Todo
       Wrapper
       Paths_purview
   hs-source-dirs:
