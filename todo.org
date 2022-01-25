@@ -1,14 +1,30 @@
 #+TITLE: Todo
 
-* TODO Get typed onClicks working
-
-* TODO Display users from JSON api
-
 * TODO Events are only applied to the component they come from
+
+For this one, build a component with a bunch of steppers.  Each
+should have only its own state updated.
 
 * TODO Keep server time updated
 
 This means some kind of timer that's kicked off
+
+* TODO Get typed OnClicks working
+
+* TODO Display users from JSON api
+
+* TODO Websocket issues
+
+For some reason it can take awhile for the websocket to actually connect,
+not sure what's causing that.
+
+There also seems to be a doubling of events on connection.
+
+* TODO How to get events "hoisted" up to higher event handlers?
+Is that something that even matters with this?  What's a good example hm.
+Say you add something a cart and want the cart to close.
+That'd be a case for the GlobalMessageHandler I think.
+Or like, some kind of pub/sub.
 
 * DONE Show server time on load
 
@@ -33,11 +49,6 @@ there's definitely a need to send events based on changes, or once
 maybe that'll be my answer to react's useEffect, since effects are in
 effectHandlers, we just need to send an event
 
-* TODO How to get events "hoisted" up to higher event handlers?
-Is that something that even matters with this?  What's a good example hm.
-Say you add something a cart and want the cart to close.
-That'd be a case for the GlobalMessageHandler I think.
-Or like, some kind of pub/sub.
 
 * DONE Increment and decrement
 I have the JSON
@@ -102,6 +113,9 @@ put into an across-all-components monad (maybe?)
 It should be possible to build a fully functioning, complicated checkout
 process with this library.  Google maps for address autocomplete, stripe
 for the payment processor.
+
+** Getting messages from a JS sdk
+** Getting message _to_ a JS sdk
 
 * Thoughts on event / state locality
 I'm a fan of the idea that there's only ever one handler for events
