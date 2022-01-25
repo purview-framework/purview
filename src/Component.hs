@@ -66,13 +66,6 @@ instance Show (Purview a) where
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
 
---  MessageHandler
---    :: (Typeable action)
---    => (action -> IO ())
---    -> ((action -> b) -> Purview a)
---    -> Purview a
-  -- Once :: (action -> ()) -> Purview a -> Purview a
-
 -- a little bit to clean up defining these
 div = Html "div"
 text = Text
@@ -113,16 +106,14 @@ render attrs tree = case tree of
   Once _ hasRun cont ->
     render attrs cont
 
--- rewrite :: Purview a -> Purview a
--- rewrite component = case component of
---   Attribute (OnClick fn) cont ->
---     MessageHandler handler (const $ rewrite cont)
---     where
---       handler "RUN" = fn
---   e -> rewrite e
+{-
 
-apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus (FromEvent "newState" message) component = case component of
+This is a special case event to assign state to message handlers
+
+-}
+
+applyNewState :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
+applyNewState eventBus message component = case component of
   MessageHandler state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler newState handler cont
@@ -134,7 +125,8 @@ apply eventBus (FromEvent "newState" message) component = case component of
       pure $ EffectHandler newState handler cont
   x -> pure x
 
-apply eventBus (FromEvent eventKind message) component = case component of
+applyEvent :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
+applyEvent eventBus message component = case component of
   MessageHandler state handler cont -> pure $ case fromJSON message of
     Success action' ->
       MessageHandler (handler action' state) handler cont
@@ -154,9 +146,28 @@ apply eventBus (FromEvent eventKind message) component = case component of
     Error _ ->
       pure $ cont state
 
-  -- Once send cont -> undefined
-
   x -> pure x
+
+{-
+
+For now the only special event kind is "newState" which replaces
+the inner state of a Handler (Message or Effect)
+
+-}
+
+apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+apply eventBus (FromEvent eventKind message) component =
+  case eventKind of
+    "newState" -> applyNewState eventBus message component
+    _          -> applyEvent eventBus message component
+
+{-
+
+This walks through the tree and collects actions that should be run
+only once, and sets their run value to True.  It's up to something
+else to actually send the actions.
+
+-}
 
 runOnces :: Purview a -> (Purview a, [FromEvent])
 runOnces component = case component of

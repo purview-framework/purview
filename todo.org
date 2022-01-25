@@ -6,7 +6,11 @@
 
 * TODO Events are only applied to the component they come from
 
-* TODO Show server time and keep it updated
+* TODO Keep server time updated
+
+This means some kind of timer that's kicked off
+
+* DONE Show server time on load
 
 So for applying this, I think we need to pass in a way
 so that apply can say re-render me.  This might actually
@@ -19,8 +23,8 @@ handlers?
 For now let's just have a button send the event
 
 ** DONE Display it on button click (and update each click)
-** Clean up apply
-** Now how to get it ticking?
+** DONE Clean up apply
+** DONE Now how to get it ticking?
 could do something like onChange -> effect
 or onChange -> event
 
@@ -29,7 +33,7 @@ there's definitely a need to send events based on changes, or once
 maybe that'll be my answer to react's useEffect, since effects are in
 effectHandlers, we just need to send an event
 
-** How to get events "hoisted" up to higher event handlers?
+* TODO How to get events "hoisted" up to higher event handlers?
 Is that something that even matters with this?  What's a good example hm.
 Say you add something a cart and want the cart to close.
 That'd be a case for the GlobalMessageHandler I think.
