@@ -1,61 +1,65 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
 
 import           Prelude      hiding (div)
-import           Data.Text    hiding (count)
-import           Data.Aeson
 import           GHC.Generics
-import           Debug.Trace
 import           Lib
 
-newtype State = State
-  { count :: Int } deriving Show
+-- for server time example
+import           Data.Time
+import           Data.Aeson
+import           Data.Aeson.TH
 
-defaultCounterState = State { count = 0 }
+---------------------
+-- Stepper Example --
+---------------------
 
-data Action
-  = Increment
-  | Decrement
-  deriving (Show, Read, Generic)
+upButton = onClick "up" $ div [ text "up" ]
+downButton = onClick "down" $ div [ text "down" ]
 
-instance FromJSON Action where
+handler = MessageHandler (0 :: Int) action
+  where
+    action "up" state   = state + 1
+    action "down" state = state - 1
 
-handlers' :: State -> Action -> State
-handlers' state message = case message of
-  Increment -> state { count = count state + 1 }
-  Decrement -> state { count = count state - 1 }
-
-other :: Component String Action
-other = Component
-  { state = "blank"
-  , handlers = \state message -> case message of
-      Increment -> "incremented"
-      Decrement -> "decremented"
-  , render = \state -> div [] [ text state ]
-  }
-
-feh = SomeComponent other
-
-render' :: State -> Html Action
-render' state =
-  div [ style "font-size: 48px;" ]
-    [ div [ onClick Increment ] [ text "increment" ]
-    , text ("count: " <> show (count state))
-    , div [ onClick Decrement ] [ text "decrement" ]
-    , feh
-    ]
-
-counter :: Html Action
-counter = SomeComponent $ Component
-  { state    = defaultCounterState
-  , handlers = handlers'
-  , render   = render'
-  }
+counter :: Int -> Purview a
+counter state = div
+  [ upButton
+  , text $ "count: " <> show state
+  , downButton
+  ]
 
 logger = print
 
-main = run logger counter
+-- main = run logger (handler counter)
 
--- so we can pass in the logger
-main' = flip run counter
+-------------------------
+-- Server Time Example --
+-------------------------
+
+data UpdateTime = UpdateTime
+
+$(deriveJSON defaultOptions ''UpdateTime)
+
+display :: Maybe UTCTime -> Purview a
+display time = div
+  [ text (show time)
+  , onClick "setTime" $ div [ text "check time" ]
+  ]
+
+startClock cont state = Once (\send -> send "setTime") False (cont state)
+
+timeHandler = EffectHandler Nothing handle
+  where
+    handle "setTime" state = Just <$> getCurrentTime
+    handle _ state = pure state
+
+main = run logger (timeHandler (startClock display))
+
+-- timeEffect = Effect send
+--   where send action = do
+--           time <- getCurrentTime
+--           action (Set time)
+
+-- so what would trigger the initial go

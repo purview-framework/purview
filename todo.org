@@ -1,8 +1,59 @@
 #+TITLE: Todo
 
-* Components can send events to themselves
+* TODO Get typed onClicks working
 
-* Events are only applied to the component they come from
+* TODO Display users from JSON api
+
+* TODO Events are only applied to the component they come from
+
+* TODO Keep server time updated
+
+This means some kind of timer that's kicked off
+
+* DONE Show server time on load
+
+So for applying this, I think we need to pass in a way
+so that apply can say re-render me.  This might actually
+be kind of elegant?  It can be the same as an event from
+then frontend.
+
+An idea: what if handlers are split between pure and impure
+handlers?
+
+For now let's just have a button send the event
+
+** DONE Display it on button click (and update each click)
+** DONE Clean up apply
+** DONE Now how to get it ticking?
+could do something like onChange -> effect
+or onChange -> event
+
+there's definitely a need to send events based on changes, or once
+
+maybe that'll be my answer to react's useEffect, since effects are in
+effectHandlers, we just need to send an event
+
+* TODO How to get events "hoisted" up to higher event handlers?
+Is that something that even matters with this?  What's a good example hm.
+Say you add something a cart and want the cart to close.
+That'd be a case for the GlobalMessageHandler I think.
+Or like, some kind of pub/sub.
+
+* DONE Increment and decrement
+I have the JSON
+
+But how do I turn that into what's needed to cast / apply the action?
+
+Possibly move parsing the JSON into the message handler
+
+Remember that you will be targeting these messages to specific
+components, not applying them to the whole tree.  I think.
+
+** DONE Change state on message received
+** DONE Put the right message in the on click
+** DONE State is passed into the handler
+
+* Components can send events to themselves
 
 * DONE Applying events to components / nested components
 For now, I'm just gonna apply the event to every gd widget.

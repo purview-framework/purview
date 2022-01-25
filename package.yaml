@@ -1,6 +1,6 @@
-name:                bridge
+name:                purview
 version:             0.1.0.0
-github:              "githubuser/bridge"
+github:              "githubuser/purview"
 license:             BSD3
 author:              "Author name here"
 maintainer:          "example@example.com"
@@ -17,16 +17,34 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/bridge#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/purview#readme>
 
 dependencies:
 - base >= 4.7 && < 5
+- aeson
+- text
+- stm
+- bytestring
+- raw-strings-qq
+- warp
+- wai
+- wai-websockets
+- wai-extra
+- websockets
+- scotty
+- hspec
+- time
+
+build-tools:
+  - hspec-discover == 2.*
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Lib
 
 executables:
-  bridge-exe:
+  purview-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -34,10 +52,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - bridge
+    - purview
 
 tests:
-  bridge-test:
+  purview-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -45,4 +63,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - bridge
+    - purview
