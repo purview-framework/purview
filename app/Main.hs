@@ -42,7 +42,7 @@ logger = print
 
 data UpdateTime = UpdateTime
 
-$(deriveJSON defaultOptions ''UpdateTime)
+$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
 
 display :: Maybe UTCTime -> Purview a
 display time = div

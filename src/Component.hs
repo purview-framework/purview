@@ -131,7 +131,7 @@ applyEvent eventBus message component = case component of
     Success action' ->
       MessageHandler (handler action' state) handler cont
     Error _ ->
-      cont state
+      MessageHandler state handler cont
 
   EffectHandler state handler cont -> case fromJSON message of
     Success parsedAction -> do
@@ -141,10 +141,9 @@ applyEvent eventBus message component = case component of
           { event = "newState"
           , message = toJSON newState
           }
-
       pure $ EffectHandler state handler cont
-    Error _ ->
-      pure $ cont state
+    Error err ->
+      pure $ EffectHandler state handler cont
 
   x -> pure x
 

@@ -108,6 +108,7 @@ webSocketHandler log component pending = do
   conn <- WS.acceptRequest pending
 
   eventBus <- newTChanIO
+
   atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }
 
   WS.withPingThread conn 30 (pure ()) $ do

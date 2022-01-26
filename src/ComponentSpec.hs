@@ -16,6 +16,10 @@ data TestAction = Up | Down
 
 $(deriveJSON defaultOptions ''TestAction)
 
+data SingleConstructor = SingleConstructor
+
+$(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
+
 spec = parallel $ do
 
   describe "render" $ do
@@ -48,12 +52,11 @@ spec = parallel $ do
         "0"
 
     it "can render a typed action" $ do
-      let element =
-            Attribute (OnClick Up)
-            $ Html "div" [Text "hello world"]
+      let element = onClick SingleConstructor $ div [ text "click" ]
 
-      render [] element `shouldBe`
-        "<div bridge-click=\"Up\">hello world</div>"
+      render [] element
+        `shouldBe`
+        "<div bridge-click=\"SingleConstructor\">click</div>"
 
 
   describe "applyEvent" $ do
@@ -101,6 +104,29 @@ spec = parallel $ do
       render [] appliedHandler
         `shouldBe`
         "1"
+
+    it "works after sending an event that did not match anything" $ do
+      let
+        actionHandler :: TestAction -> Int -> Int
+        actionHandler Up state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      chan <- newTChanIO
+
+      appliedHandler0 <- applyEvent chan (String "init") handler
+      render [] appliedHandler0
+        `shouldBe`
+        "0"
+
+      appliedHandler1 <- applyEvent chan (toJSON Up) appliedHandler0
+      render [] appliedHandler1
+        `shouldBe`
+        "1"
+
 
   describe "runOnces" $ do
 
