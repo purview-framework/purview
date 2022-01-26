@@ -42,19 +42,19 @@ logger = print
 
 data UpdateTime = UpdateTime
 
-$(deriveJSON defaultOptions ''UpdateTime)
+$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
 
 display :: Maybe UTCTime -> Purview a
 display time = div
   [ text (show time)
-  , onClick "setTime" $ div [ text "check time" ]
+  , onClick UpdateTime $ div [ text "check time" ]
   ]
 
-startClock cont state = Once (\send -> send "setTime") False (cont state)
+startClock cont state = Once (\send -> send UpdateTime) False (cont state)
 
 timeHandler = EffectHandler Nothing handle
   where
-    handle "setTime" state = Just <$> getCurrentTime
+    handle UpdateTime state = Just <$> getCurrentTime
     handle _ state = pure state
 
 main = run logger (timeHandler (startClock display))

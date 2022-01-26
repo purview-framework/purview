@@ -1,12 +1,24 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
--- {-# LANGUAGE OverloadedStrings #-}
 module ComponentSpec where
 
 import Prelude hiding (div)
+import Control.Concurrent.STM.TChan
 import Test.Hspec
 import Data.Aeson
+import Data.Aeson.TH
 import Data.Time
+
 import Component
+
+data TestAction = Up | Down
+
+$(deriveJSON defaultOptions ''TestAction)
+
+data SingleConstructor = SingleConstructor
+
+$(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
 spec = parallel $ do
 
@@ -25,8 +37,7 @@ spec = parallel $ do
       render [] element `shouldBe`
         "<div bridge-click=1>hello world</div>"
 
-  describe "apply" $ do
-    it "can change state" $ do
+    it "can render a message handler" $ do
       let
         actionHandler :: String -> Int -> Int
         actionHandler "up" state = 1
@@ -40,18 +51,97 @@ spec = parallel $ do
         `shouldBe`
         "0"
 
+    it "can render a typed action" $ do
+      let element = onClick SingleConstructor $ div [ text "click" ]
+
+      render [] element
+        `shouldBe`
+        "<div bridge-click=\"SingleConstructor\">click</div>"
+
+
+  describe "applyEvent" $ do
+
+    it "changes state" $ do
+      let
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      render [] handler
+        `shouldBe`
+        "0"
+
+      chan <- newTChanIO
+
+      appliedHandler <- applyEvent chan (String "up") handler
+
+      render [] appliedHandler
+        `shouldBe`
+        "1"
+
+    it "works with typed messages" $ do
+      let
+        actionHandler :: TestAction -> Int -> Int
+        actionHandler Up state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      render [] handler
+        `shouldBe`
+        "0"
+
+      chan <- newTChanIO
+
+      appliedHandler <- applyEvent chan (toJSON Up) handler
+
+      render [] appliedHandler
+        `shouldBe`
+        "1"
+
+    it "works after sending an event that did not match anything" $ do
+      let
+        actionHandler :: TestAction -> Int -> Int
+        actionHandler Up state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      chan <- newTChanIO
+
+      appliedHandler0 <- applyEvent chan (String "init") handler
+      render [] appliedHandler0
+        `shouldBe`
+        "0"
+
+      appliedHandler1 <- applyEvent chan (toJSON Up) appliedHandler0
+      render [] appliedHandler1
+        `shouldBe`
+        "1"
+
+
   describe "runOnces" $ do
+
     it "sets hasRun to True" $ do
       let
         display time = div
           [ text (show time)
-          , onClick "setTime" $ div [ text "check time" ]
+          , onClick ("setTime" :: String) $ div [ text "check time" ]
           ]
 
-        startClock cont state = Once (\send -> send "setTime") False (cont state)
+        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing handle
           where
+            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
             handle _ state = pure state
 
@@ -69,13 +159,14 @@ spec = parallel $ do
       let
         display time = div
           [ text (show time)
-          , onClick "setTime" $ div [ text "check time" ]
+          , onClick ("setTime" :: String) $ div [ text "check time" ]
           ]
 
-        startClock cont state = Once (\send -> send "setTime") False (cont state)
+        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing handle
           where
+            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
             handle _ state = pure state
 
