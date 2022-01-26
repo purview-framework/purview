@@ -16,13 +16,17 @@ import           Data.Aeson.TH
 -- Stepper Example --
 ---------------------
 
-upButton = onClick "up" $ div [ text "up" ]
-downButton = onClick "down" $ div [ text "down" ]
+data Direction = Up | Down
+
+$(deriveJSON defaultOptions ''Direction)
+
+upButton = onClick Up $ div [ text "up" ]
+downButton = onClick Down $ div [ text "down" ]
 
 handler = MessageHandler (0 :: Int) action
   where
-    action "up" state   = state + 1
-    action "down" state = state - 1
+    action Up state   = state + 1
+    action Down state = state - 1
 
 counter :: Int -> Purview a
 counter state = div
