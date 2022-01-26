@@ -1,17 +1,18 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
--- {-# LANGUAGE OverloadedStrings #-}
 module ComponentSpec where
 
 import Prelude hiding (div)
+import Control.Concurrent.STM.TChan
 import Test.Hspec
 import Data.Aeson
 import Data.Time
+
 import Component
 
 spec = parallel $ do
 
   describe "render" $ do
-
     it "can create a div" $ do
       let element = Html "div" [Text "hello world"]
 
@@ -25,8 +26,7 @@ spec = parallel $ do
       render [] element `shouldBe`
         "<div bridge-click=1>hello world</div>"
 
-  describe "apply" $ do
-    it "can change state" $ do
+    it "can render a message handler" $ do
       let
         actionHandler :: String -> Int -> Int
         actionHandler "up" state = 1
@@ -40,18 +40,42 @@ spec = parallel $ do
         `shouldBe`
         "0"
 
+  describe "applyEvent" $ do
+    it "changes state" $ do
+      let
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      render [] handler
+        `shouldBe`
+        "0"
+
+      chan <- newTChanIO
+
+      appliedHandler <- applyEvent chan (String "up") handler
+
+      render [] appliedHandler
+        `shouldBe`
+        "1"
+
   describe "runOnces" $ do
     it "sets hasRun to True" $ do
       let
         display time = div
           [ text (show time)
-          , onClick "setTime" $ div [ text "check time" ]
+          , onClick ("setTime" :: String) $ div [ text "check time" ]
           ]
 
-        startClock cont state = Once (\send -> send "setTime") False (cont state)
+        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing handle
           where
+            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
             handle _ state = pure state
 
@@ -69,13 +93,14 @@ spec = parallel $ do
       let
         display time = div
           [ text (show time)
-          , onClick "setTime" $ div [ text "check time" ]
+          , onClick ("setTime" :: String) $ div [ text "check time" ]
           ]
 
-        startClock cont state = Once (\send -> send "setTime") False (cont state)
+        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing handle
           where
+            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
             handle _ state = pure state
 
