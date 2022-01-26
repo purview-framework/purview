@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 module ComponentSpec where
@@ -6,9 +7,14 @@ import Prelude hiding (div)
 import Control.Concurrent.STM.TChan
 import Test.Hspec
 import Data.Aeson
+import Data.Aeson.TH
 import Data.Time
 
 import Component
+
+data TestAction = Up | Down
+
+$(deriveJSON defaultOptions ''TestAction)
 
 spec = parallel $ do
 
@@ -58,6 +64,28 @@ spec = parallel $ do
       chan <- newTChanIO
 
       appliedHandler <- applyEvent chan (String "up") handler
+
+      render [] appliedHandler
+        `shouldBe`
+        "1"
+
+    it "works with typed messages" $ do
+      let
+        actionHandler :: TestAction -> Int -> Int
+        actionHandler Up state = 1
+
+        handler =
+          MessageHandler (0 :: Int)
+            actionHandler
+            (Text . show)
+
+      render [] handler
+        `shouldBe`
+        "0"
+
+      chan <- newTChanIO
+
+      appliedHandler <- applyEvent chan (toJSON Up) handler
 
       render [] appliedHandler
         `shouldBe`
