@@ -2,7 +2,7 @@
 
 A work in progress implementation of Phoenix Liveview for Haskell
 
-The main library, that doesn't really do anything fancy yet, is in `src/Lib.hs`.  It's just replacing the entirety of the html each time it receives an event from the front end.
+The main library, that doesn't really do anything fancy yet, is in `src/Purview.hs`.  It's just replacing the entirety of the html each time it receives an event from the front end.
 
 ### What it looks like
 
@@ -12,6 +12,8 @@ Here's what a component looks like (see `app/Main.hs`):
 module Main where
 
 import Prelude hiding (div)
+import Data.Aeson
+import Data.Aeson.TH
 import Purview
 
 data Direction = Up | Down
