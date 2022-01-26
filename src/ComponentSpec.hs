@@ -19,6 +19,7 @@ $(deriveJSON defaultOptions ''TestAction)
 spec = parallel $ do
 
   describe "render" $ do
+
     it "can create a div" $ do
       let element = Html "div" [Text "hello world"]
 
@@ -46,7 +47,17 @@ spec = parallel $ do
         `shouldBe`
         "0"
 
+    it "can render a typed action" $ do
+      let element =
+            Attribute (OnClick Up)
+            $ Html "div" [Text "hello world"]
+
+      render [] element `shouldBe`
+        "<div bridge-click=\"Up\">hello world</div>"
+
+
   describe "applyEvent" $ do
+
     it "changes state" $ do
       let
         actionHandler :: String -> Int -> Int
@@ -92,6 +103,7 @@ spec = parallel $ do
         "1"
 
   describe "runOnces" $ do
+
     it "sets hasRun to True" $ do
       let
         display time = div
