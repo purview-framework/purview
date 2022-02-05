@@ -21,7 +21,6 @@ import Control.Concurrent
 import Events
 
 data Attributes where
-  -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
   OnClick :: ToJSON a => a -> Attributes
 
 data Purview a where
@@ -79,34 +78,42 @@ renderAttributes = concatMap renderAttribute
   where
     renderAttribute (OnClick action) = " bridge-click=" <> unpack (encode action)
 
-{-
+{-|
 
-Html Tag Children
+Takes the tree and turns it into HTML.  Attributes are passed down to children until
+they reach a real HTML tag.
 
 -}
 
-render :: [Attributes] -> Purview a -> String
-render attrs tree = case tree of
+render' :: [Integer] -> [Attributes] -> Purview a -> String
+render' location attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (render attrs) rest <>
+    <> concatMap (\(newLocation, comp) -> render' (newLocation:location) attrs comp) (zip [0..] rest) <>
     "</" <> kind <> ">"
 
   Text val -> val
 
   Attribute attr rest ->
-    render (attr:attrs) rest
+    render' location (attr:attrs) rest
 
   MessageHandler state _ cont ->
-    render attrs (cont state)
+    "<div handler=" <> show (encode location) <> ">" <>
+      render' (0:location) attrs (cont state) <>
+    "</div>"
 
   EffectHandler state _ cont ->
-    render attrs (cont state)
+    "<div handler=" <> show (encode location) <> ">" <>
+      render' (0:location) attrs (cont state) <>
+    "</div>"
 
   Once _ hasRun cont ->
-    render attrs cont
+    render' location attrs cont
 
-{-
+render :: Purview a -> String
+render = render' [0] []
+
+{-|
 
 This is a special case event to assign state to message handlers
 
