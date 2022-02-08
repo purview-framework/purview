@@ -58,7 +58,7 @@ requestHandler routes =
       $ LazyText.fromStrict
       $ wrapHtml
       $ Data.Text.pack
-      $ render [] routes
+      $ render routes
 
 
 --
@@ -71,7 +71,7 @@ requestHandler routes =
 looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
 looper log eventBus connection component = do
   message <- atomically $ readTChan eventBus
-  log $ "\x1b[34;1mreceived>\x1b[0m " <> show message
+  log $ "received> " <> show message
 
   let
     (FromEvent eventKind eventMessage) = message
@@ -82,9 +82,9 @@ looper log eventBus connection component = do
   mapM_ (atomically . writeTChan eventBus) actions
 
   let
-    newHtml = render [] newTree'
+    newHtml = render newTree'
 
-  log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
+  log $ "sending> " <> show newHtml
 
   WS.sendTextData
     connection
