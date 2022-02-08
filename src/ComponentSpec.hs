@@ -49,7 +49,7 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"0\">0</div>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
@@ -76,8 +76,8 @@ spec = parallel $ do
       render component
         `shouldBe`
         "<div>" <>
-          "<div handler=\"[0,0]\">0</div>" <>
-          "<div handler=\"[1,0]\">0</div>" <>
+          "<div handler=\"00\">0</div>" <>
+          "<div handler=\"10\">0</div>" <>
         "</div>"
 
     it "renders nested handlers with deeper locations" $ do
@@ -91,8 +91,8 @@ spec = parallel $ do
 
       render component
         `shouldBe`
-        "<div handler=\"[0]\">" <>
-          "<div handler=\"[0,0]\"></div>" <>
+        "<div handler=\"0\">" <>
+          "<div handler=\"00\"></div>" <>
         "</div>"
 
 
@@ -110,7 +110,7 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"0\">0</div>"
 
       chan <- newTChanIO
 
@@ -118,7 +118,7 @@ spec = parallel $ do
 
       render appliedHandler
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"0\">1</div>"
 
     it "works with typed messages" $ do
       let
@@ -132,7 +132,7 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"0\">0</div>"
 
       chan <- newTChanIO
 
@@ -140,7 +140,7 @@ spec = parallel $ do
 
       render appliedHandler
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"0\">1</div>"
 
     it "works after sending an event that did not match anything" $ do
       let
@@ -157,12 +157,12 @@ spec = parallel $ do
       appliedHandler0 <- applyEvent chan (String "init") handler
       render appliedHandler0
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"0\">0</div>"
 
       appliedHandler1 <- applyEvent chan (toJSON Up) appliedHandler0
       render appliedHandler1
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"0\">1</div>"
 
 
   describe "runOnces" $ do

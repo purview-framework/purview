@@ -98,12 +98,12 @@ render' location attrs tree = case tree of
     render' location (attr:attrs) rest
 
   MessageHandler state _ cont ->
-    "<div handler=" <> show (encode location) <> ">" <>
+    "<div handler=\"" <> concatMap show location <> "\">" <>
       render' (0:location) attrs (cont state) <>
     "</div>"
 
   EffectHandler state _ cont ->
-    "<div handler=" <> show (encode location) <> ">" <>
+    "<div handler=\"" <> concatMap show location <> "\">" <>
       render' (0:location) attrs (cont state) <>
     "</div>"
 
