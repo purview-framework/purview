@@ -44,7 +44,7 @@ websocketScript = [r|
   connect();
 
   function handleEvents(event) {
-    var clickValue = event.target.getAttribute("bridge-click");
+    var clickValue = event.target.getAttribute("action");
     if (clickValue) {
       window.ws.send(JSON.stringify({ "event": "click", "message": clickValue }));
     }

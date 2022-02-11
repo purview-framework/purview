@@ -86,7 +86,7 @@ onClick = Attribute . OnClick
 renderAttributes :: [Attributes] -> String
 renderAttributes = concatMap renderAttribute
   where
-    renderAttribute (OnClick action) = " bridge-click=" <> unpack (encode action)
+    renderAttribute (OnClick action) = " action=" <> unpack (encode action)
 
 {-|
 
@@ -218,7 +218,7 @@ prepareGraph' location component = case component of
           FromEvent
             { event = "once"
             , message = toJSON message
-            , location = Nothing
+            , location = Just location
             }
     in if not hasRun then
         let

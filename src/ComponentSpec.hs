@@ -35,7 +35,7 @@ spec = parallel $ do
             $ Html "div" [Text "hello world"]
 
       render element `shouldBe`
-        "<div bridge-click=1>hello world</div>"
+        "<div action=1>hello world</div>"
 
     it "can render a message handler" $ do
       let
@@ -56,7 +56,7 @@ spec = parallel $ do
 
       render element
         `shouldBe`
-        "<div bridge-click=\"SingleConstructor\">click</div>"
+        "<div action=\"SingleConstructor\">click</div>"
 
     it "renders multiple message handlers with different locations" $ do
       let
