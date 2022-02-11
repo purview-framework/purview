@@ -23,7 +23,7 @@ $(deriveJSON defaultOptions ''Direction)
 upButton = onClick Up $ div [ text "up" ]
 downButton = onClick Down $ div [ text "down" ]
 
-handler = MessageHandler (0 :: Int) action
+handler = messageHandler (0 :: Int) action
   where
     action Up state   = state + 1
     action Down state = state - 1
@@ -56,9 +56,8 @@ display time = div
 
 startClock cont state = Once (\send -> send UpdateTime) False (cont state)
 
-timeHandler = EffectHandler Nothing handle
+timeHandler = effectHandler Nothing handle
   where
     handle UpdateTime state = Just <$> getCurrentTime
-    handle _ state = pure state
 
 main = run logger (timeHandler (startClock display))

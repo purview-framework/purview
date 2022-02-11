@@ -6,6 +6,8 @@ module Purview
   , text
   , onClick
   , Purview (..)
+  , messageHandler
+  , effectHandler
   , run
   -- for testing
   , render
@@ -74,8 +76,8 @@ looper log eventBus connection component = do
   log $ "received> " <> show message
 
   let
-    (FromEvent eventKind eventMessage) = message
-    (newTree, actions) = runOnces component
+    FromEvent { event=eventKind, message=eventMessage } = message
+    (newTree, actions) = prepareGraph component
 
   newTree' <- apply eventBus message newTree
 
@@ -109,7 +111,7 @@ webSocketHandler log component pending = do
 
   eventBus <- newTChanIO
 
-  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }
+  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init", location = Nothing }
 
   WS.withPingThread conn 30 (pure ()) $ do
     forkIO $ webSocketMessageHandler eventBus conn

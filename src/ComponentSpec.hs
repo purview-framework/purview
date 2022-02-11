@@ -43,7 +43,7 @@ spec = parallel $ do
         actionHandler "up" state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -64,7 +64,7 @@ spec = parallel $ do
         actionHandler "up" state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -85,7 +85,7 @@ spec = parallel $ do
         actionHandler :: String -> Int -> Int
         actionHandler "up" state = 1
 
-        handler = MessageHandler (0 :: Int) actionHandler
+        handler = MessageHandler Nothing (0 :: Int) actionHandler
 
         component = handler (const $ handler (const $ Text ""))
 
@@ -104,7 +104,7 @@ spec = parallel $ do
         actionHandler "up" state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -126,7 +126,7 @@ spec = parallel $ do
         actionHandler Up state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -148,7 +148,7 @@ spec = parallel $ do
         actionHandler Up state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -165,7 +165,7 @@ spec = parallel $ do
         "<div handler=\"[0]\">1</div>"
 
 
-  describe "runOnces" $ do
+  describe "prepareGraph" $ do
 
     it "sets hasRun to True" $ do
       let
@@ -176,7 +176,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing handle
+        timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
@@ -184,11 +184,11 @@ spec = parallel $ do
 
         component = timeHandler (startClock display)
 
-      show (fst (runOnces component))
+      show (fst (prepareGraph component))
         `shouldBe`
         "EffectHandler Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
 
-      length (snd (runOnces component))
+      length (snd (prepareGraph component))
         `shouldBe`
         1
 
@@ -201,7 +201,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing handle
+        timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
@@ -210,9 +210,9 @@ spec = parallel $ do
         component = timeHandler (startClock display)
 
       let
-        run1 = runOnces component
-        run2 = runOnces (fst run1)
-        run3 = runOnces (fst run2)
+        run1 = prepareGraph component
+        run2 = prepareGraph (fst run1)
+        run3 = prepareGraph (fst run2)
 
       length (snd run1) `shouldBe` 1
       length (snd run2) `shouldBe` 0

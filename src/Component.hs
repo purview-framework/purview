@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -36,14 +38,16 @@ data Purview a where
 
   MessageHandler
     :: (FromJSON action, FromJSON state)
-    => state
+    => Maybe [Int]
+    -> state
     -> (action -> state -> state)
     -> (state -> Purview a)
     -> Purview a
 
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON state)
-    => state
+    => Maybe [Int]
+    -> state
     -> (action -> state -> IO state)
     -> (state -> Purview a)
     -> Purview a
@@ -56,8 +60,8 @@ data Purview a where
     -> Purview a
 
 instance Show (Purview a) where
-  show (EffectHandler state action cont) = "EffectHandler " <> show (cont state)
-  show (MessageHandler state action cont) = "MessageHandler " <> show (cont state)
+  show (EffectHandler _ state action cont) = "EffectHandler " <> show (cont state)
+  show (MessageHandler _ state action cont) = "MessageHandler " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute attrs cont) = "Attr " <> show cont
   show (Text str) = show str
@@ -69,6 +73,9 @@ instance Show (Purview a) where
 div = Html "div"
 text = Text
 useState = State
+
+messageHandler state handler cont = MessageHandler Nothing state handler cont
+effectHandler state handler cont = EffectHandler Nothing state handler cont
 
 onClick :: ToJSON a => a -> Purview b -> Purview b
 onClick = Attribute . OnClick
@@ -97,12 +104,12 @@ render' location attrs tree = case tree of
   Attribute attr rest ->
     render' location (attr:attrs) rest
 
-  MessageHandler state _ cont ->
+  MessageHandler _ state _ cont ->
     "<div handler=\"" <> show location <> "\">" <>
       render' (0:location) attrs (cont state) <>
     "</div>"
 
-  EffectHandler state _ cont ->
+  EffectHandler _ state _ cont ->
     "<div handler=\"" <> show location <> "\">" <>
       render' (0:location) attrs (cont state) <>
     "</div>"
@@ -121,40 +128,41 @@ This is a special case event to assign state to message handlers
 
 applyNewState :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
 applyNewState eventBus message component = case component of
-  MessageHandler state handler cont -> pure $ case fromJSON message of
+  MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
-      MessageHandler newState handler cont
+      MessageHandler loc newState handler cont
     Error _ ->
       cont state
 
-  EffectHandler state handler cont -> case fromJSON message of
+  EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
-      pure $ EffectHandler newState handler cont
+      pure $ EffectHandler loc newState handler cont
   x -> pure x
 
 applyEvent :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
 applyEvent eventBus message component = case component of
-  MessageHandler state handler cont -> pure $ case fromJSON message of
+  MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success action' ->
-      MessageHandler (handler action' state) handler cont
+      MessageHandler loc (handler action' state) handler cont
     Error _ ->
-      MessageHandler state handler cont
+      MessageHandler loc state handler cont
 
-  EffectHandler state handler cont -> case fromJSON message of
+  EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
         newState <- handler parsedAction state
         atomically $ writeTChan eventBus $ FromEvent
           { event = "newState"
           , message = toJSON newState
+          , location = loc
           }
-      pure $ EffectHandler state handler cont
+      pure $ EffectHandler loc state handler cont
     Error err ->
-      pure $ EffectHandler state handler cont
+      pure $ EffectHandler loc state handler cont
 
   x -> pure x
 
-{-
+{-|
 
 For now the only special event kind is "newState" which replaces
 the inner state of a Handler (Message or Effect)
@@ -162,12 +170,12 @@ the inner state of a Handler (Message or Effect)
 -}
 
 apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus (FromEvent eventKind message) component =
+apply eventBus FromEvent {event=eventKind, message} component =
   case eventKind of
     "newState" -> applyNewState eventBus message component
     _          -> applyEvent eventBus message component
 
-{-
+{-|
 
 This walks through the tree and collects actions that should be run
 only once, and sets their run value to True.  It's up to something
@@ -175,42 +183,43 @@ else to actually send the actions.
 
 -}
 
-runOnces :: Purview a -> (Purview a, [FromEvent])
-runOnces component = case component of
+prepareGraph :: Purview a -> (Purview a, [FromEvent])
+prepareGraph component = case component of
   Attribute attrs cont ->
-    let result = runOnces cont
+    let result = prepareGraph cont
     in (Attribute attrs (fst result), snd result)
 
   Html kind children ->
-    let result = fmap runOnces children
+    let result = fmap prepareGraph children
     in (Html kind (fmap fst result), concatMap snd result)
 
-  MessageHandler state handler cont ->
+  MessageHandler loc state handler cont ->
     let
-      rest = fmap runOnces cont
+      rest = fmap prepareGraph cont
     in
-      (MessageHandler state handler (\state -> fst (rest state)), snd (rest state))
+      (MessageHandler loc state handler (\state -> fst (rest state)), snd (rest state))
 
-  EffectHandler state handler cont ->
+  EffectHandler loc state handler cont ->
     let
-      rest = fmap runOnces cont
+      rest = fmap prepareGraph cont
     in
-      (EffectHandler state handler (\state -> fst (rest state)), snd (rest state))
+      (EffectHandler loc state handler (\state -> fst (rest state)), snd (rest state))
 
   Once effect hasRun cont ->
     let send message =
           FromEvent
             { event = "once"
             , message = toJSON message
+            , location = Nothing
             }
     in if not hasRun then
         let
-          rest = runOnces cont
+          rest = prepareGraph cont
         in
           (Once effect True (fst rest), [effect send] <> (snd rest))
        else
         let
-          rest = runOnces cont
+          rest = prepareGraph cont
         in
           (Once effect True (fst rest), snd rest)
 

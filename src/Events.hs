@@ -16,11 +16,12 @@ data Event = Event
 data FromEvent = FromEvent
   { event :: Text
   , message :: Value
+  , location :: Maybe [Int]
   } deriving (Show, Eq)
 
 instance FromJSON FromEvent where
   parseJSON (Object o) =
-      FromEvent <$> o .: "event" <*> (o .: "message")
+      FromEvent <$> o .: "event" <*> (o .: "message") <*> o .: "location"
   parseJSON _ = error "fail"
 
 instance ToJSON Event where

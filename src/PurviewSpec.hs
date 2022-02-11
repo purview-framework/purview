@@ -8,7 +8,7 @@ import Purview
 upButton = onClick ("up" :: String) $ div [ text "up" ]
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
-handler = MessageHandler 0 action
+handler = MessageHandler Nothing 0 action
   where
     action :: String -> Int -> Int
     action "up"    _ = 1
