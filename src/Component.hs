@@ -60,8 +60,8 @@ data Purview a where
     -> Purview a
 
 instance Show (Purview a) where
-  show (EffectHandler _ state action cont) = "EffectHandler " <> show (cont state)
-  show (MessageHandler _ state action cont) = "MessageHandler " <> show (cont state)
+  show (EffectHandler location state action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
+  show (MessageHandler location state action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute attrs cont) = "Attr " <> show cont
   show (Text str) = show str
@@ -69,7 +69,10 @@ instance Show (Purview a) where
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
 
--- a little bit to clean up defining these
+instance Eq (Purview a) where
+  a == b = show a == show b
+
+-- Various helpers
 div = Html "div"
 text = Text
 useState = State
@@ -91,6 +94,9 @@ Takes the tree and turns it into HTML.  Attributes are passed down to children u
 they reach a real HTML tag.
 
 -}
+
+render :: Purview a -> String
+render = render' [0] []
 
 render' :: [Integer] -> [Attributes] -> Purview a -> String
 render' location attrs tree = case tree of
@@ -116,9 +122,6 @@ render' location attrs tree = case tree of
 
   Once _ hasRun cont ->
     render' location attrs cont
-
-render :: Purview a -> String
-render = render' [0] []
 
 {-|
 
@@ -184,26 +187,31 @@ else to actually send the actions.
 -}
 
 prepareGraph :: Purview a -> (Purview a, [FromEvent])
-prepareGraph component = case component of
+prepareGraph = prepareGraph' []
+
+type Location = [Int]
+
+prepareGraph' :: Location -> Purview a -> (Purview a, [FromEvent])
+prepareGraph' location component = case component of
   Attribute attrs cont ->
-    let result = prepareGraph cont
+    let result = prepareGraph' location cont
     in (Attribute attrs (fst result), snd result)
 
   Html kind children ->
-    let result = fmap prepareGraph children
+    let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
 
   MessageHandler loc state handler cont ->
     let
-      rest = fmap prepareGraph cont
+      rest = fmap (prepareGraph' (0:location)) cont
     in
-      (MessageHandler loc state handler (\state -> fst (rest state)), snd (rest state))
+      (MessageHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
 
   EffectHandler loc state handler cont ->
     let
-      rest = fmap prepareGraph cont
+      rest = fmap (prepareGraph' (0:location)) cont
     in
-      (EffectHandler loc state handler (\state -> fst (rest state)), snd (rest state))
+      (EffectHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
 
   Once effect hasRun cont ->
     let send message =
@@ -214,12 +222,12 @@ prepareGraph component = case component of
             }
     in if not hasRun then
         let
-          rest = prepareGraph cont
+          rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), [effect send] <> (snd rest))
        else
         let
-          rest = prepareGraph cont
+          rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), snd rest)
 

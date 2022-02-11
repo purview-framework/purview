@@ -186,7 +186,7 @@ spec = parallel $ do
 
       show (fst (prepareGraph component))
         `shouldBe`
-        "EffectHandler Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
+        "EffectHandler Just [] Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
 
       length (snd (prepareGraph component))
         `shouldBe`
@@ -217,5 +217,52 @@ spec = parallel $ do
       length (snd run1) `shouldBe` 1
       length (snd run2) `shouldBe` 0
       length (snd run3) `shouldBe` 0  -- for a bug where it was resetting run
+
+    it "assigns a location to handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component = timeHandler (const (Text ""))
+
+      component `shouldBe` EffectHandler Nothing Nothing handle (const (Text ""))
+
+      let
+        graphWithLocation = fst (prepareGraph component)
+
+      graphWithLocation `shouldBe` EffectHandler (Just []) Nothing handle (const (Text ""))
+
+    it "assigns a different location to child handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component = div
+          [ timeHandler (const (Text ""))
+          , timeHandler (const (Text ""))
+          ]
+
+        graphWithLocation = fst (prepareGraph component)
+
+      show graphWithLocation `shouldBe` "div [  EffectHandler Just [0] \"\" EffectHandler Just [1] \"\" ] "
+
+    it "assigns a different location to nested handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component =
+          timeHandler (const (timeHandler (const (Text ""))))
+
+
+        graphWithLocation = fst (prepareGraph component)
+
+      show graphWithLocation `shouldBe` "EffectHandler Just [] EffectHandler Just [0] \"\""
 
 main = hspec spec
