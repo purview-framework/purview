@@ -25,6 +25,7 @@ websocketScript = [r|
       if (event.event === "setHtml") {
         // cool enough for now
         document.body.innerHTML = event.message;
+        bindEvents();
       }
     };
 
@@ -43,15 +44,20 @@ websocketScript = [r|
   }
   connect();
 
-  function handleEvents(event) {
+  function handleEvents(handler, event) {
     var clickValue = event.target.getAttribute("action");
+    var location = JSON.parse(handler.getAttribute("handler"))
+    console.log(location)
     if (clickValue) {
-      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue }));
+      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
     }
   }
 
   function bindEvents() {
-    document.getRootNode().addEventListener("click", handleEvents);
+    document.querySelectorAll("[handler]").forEach(item => {
+      item.addEventListener("click", event => handleEvents(item, event));
+    });
+    console.log('events bound');
   }
   bindEvents();
 |]

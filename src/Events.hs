@@ -17,7 +17,7 @@ data FromEvent = FromEvent
   { event :: Text
   , message :: Value
   , location :: Maybe [Int]
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON FromEvent where
   parseJSON (Object o) =

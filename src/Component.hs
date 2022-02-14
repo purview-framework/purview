@@ -11,6 +11,7 @@ import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
+import           Data.Maybe (fromJust)
 import           GHC.Generics
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -96,32 +97,32 @@ they reach a real HTML tag.
 -}
 
 render :: Purview a -> String
-render = render' [0] []
+render = render' []
 
-render' :: [Integer] -> [Attributes] -> Purview a -> String
-render' location attrs tree = case tree of
+render' :: [Attributes] -> Purview a -> String
+render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (\(newLocation, comp) -> render' (newLocation:location) attrs comp) (zip [0..] rest) <>
+    <> concatMap (render' attrs) rest <>
     "</" <> kind <> ">"
 
   Text val -> val
 
   Attribute attr rest ->
-    render' location (attr:attrs) rest
+    render' (attr:attrs) rest
 
-  MessageHandler _ state _ cont ->
-    "<div handler=\"" <> show location <> "\">" <>
-      render' (0:location) attrs (cont state) <>
+  MessageHandler location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (cont state) <>
     "</div>"
 
-  EffectHandler _ state _ cont ->
-    "<div handler=\"" <> show location <> "\">" <>
-      render' (0:location) attrs (cont state) <>
+  EffectHandler location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (cont state) <>
     "</div>"
 
   Once _ hasRun cont ->
-    render' location attrs cont
+    render' attrs cont
 
 {-|
 
