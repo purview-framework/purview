@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,6 +11,7 @@ import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.String (fromString)
 import           Data.Typeable
+import           Data.Maybe (fromJust)
 import           GHC.Generics
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -21,7 +24,6 @@ import Control.Concurrent
 import Events
 
 data Attributes where
-  -- OnClick :: Typeable a => (a -> IO ()) -> Attributes
   OnClick :: ToJSON a => a -> Attributes
 
 data Purview a where
@@ -37,14 +39,16 @@ data Purview a where
 
   MessageHandler
     :: (FromJSON action, FromJSON state)
-    => state
+    => Maybe [Int]
+    -> state
     -> (action -> state -> state)
     -> (state -> Purview a)
     -> Purview a
 
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON state)
-    => state
+    => Maybe [Int]
+    -> state
     -> (action -> state -> IO state)
     -> (state -> Purview a)
     -> Purview a
@@ -57,8 +61,8 @@ data Purview a where
     -> Purview a
 
 instance Show (Purview a) where
-  show (EffectHandler state action cont) = "EffectHandler " <> show (cont state)
-  show (MessageHandler state action cont) = "MessageHandler " <> show (cont state)
+  show (EffectHandler location state action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
+  show (MessageHandler location state action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute attrs cont) = "Attr " <> show cont
   show (Text str) = show str
@@ -66,10 +70,16 @@ instance Show (Purview a) where
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
 
--- a little bit to clean up defining these
+instance Eq (Purview a) where
+  a == b = show a == show b
+
+-- Various helpers
 div = Html "div"
 text = Text
 useState = State
+
+messageHandler state handler cont = MessageHandler Nothing state handler cont
+effectHandler state handler cont = EffectHandler Nothing state handler cont
 
 onClick :: ToJSON a => a -> Purview b -> Purview b
 onClick = Attribute . OnClick
@@ -77,77 +87,97 @@ onClick = Attribute . OnClick
 renderAttributes :: [Attributes] -> String
 renderAttributes = concatMap renderAttribute
   where
-    renderAttribute (OnClick action) = " bridge-click=" <> unpack (encode action)
+    renderAttribute (OnClick action) = " action=" <> unpack (encode action)
 
-{-
+{-|
 
-Html Tag Children
+Takes the tree and turns it into HTML.  Attributes are passed down to children until
+they reach a real HTML tag.
 
 -}
 
-render :: [Attributes] -> Purview a -> String
-render attrs tree = case tree of
+render :: Purview a -> String
+render = render' []
+
+render' :: [Attributes] -> Purview a -> String
+render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (render attrs) rest <>
+    <> concatMap (render' attrs) rest <>
     "</" <> kind <> ">"
 
   Text val -> val
 
   Attribute attr rest ->
-    render (attr:attrs) rest
+    render' (attr:attrs) rest
 
-  MessageHandler state _ cont ->
-    render attrs (cont state)
+  MessageHandler location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (cont state) <>
+    "</div>"
 
-  EffectHandler state _ cont ->
-    render attrs (cont state)
+  EffectHandler location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (cont state) <>
+    "</div>"
 
   Once _ hasRun cont ->
-    render attrs cont
+    render' attrs cont
 
-{-
+{-|
 
 This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
-applyNewState eventBus message component = case component of
-  MessageHandler state handler cont -> pure $ case fromJSON message of
+applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+applyNewState eventBus FromEvent { message } component = case component of
+  MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
-      MessageHandler newState handler cont
+      MessageHandler loc newState handler cont
     Error _ ->
       cont state
 
-  EffectHandler state handler cont -> case fromJSON message of
+  EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
-      pure $ EffectHandler newState handler cont
+      pure $ EffectHandler loc newState handler cont
+
   x -> pure x
 
-applyEvent :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
-applyEvent eventBus message component = case component of
-  MessageHandler state handler cont -> pure $ case fromJSON message of
+applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
+  MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success action' ->
-      MessageHandler (handler action' state) handler cont
+      if loc == location
+      then MessageHandler loc (handler action' state) handler cont
+      else MessageHandler loc state handler cont
     Error _ ->
-      MessageHandler state handler cont
+      MessageHandler loc state handler cont
 
-  EffectHandler state handler cont -> case fromJSON message of
+  EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
-        newState <- handler parsedAction state
+        newState <-
+          if loc == location
+          then handler parsedAction state
+          else pure state
+
         atomically $ writeTChan eventBus $ FromEvent
           { event = "newState"
           , message = toJSON newState
+          , location = loc
           }
-      pure $ EffectHandler state handler cont
+      pure $ EffectHandler loc state handler cont
     Error err ->
-      pure $ EffectHandler state handler cont
+      pure $ EffectHandler loc state handler cont
+
+  Html kind children -> do
+    children' <- mapM (applyEvent eventBus fromEvent) children
+    pure $ Html kind children'
 
   x -> pure x
 
-{-
+{-|
 
 For now the only special event kind is "newState" which replaces
 the inner state of a Handler (Message or Effect)
@@ -155,12 +185,12 @@ the inner state of a Handler (Message or Effect)
 -}
 
 apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus (FromEvent eventKind message) component =
+apply eventBus fromEvent@FromEvent {event=eventKind} component =
   case eventKind of
-    "newState" -> applyNewState eventBus message component
-    _          -> applyEvent eventBus message component
+    "newState" -> applyNewState eventBus fromEvent component
+    _          -> applyEvent eventBus fromEvent component
 
-{-
+{-|
 
 This walks through the tree and collects actions that should be run
 only once, and sets their run value to True.  It's up to something
@@ -168,42 +198,48 @@ else to actually send the actions.
 
 -}
 
-runOnces :: Purview a -> (Purview a, [FromEvent])
-runOnces component = case component of
+prepareGraph :: Purview a -> (Purview a, [FromEvent])
+prepareGraph = prepareGraph' []
+
+type Location = [Int]
+
+prepareGraph' :: Location -> Purview a -> (Purview a, [FromEvent])
+prepareGraph' location component = case component of
   Attribute attrs cont ->
-    let result = runOnces cont
+    let result = prepareGraph' location cont
     in (Attribute attrs (fst result), snd result)
 
   Html kind children ->
-    let result = fmap runOnces children
+    let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
 
-  MessageHandler state handler cont ->
+  MessageHandler loc state handler cont ->
     let
-      rest = fmap runOnces cont
+      rest = fmap (prepareGraph' (0:location)) cont
     in
-      (MessageHandler state handler (\state -> fst (rest state)), snd (rest state))
+      (MessageHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
 
-  EffectHandler state handler cont ->
+  EffectHandler loc state handler cont ->
     let
-      rest = fmap runOnces cont
+      rest = fmap (prepareGraph' (0:location)) cont
     in
-      (EffectHandler state handler (\state -> fst (rest state)), snd (rest state))
+      (EffectHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
 
   Once effect hasRun cont ->
     let send message =
           FromEvent
             { event = "once"
             , message = toJSON message
+            , location = Just location
             }
     in if not hasRun then
         let
-          rest = runOnces cont
+          rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), [effect send] <> (snd rest))
        else
         let
-          rest = runOnces cont
+          rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), snd rest)
 

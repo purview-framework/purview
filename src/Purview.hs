@@ -6,6 +6,8 @@ module Purview
   , text
   , onClick
   , Purview (..)
+  , messageHandler
+  , effectHandler
   , run
   -- for testing
   , render
@@ -58,7 +60,7 @@ requestHandler routes =
       $ LazyText.fromStrict
       $ wrapHtml
       $ Data.Text.pack
-      $ render [] routes
+      $ render routes
 
 
 --
@@ -71,20 +73,20 @@ requestHandler routes =
 looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
 looper log eventBus connection component = do
   message <- atomically $ readTChan eventBus
-  log $ "\x1b[34;1mreceived>\x1b[0m " <> show message
+  log $ "received> " <> show message
 
   let
-    (FromEvent eventKind eventMessage) = message
-    (newTree, actions) = runOnces component
+    FromEvent { event=eventKind, message=eventMessage } = message
+    (newTree, actions) = prepareGraph component
 
   newTree' <- apply eventBus message newTree
 
   mapM_ (atomically . writeTChan eventBus) actions
 
   let
-    newHtml = render [] newTree'
+    newHtml = render newTree'
 
-  log $ "\x1b[32;1msending>\x1b[0m " <> show newHtml
+  log $ "sending> " <> show newHtml
 
   WS.sendTextData
     connection
@@ -109,7 +111,7 @@ webSocketHandler log component pending = do
 
   eventBus <- newTChanIO
 
-  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init" }
+  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init", location = Nothing }
 
   WS.withPingThread conn 30 (pure ()) $ do
     forkIO $ webSocketMessageHandler eventBus conn

@@ -27,15 +27,15 @@ spec = parallel $ do
     it "can create a div" $ do
       let element = Html "div" [Text "hello world"]
 
-      render [] element `shouldBe` "<div>hello world</div>"
+      render element `shouldBe` "<div>hello world</div>"
 
     it "can add an onclick" $ do
       let element =
             Attribute (OnClick (1 :: Integer))
             $ Html "div" [Text "hello world"]
 
-      render [] element `shouldBe`
-        "<div bridge-click=1>hello world</div>"
+      render element `shouldBe`
+        "<div action=1>hello world</div>"
 
     it "can render a message handler" $ do
       let
@@ -43,20 +43,57 @@ spec = parallel $ do
         actionHandler "up" state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
-      render [] handler
+      render handler
         `shouldBe`
-        "0"
+        "<div handler=\"[0]\">0</div>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
 
-      render [] element
+      render element
         `shouldBe`
-        "<div bridge-click=\"SingleConstructor\">click</div>"
+        "<div action=\"SingleConstructor\">click</div>"
+
+    it "renders multiple message handlers with different locations" $ do
+      let
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" state = 1
+
+        handler =
+          MessageHandler Nothing (0 :: Int)
+            actionHandler
+            (Text . show)
+
+        component = div
+          [ handler
+          , handler
+          ]
+
+      render component
+        `shouldBe`
+        "<div>" <>
+          "<div handler=\"[0,0]\">0</div>" <>
+          "<div handler=\"[1,0]\">0</div>" <>
+        "</div>"
+
+    it "renders nested handlers with deeper locations" $ do
+      let
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" state = 1
+
+        handler = MessageHandler Nothing (0 :: Int) actionHandler
+
+        component = handler (const $ handler (const $ Text ""))
+
+      render component
+        `shouldBe`
+        "<div handler=\"[0]\">" <>
+          "<div handler=\"[0,0]\"></div>" <>
+        "</div>"
 
 
   describe "applyEvent" $ do
@@ -67,21 +104,21 @@ spec = parallel $ do
         actionHandler "up" state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
-      render [] handler
+      render handler
         `shouldBe`
-        "0"
+        "<div handler=\"[0]\">0</div>"
 
       chan <- newTChanIO
 
       appliedHandler <- applyEvent chan (String "up") handler
 
-      render [] appliedHandler
+      render appliedHandler
         `shouldBe`
-        "1"
+        "<div handler=\"[0]\">1</div>"
 
     it "works with typed messages" $ do
       let
@@ -89,21 +126,21 @@ spec = parallel $ do
         actionHandler Up state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
-      render [] handler
+      render handler
         `shouldBe`
-        "0"
+        "<div handler=\"[0]\">0</div>"
 
       chan <- newTChanIO
 
       appliedHandler <- applyEvent chan (toJSON Up) handler
 
-      render [] appliedHandler
+      render appliedHandler
         `shouldBe`
-        "1"
+        "<div handler=\"[0]\">1</div>"
 
     it "works after sending an event that did not match anything" $ do
       let
@@ -111,24 +148,24 @@ spec = parallel $ do
         actionHandler Up state = 1
 
         handler =
-          MessageHandler (0 :: Int)
+          MessageHandler Nothing (0 :: Int)
             actionHandler
             (Text . show)
 
       chan <- newTChanIO
 
       appliedHandler0 <- applyEvent chan (String "init") handler
-      render [] appliedHandler0
+      render appliedHandler0
         `shouldBe`
-        "0"
+        "<div handler=\"[0]\">0</div>"
 
       appliedHandler1 <- applyEvent chan (toJSON Up) appliedHandler0
-      render [] appliedHandler1
+      render appliedHandler1
         `shouldBe`
-        "1"
+        "<div handler=\"[0]\">1</div>"
 
 
-  describe "runOnces" $ do
+  describe "prepareGraph" $ do
 
     it "sets hasRun to True" $ do
       let
@@ -139,7 +176,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing handle
+        timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
@@ -147,11 +184,11 @@ spec = parallel $ do
 
         component = timeHandler (startClock display)
 
-      show (fst (runOnces component))
+      show (fst (prepareGraph component))
         `shouldBe`
-        "EffectHandler Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
+        "EffectHandler Just [] Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
 
-      length (snd (runOnces component))
+      length (snd (prepareGraph component))
         `shouldBe`
         1
 
@@ -164,7 +201,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing handle
+        timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
             handle "setTime" state = Just <$> getCurrentTime
@@ -173,12 +210,59 @@ spec = parallel $ do
         component = timeHandler (startClock display)
 
       let
-        run1 = runOnces component
-        run2 = runOnces (fst run1)
-        run3 = runOnces (fst run2)
+        run1 = prepareGraph component
+        run2 = prepareGraph (fst run1)
+        run3 = prepareGraph (fst run2)
 
       length (snd run1) `shouldBe` 1
       length (snd run2) `shouldBe` 0
       length (snd run3) `shouldBe` 0  -- for a bug where it was resetting run
+
+    it "assigns a location to handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component = timeHandler (const (Text ""))
+
+      component `shouldBe` EffectHandler Nothing Nothing handle (const (Text ""))
+
+      let
+        graphWithLocation = fst (prepareGraph component)
+
+      graphWithLocation `shouldBe` EffectHandler (Just []) Nothing handle (const (Text ""))
+
+    it "assigns a different location to child handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component = div
+          [ timeHandler (const (Text ""))
+          , timeHandler (const (Text ""))
+          ]
+
+        graphWithLocation = fst (prepareGraph component)
+
+      show graphWithLocation `shouldBe` "div [  EffectHandler Just [0] \"\" EffectHandler Just [1] \"\" ] "
+
+    it "assigns a different location to nested handlers" $ do
+      let
+        timeHandler = effectHandler Nothing handle
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
+        handle "setTime" state = Just <$> getCurrentTime
+
+        component =
+          timeHandler (const (timeHandler (const (Text ""))))
+
+
+        graphWithLocation = fst (prepareGraph component)
+
+      show graphWithLocation `shouldBe` "EffectHandler Just [] EffectHandler Just [0] \"\""
 
 main = hspec spec
