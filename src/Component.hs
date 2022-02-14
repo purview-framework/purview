@@ -141,6 +141,7 @@ applyNewState eventBus message component = case component of
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
       pure $ EffectHandler loc newState handler cont
+
   x -> pure x
 
 applyEvent :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
@@ -163,6 +164,10 @@ applyEvent eventBus message component = case component of
       pure $ EffectHandler loc state handler cont
     Error err ->
       pure $ EffectHandler loc state handler cont
+
+  Html kind children -> do
+    children' <- mapM (applyEvent eventBus message) children
+    pure $ Html kind children'
 
   x -> pure x
 

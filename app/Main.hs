@@ -35,9 +35,16 @@ counter state = div
   , downButton
   ]
 
+component = handler counter
+
+multiCounter = div
+  [ component
+  , component
+  ]
+
 logger = print
 
--- main = run logger (handler counter)
+main = run logger multiCounter
 
 
 -------------------------
@@ -60,4 +67,4 @@ timeHandler = effectHandler Nothing handle
   where
     handle UpdateTime state = Just <$> getCurrentTime
 
-main = run logger (timeHandler (startClock display))
+-- main = run logger (timeHandler (startClock display))
