@@ -130,8 +130,8 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
-applyNewState eventBus message component = case component of
+applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+applyNewState eventBus FromEvent { message } component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler loc newState handler cont
@@ -144,18 +144,24 @@ applyNewState eventBus message component = case component of
 
   x -> pure x
 
-applyEvent :: TChan FromEvent -> Value -> Purview a -> IO (Purview a)
-applyEvent eventBus message component = case component of
+applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success action' ->
-      MessageHandler loc (handler action' state) handler cont
+      if loc == location
+      then MessageHandler loc (handler action' state) handler cont
+      else MessageHandler loc state handler cont
     Error _ ->
       MessageHandler loc state handler cont
 
   EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
-        newState <- handler parsedAction state
+        newState <-
+          if loc == location
+          then handler parsedAction state
+          else pure state
+
         atomically $ writeTChan eventBus $ FromEvent
           { event = "newState"
           , message = toJSON newState
@@ -166,7 +172,7 @@ applyEvent eventBus message component = case component of
       pure $ EffectHandler loc state handler cont
 
   Html kind children -> do
-    children' <- mapM (applyEvent eventBus message) children
+    children' <- mapM (applyEvent eventBus fromEvent) children
     pure $ Html kind children'
 
   x -> pure x
@@ -179,10 +185,10 @@ the inner state of a Handler (Message or Effect)
 -}
 
 apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus FromEvent {event=eventKind, message} component =
+apply eventBus fromEvent@FromEvent {event=eventKind} component =
   case eventKind of
-    "newState" -> applyNewState eventBus message component
-    _          -> applyEvent eventBus message component
+    "newState" -> applyNewState eventBus fromEvent component
+    _          -> applyEvent eventBus fromEvent component
 
 {-|
 
