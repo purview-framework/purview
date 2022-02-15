@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 module ComponentSpec where
 
@@ -11,6 +12,7 @@ import Data.Aeson.TH
 import Data.Time
 
 import Component
+import Events
 
 data TestAction = Up | Down
 
@@ -49,7 +51,7 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"null\">0</div>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
@@ -57,44 +59,6 @@ spec = parallel $ do
       render element
         `shouldBe`
         "<div action=\"SingleConstructor\">click</div>"
-
-    it "renders multiple message handlers with different locations" $ do
-      let
-        actionHandler :: String -> Int -> Int
-        actionHandler "up" state = 1
-
-        handler =
-          MessageHandler Nothing (0 :: Int)
-            actionHandler
-            (Text . show)
-
-        component = div
-          [ handler
-          , handler
-          ]
-
-      render component
-        `shouldBe`
-        "<div>" <>
-          "<div handler=\"[0,0]\">0</div>" <>
-          "<div handler=\"[1,0]\">0</div>" <>
-        "</div>"
-
-    it "renders nested handlers with deeper locations" $ do
-      let
-        actionHandler :: String -> Int -> Int
-        actionHandler "up" state = 1
-
-        handler = MessageHandler Nothing (0 :: Int) actionHandler
-
-        component = handler (const $ handler (const $ Text ""))
-
-      render component
-        `shouldBe`
-        "<div handler=\"[0]\">" <>
-          "<div handler=\"[0,0]\"></div>" <>
-        "</div>"
-
 
   describe "applyEvent" $ do
 
@@ -110,15 +74,17 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"null\">0</div>"
 
       chan <- newTChanIO
 
-      appliedHandler <- applyEvent chan (String "up") handler
+      let event = FromEvent { event="click", message="up", location=Nothing }
+
+      appliedHandler <- applyEvent chan event handler
 
       render appliedHandler
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"null\">1</div>"
 
     it "works with typed messages" $ do
       let
@@ -132,15 +98,17 @@ spec = parallel $ do
 
       render handler
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"null\">0</div>"
 
       chan <- newTChanIO
 
-      appliedHandler <- applyEvent chan (toJSON Up) handler
+      let event = FromEvent { event="click", message=toJSON Up, location=Nothing }
+
+      appliedHandler <- applyEvent chan event handler
 
       render appliedHandler
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"null\">1</div>"
 
     it "works after sending an event that did not match anything" $ do
       let
@@ -154,15 +122,19 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      appliedHandler0 <- applyEvent chan (String "init") handler
+      let event0 = FromEvent { event="init", message="init", location=Nothing }
+
+      appliedHandler0 <- applyEvent chan event0 handler
       render appliedHandler0
         `shouldBe`
-        "<div handler=\"[0]\">0</div>"
+        "<div handler=\"null\">0</div>"
 
-      appliedHandler1 <- applyEvent chan (toJSON Up) appliedHandler0
+      let event1 = FromEvent { event="init", message=toJSON Up, location=Nothing }
+
+      appliedHandler1 <- applyEvent chan event1 appliedHandler0
       render appliedHandler1
         `shouldBe`
-        "<div handler=\"[0]\">1</div>"
+        "<div handler=\"null\">1</div>"
 
 
   describe "prepareGraph" $ do
