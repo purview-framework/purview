@@ -20,6 +20,10 @@ data Direction = Up | Down
 
 $(deriveJSON defaultOptions ''Direction)
 
+data OtherDirection = Port | Starboard
+
+$(deriveJSON defaultOptions ''OtherDirection)
+
 upButton = onClick Up $ div [ text "up" ]
 downButton = onClick Down $ div [ text "down" ]
 
@@ -28,7 +32,14 @@ handler = messageHandler (0 :: Int) action
     action Up state   = state + 1
     action Down state = state - 1
 
-counter :: Int -> Purview a
+handler' = messageHandler (0 :: Int) action
+  where
+    action Port state   = state + 1
+    action Starboard state = state - 1
+
+component' = handler' (\state -> div [ text "" ])
+
+counter :: Int -> Purview Direction
 counter state = div
   [ upButton
   , text $ "count: " <> show state
@@ -39,7 +50,7 @@ component = handler counter
 
 multiCounter = div
   [ component
-  , component
+  , component'
   ]
 
 logger = print
@@ -51,20 +62,20 @@ main = run logger multiCounter
 -- Server Time Example --
 -------------------------
 
-data UpdateTime = UpdateTime
-
-$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
-
-display :: Maybe UTCTime -> Purview a
-display time = div
-  [ text (show time)
-  , onClick UpdateTime $ div [ text "check time" ]
-  ]
-
-startClock cont state = Once (\send -> send UpdateTime) False (cont state)
-
-timeHandler = effectHandler Nothing handle
-  where
-    handle UpdateTime state = Just <$> getCurrentTime
+-- data UpdateTime = UpdateTime
+--
+-- $(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
+--
+-- display :: Maybe UTCTime -> Purview a
+-- display time = div
+--   [ text (show time)
+--   , onClick UpdateTime $ div [ text "check time" ]
+--   ]
+--
+-- startClock cont state = Once (\send -> send UpdateTime) False (cont state)
+--
+-- timeHandler = effectHandler Nothing handle
+--   where
+--     handle UpdateTime state = Just <$> getCurrentTime
 
 -- main = run logger (timeHandler (startClock display))

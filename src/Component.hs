@@ -23,11 +23,13 @@ import Control.Concurrent
 
 import Events
 
-data Attributes where
-  OnClick :: ToJSON a => a -> Attributes
+data Attributes action where
+  OnClick :: ToJSON action => action -> Attributes action
+
+type Identifier = Maybe [Int]
 
 data Purview a where
-  Attribute :: Attributes -> Purview a -> Purview a
+  Attribute :: Attributes a -> Purview a -> Purview a
   Text :: String -> Purview a
   Html :: String -> [Purview a] -> Purview a
   Value :: Show a => a -> Purview a
@@ -39,7 +41,7 @@ data Purview a where
 
   MessageHandler
     :: (FromJSON action, FromJSON state)
-    => Maybe [Int]
+    => Identifier
     -> state
     -> (action -> state -> state)
     -> (state -> Purview a)
@@ -47,11 +49,11 @@ data Purview a where
 
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON state)
-    => Maybe [Int]
+    => Identifier
     -> state
     -> (action -> state -> IO state)
-    -> (state -> Purview a)
-    -> Purview a
+    -> (state -> Purview action)
+    -> Purview action
 
   Once
     :: (ToJSON action)
@@ -59,6 +61,8 @@ data Purview a where
     -> Bool  -- has run
     -> Purview a
     -> Purview a
+
+  Hide :: Purview b -> Purview a
 
 instance Show (Purview a) where
   show (EffectHandler location state action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
@@ -69,6 +73,7 @@ instance Show (Purview a) where
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
+  show (Hide a) = show a
 
 instance Eq (Purview a) where
   a == b = show a == show b
@@ -78,13 +83,13 @@ div = Html "div"
 text = Text
 useState = State
 
-messageHandler state handler cont = MessageHandler Nothing state handler cont
-effectHandler state handler cont = EffectHandler Nothing state handler cont
+messageHandler state handler = Hide . EffectHandler Nothing state (\action state -> pure $ handler action state)
+effectHandler state handler = Hide . EffectHandler Nothing state handler
 
-onClick :: ToJSON a => a -> Purview b -> Purview b
+onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
-renderAttributes :: [Attributes] -> String
+renderAttributes :: [Attributes a] -> String
 renderAttributes = concatMap renderAttribute
   where
     renderAttribute (OnClick action) = " action=" <> unpack (encode action)
@@ -99,7 +104,7 @@ they reach a real HTML tag.
 render :: Purview a -> String
 render = render' []
 
-render' :: [Attributes] -> Purview a -> String
+render' :: [Attributes a] -> Purview a -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
@@ -175,6 +180,10 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
     children' <- mapM (applyEvent eventBus fromEvent) children
     pure $ Html kind children'
 
+  Hide x -> do
+    child <- applyEvent eventBus fromEvent x
+    pure $ Hide child
+
   x -> pure x
 
 {-|
@@ -242,5 +251,9 @@ prepareGraph' location component = case component of
           rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), snd rest)
+
+  Hide x ->
+    let (child, actions) = prepareGraph' location x
+    in (Hide child, actions)
 
   component -> (component, [])

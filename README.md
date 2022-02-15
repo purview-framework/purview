@@ -14,6 +14,7 @@ module Main where
 import Prelude hiding (div)
 import Data.Aeson
 import Data.Aeson.TH
+
 import Purview
 
 data Direction = Up | Down
@@ -44,9 +45,7 @@ main = run logger (handler counter)
 * Actually diff the html 
 * Development environment (hot reloading, printing messages to/from the server)
 * Allowing CSS + JS snippets in components
-* Tests
 * Performance
-* Type the messages or die trying
 * Collect ideas
 * Hey how do I do side effects?
 
