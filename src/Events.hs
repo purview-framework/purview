@@ -4,7 +4,7 @@
 
 module Events where
 
-import           Data.Text (Text, pack)
+import           Data.Text (Text)
 import           Data.Aeson
 import           GHC.Generics
 
