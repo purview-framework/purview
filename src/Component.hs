@@ -6,17 +6,12 @@
 {-# LANGUAGE GADTs #-}
 module Component where
 
-import           Data.ByteString.Lazy (ByteString)
 import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
-import           Data.String (fromString)
-import           Data.Typeable
-import           Data.Maybe (fromJust)
-import           GHC.Generics
+import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
-import Debug.Trace
 
 -- For monad effects
 import Control.Concurrent
@@ -33,11 +28,6 @@ data Purview a where
   Text :: String -> Purview a
   Html :: String -> [Purview a] -> Purview a
   Value :: Show a => a -> Purview a
-
-  State
-    :: state
-    -> ((state, state -> m ()) -> Purview a)
-    -> Purview a
 
   MessageHandler
     :: (FromJSON action, FromJSON state)
@@ -65,10 +55,10 @@ data Purview a where
   Hide :: Purview b -> Purview a
 
 instance Show (Purview a) where
-  show (EffectHandler location state action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
-  show (MessageHandler location state action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
+  show (EffectHandler location state _action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
+  show (MessageHandler location state _action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
-  show (Attribute attrs cont) = "Attr " <> show cont
+  show (Attribute _attrs cont) = "Attr " <> show cont
   show (Text str) = show str
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
@@ -79,12 +69,29 @@ instance Eq (Purview a) where
   a == b = show a == show b
 
 -- Various helpers
+div :: [Purview a] -> Purview a
 div = Html "div"
-text = Text
-useState = State
 
-messageHandler state handler = Hide . EffectHandler Nothing state (\action state -> pure $ handler action state)
-effectHandler state handler = Hide . EffectHandler Nothing state handler
+text :: String -> Purview a
+text = Text
+
+messageHandler
+  :: (FromJSON b, FromJSON t, ToJSON t)
+  => t
+  -> (b -> t -> t)
+  -> (t -> Purview b)
+  -> Purview a
+messageHandler state handler =
+  Hide . EffectHandler Nothing state (\action state' -> pure $ handler action state')
+
+effectHandler
+  :: (FromJSON b, FromJSON state, ToJSON state)
+  => state
+  -> (b -> state -> IO state)
+  -> (state -> Purview b)
+  -> Purview a
+effectHandler state handler =
+  Hide . EffectHandler Nothing state handler
 
 onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
@@ -126,8 +133,12 @@ render' attrs tree = case tree of
       render' attrs (cont state) <>
     "</div>"
 
-  Once _ hasRun cont ->
+  Once _ _hasRun cont ->
     render' attrs cont
+
+  Value a -> show a
+
+  Hide a -> render' attrs (unsafeCoerce a)
 
 {-|
 
@@ -136,7 +147,7 @@ This is a special case event to assign state to message handlers
 -}
 
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyNewState eventBus FromEvent { message } component = case component of
+applyNewState _eventBus FromEvent { message } component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler loc newState handler cont
@@ -146,6 +157,8 @@ applyNewState eventBus FromEvent { message } component = case component of
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
       pure $ EffectHandler loc newState handler cont
+    Error _ ->
+      pure $ EffectHandler loc state handler cont
 
   x -> pure x
 
@@ -173,7 +186,7 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
           , location = loc
           }
       pure $ EffectHandler loc state handler cont
-    Error err ->
+    Error _err ->
       pure $ EffectHandler loc state handler cont
 
   Html kind children -> do
@@ -222,17 +235,17 @@ prepareGraph' location component = case component of
     let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
 
-  MessageHandler loc state handler cont ->
+  MessageHandler _loc state handler cont ->
     let
       rest = fmap (prepareGraph' (0:location)) cont
     in
-      (MessageHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
+      (MessageHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
 
-  EffectHandler loc state handler cont ->
+  EffectHandler _loc state handler cont ->
     let
       rest = fmap (prepareGraph' (0:location)) cont
     in
-      (EffectHandler (Just location) state handler (\state -> fst (rest state)), snd (rest state))
+      (EffectHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
 
   Once effect hasRun cont ->
     let send message =
@@ -256,4 +269,4 @@ prepareGraph' location component = case component of
     let (child, actions) = prepareGraph' location x
     in (Hide child, actions)
 
-  component -> (component, [])
+  component' -> (component', [])

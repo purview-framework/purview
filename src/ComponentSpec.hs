@@ -22,6 +22,7 @@ data SingleConstructor = SingleConstructor
 
 $(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
+spec :: SpecWith ()
 spec = parallel $ do
 
   describe "render" $ do
@@ -42,7 +43,8 @@ spec = parallel $ do
     it "can render a message handler" $ do
       let
         actionHandler :: String -> Int -> Int
-        actionHandler "up" state = 1
+        actionHandler "up" _ = 1
+        actionHandler _    _ = 0
 
         handler =
           MessageHandler Nothing (0 :: Int)
@@ -65,7 +67,8 @@ spec = parallel $ do
     it "changes state" $ do
       let
         actionHandler :: String -> Int -> Int
-        actionHandler "up" state = 1
+        actionHandler "up" _ = 1
+        actionHandler _    _ = 0
 
         handler =
           MessageHandler Nothing (0 :: Int)
@@ -78,9 +81,9 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      let event = FromEvent { event="click", message="up", location=Nothing }
+      let event' = FromEvent { event="click", message="up", location=Nothing }
 
-      appliedHandler <- applyEvent chan event handler
+      appliedHandler <- applyEvent chan event' handler
 
       render appliedHandler
         `shouldBe`
@@ -89,7 +92,8 @@ spec = parallel $ do
     it "works with typed messages" $ do
       let
         actionHandler :: TestAction -> Int -> Int
-        actionHandler Up state = 1
+        actionHandler Up   _ = 1
+        actionHandler Down _ = 0
 
         handler =
           MessageHandler Nothing (0 :: Int)
@@ -102,9 +106,9 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      let event = FromEvent { event="click", message=toJSON Up, location=Nothing }
+      let event' = FromEvent { event="click", message=toJSON Up, location=Nothing }
 
-      appliedHandler <- applyEvent chan event handler
+      appliedHandler <- applyEvent chan event' handler
 
       render appliedHandler
         `shouldBe`
@@ -113,7 +117,8 @@ spec = parallel $ do
     it "works after sending an event that did not match anything" $ do
       let
         actionHandler :: TestAction -> Int -> Int
-        actionHandler Up state = 1
+        actionHandler Up   _ = 1
+        actionHandler Down _ = 0
 
         handler =
           MessageHandler Nothing (0 :: Int)
@@ -151,8 +156,8 @@ spec = parallel $ do
         timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-            handle "setTime" state = Just <$> getCurrentTime
-            handle _ state = pure state
+            handle "setTime" _ = Just <$> getCurrentTime
+            handle _ state     = pure state
 
         component = timeHandler (startClock display)
 
@@ -176,8 +181,8 @@ spec = parallel $ do
         timeHandler = EffectHandler Nothing Nothing handle
           where
             handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-            handle "setTime" state = Just <$> getCurrentTime
-            handle _ state = pure state
+            handle "setTime" _ = Just <$> getCurrentTime
+            handle _ state     = pure state
 
         component = timeHandler (startClock display)
 
@@ -195,7 +200,8 @@ spec = parallel $ do
         timeHandler = effectHandler Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" state = Just <$> getCurrentTime
+        handle "setTime" _     = Just <$> getCurrentTime
+        handle _         state = pure state
 
         component = timeHandler (const (Text ""))
 
@@ -211,7 +217,8 @@ spec = parallel $ do
         timeHandler = effectHandler Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" state = Just <$> getCurrentTime
+        handle "setTime" _     = Just <$> getCurrentTime
+        handle _         state = pure state
 
         component = div
           [ timeHandler (const (Text ""))
@@ -227,7 +234,8 @@ spec = parallel $ do
         timeHandler = effectHandler Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" state = Just <$> getCurrentTime
+        handle "setTime" _     = Just <$> getCurrentTime
+        handle _         state = pure state
 
         component =
           timeHandler (const (timeHandler (const (Text ""))))
@@ -237,4 +245,5 @@ spec = parallel $ do
 
       show graphWithLocation `shouldBe` "EffectHandler Just [] EffectHandler Just [0] \"\""
 
+main :: IO ()
 main = hspec spec

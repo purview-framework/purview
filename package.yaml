@@ -42,6 +42,8 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
+  ghc-options:
+    - -Wall
 
 executables:
   purview-exe:

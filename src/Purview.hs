@@ -18,7 +18,7 @@ where
 
 import Prelude hiding (div, log)
 import qualified Web.Scotty as Sc
-import           Data.Text (Text, pack)
+import           Data.Text (pack)
 import qualified Data.Text.Lazy as LazyText
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWs
@@ -72,14 +72,13 @@ requestHandler routes =
 --
 looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
 looper log eventBus connection component = do
-  message <- atomically $ readTChan eventBus
-  log $ "received> " <> show message
+  message' <- atomically $ readTChan eventBus
+  log $ "received> " <> show message'
 
   let
-    FromEvent { event=eventKind, message=eventMessage } = message
     (newTree, actions) = prepareGraph component
 
-  newTree' <- apply eventBus message newTree
+  newTree' <- apply eventBus message' newTree
 
   mapM_ (atomically . writeTChan eventBus) actions
 
@@ -96,9 +95,9 @@ looper log eventBus connection component = do
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
-  message <- WS.receiveData websocketConnection
+  message' <- WS.receiveData websocketConnection
 
-  case decode message of
+  case decode message' of
     Just fromEvent -> atomically $ writeTChan eventBus fromEvent
     Nothing -> pure ()
 
@@ -114,5 +113,5 @@ webSocketHandler log component pending = do
   atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init", location = Nothing }
 
   WS.withPingThread conn 30 (pure ()) $ do
-    forkIO $ webSocketMessageHandler eventBus conn
+    _ <- forkIO $ webSocketMessageHandler eventBus conn
     looper log eventBus conn component
