@@ -62,6 +62,13 @@ spec = parallel $ do
         `shouldBe`
         "<div action=\"SingleConstructor\">click</div>"
 
+    it "can render a style" $ do
+      let element = style "color: blue;" $ div [ text "blue" ]
+
+      render element
+        `shouldBe`
+        "<div style=\"color: blue;\">blue</div>"
+
   describe "applyEvent" $ do
 
     it "changes state" $ do

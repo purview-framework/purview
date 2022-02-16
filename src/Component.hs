@@ -20,6 +20,7 @@ import Events
 
 data Attributes action where
   OnClick :: ToJSON action => action -> Attributes action
+  Style :: String -> Attributes action
 
 type Identifier = Maybe [Int]
 
@@ -75,6 +76,12 @@ div = Html "div"
 text :: String -> Purview a
 text = Text
 
+style :: String -> Purview a -> Purview a
+style = Attribute . Style
+
+onClick :: ToJSON b => b -> Purview b -> Purview b
+onClick = Attribute . OnClick
+
 messageHandler
   :: (FromJSON b, FromJSON t, ToJSON t)
   => t
@@ -93,13 +100,11 @@ effectHandler
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
 
-onClick :: ToJSON b => b -> Purview b -> Purview b
-onClick = Attribute . OnClick
-
 renderAttributes :: [Attributes a] -> String
 renderAttributes = concatMap renderAttribute
   where
     renderAttribute (OnClick action) = " action=" <> unpack (encode action)
+    renderAttribute (Style str) = " style=" <> show str
 
 {-|
 
