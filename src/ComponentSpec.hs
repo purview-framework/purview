@@ -47,7 +47,7 @@ spec = parallel $ do
         actionHandler _    _ = 0
 
         handler =
-          MessageHandler Nothing (0 :: Int)
+          messageHandler (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -71,7 +71,7 @@ spec = parallel $ do
         actionHandler _    _ = 0
 
         handler =
-          MessageHandler Nothing (0 :: Int)
+          messageHandler (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -96,7 +96,7 @@ spec = parallel $ do
         actionHandler Down _ = 0
 
         handler =
-          MessageHandler Nothing (0 :: Int)
+          messageHandler (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -121,7 +121,7 @@ spec = parallel $ do
         actionHandler Down _ = 0
 
         handler =
-          MessageHandler Nothing (0 :: Int)
+          messageHandler (0 :: Int)
             actionHandler
             (Text . show)
 

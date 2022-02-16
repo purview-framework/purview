@@ -82,7 +82,7 @@ messageHandler
   -> (t -> Purview b)
   -> Purview a
 messageHandler state handler =
-  Hide . EffectHandler Nothing state (\action state' -> pure $ handler action state')
+  Hide . MessageHandler Nothing state handler
 
 effectHandler
   :: (FromJSON b, FromJSON state, ToJSON state)
