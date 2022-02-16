@@ -45,8 +45,11 @@ websocketScript = [r|
   connect();
 
   function handleEvents(handler, event) {
+    event.stopPropagation();
+
     var clickValue = event.target.getAttribute("action");
     var location = JSON.parse(handler.getAttribute("handler"))
+
     if (clickValue) {
       window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
     }
