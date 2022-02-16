@@ -69,6 +69,14 @@ spec = parallel $ do
         `shouldBe`
         "<div style=\"color: blue;\">blue</div>"
 
+    it "can render composed styles" $ do
+      let blue = style "color: blue;"
+          halfSize = style "width: 50%; height: 50%;"
+
+      render (blue . halfSize $ div [ text "box" ])
+        `shouldBe`
+        "<div style=\"width: 50%; height: 50%;color: blue;\">box</div>"
+
   describe "applyEvent" $ do
 
     it "changes state" $ do

@@ -8,6 +8,7 @@ module Component where
 
 import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
+import           Data.List (find)
 import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -100,11 +101,25 @@ effectHandler
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
 
+getStyle :: Attributes a -> String
+getStyle (Style style') = style'
+getStyle _              = ""
+
+isOn :: Attributes a -> Bool
+isOn (OnClick _) = True
+isOn _           = False
+
 renderAttributes :: [Attributes a] -> String
-renderAttributes = concatMap renderAttribute
-  where
-    renderAttribute (OnClick action) = " action=" <> unpack (encode action)
-    renderAttribute (Style str) = " style=" <> show str
+renderAttributes attrs =
+  let styles = concatMap getStyle attrs
+      renderStyle = if not (null styles) then " style=" <> show styles else ""
+
+      click = find isOn attrs
+      renderClick = case click of
+        Just (OnClick action) -> " action=" <> unpack (encode action)
+        _                     -> ""
+  in
+    renderStyle <> renderClick
 
 {-|
 
