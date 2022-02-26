@@ -9,6 +9,7 @@ module Component where
 import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.List (find)
+import           Data.Typeable
 import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -32,7 +33,7 @@ data Purview a where
   Value :: Show a => a -> Purview a
 
   MessageHandler
-    :: (FromJSON action, FromJSON state)
+    :: (FromJSON action, FromJSON state, Typeable state, Eq state)
     => Identifier
     -> state
     -> (action -> state -> state)
@@ -84,11 +85,11 @@ onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
 messageHandler
-  :: (FromJSON b, FromJSON t, ToJSON t)
-  => t
-  -> (b -> t -> t)
-  -> (t -> Purview b)
-  -> Purview a
+  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
+  => state
+  -> (action -> state -> state)
+  -> (state -> Purview action)
+  -> Purview action
 messageHandler state handler =
   Hide . MessageHandler Nothing state handler
 
