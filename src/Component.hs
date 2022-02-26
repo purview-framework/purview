@@ -41,7 +41,7 @@ data Purview a where
     -> Purview a
 
   EffectHandler
-    :: (FromJSON action, FromJSON state, ToJSON state)
+    :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
     => Identifier
     -> state
     -> (action -> state -> IO state)
@@ -94,11 +94,11 @@ messageHandler state handler =
   Hide . MessageHandler Nothing state handler
 
 effectHandler
-  :: (FromJSON b, FromJSON state, ToJSON state)
+  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
   => state
-  -> (b -> state -> IO state)
-  -> (state -> Purview b)
-  -> Purview a
+  -> (action -> state -> IO state)
+  -> (state -> Purview action)
+  -> Purview action
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
 

@@ -49,4 +49,12 @@ diff location oldGraph newGraph = case (oldGraph, newGraph) of
       Nothing ->
         [Update location newGraph]
 
+  (Hide (EffectHandler _ state _ cont), Hide (EffectHandler _ newState _ newCont)) ->
+    case cast state of
+      Just state' ->
+        [Update location newGraph | state' /= newState]
+      -- different kinds of state
+      Nothing ->
+        [Update location newGraph]
+
   (a, b) -> error (show a <> "\n" <> show b)
