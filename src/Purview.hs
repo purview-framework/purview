@@ -34,6 +34,7 @@ import           Control.Concurrent
 import           Component
 import           Wrapper
 import           Events
+import           Diffing
 
 
 type Log m = String -> m ()
@@ -60,7 +61,8 @@ requestHandler routes =
       $ LazyText.fromStrict
       $ wrapHtml
       $ Data.Text.pack
-      $ render routes
+      $ render . fst
+      $ prepareGraph routes
 
 
 --
@@ -72,24 +74,28 @@ requestHandler routes =
 --
 looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
 looper log eventBus connection component = do
-  message' <- atomically $ readTChan eventBus
-  log $ "received> " <> show message'
+  message <- atomically $ readTChan eventBus
+  log $ "received> " <> show message
 
   let
     (newTree, actions) = prepareGraph component
 
-  newTree' <- apply eventBus message' newTree
+  -- apply can replace state
+  newTree' <- apply eventBus message newTree
 
   mapM_ (atomically . writeTChan eventBus) actions
 
   let
-    newHtml = render newTree'
+    -- so I think here, we diff then render the diffs
+    diffs = diff [] component newTree'
+    renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
-  log $ "sending> " <> show newHtml
+  -- log $ "new html> " <> show newTree'
+  log $ "sending> " <> show renderedDiffs
 
   WS.sendTextData
     connection
-    (encode $ Event { event = "setHtml", message = Data.Text.pack newHtml })
+    (encode $ Event { event = "setHtml", message = renderedDiffs })
 
   looper log eventBus connection newTree'
 

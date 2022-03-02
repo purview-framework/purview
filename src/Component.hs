@@ -239,6 +239,8 @@ This walks through the tree and collects actions that should be run
 only once, and sets their run value to True.  It's up to something
 else to actually send the actions.
 
+It also assigns a location to message and effect handlers.
+
 -}
 
 prepareGraph :: Purview a -> (Purview a, [FromEvent])

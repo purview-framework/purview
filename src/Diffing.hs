@@ -1,6 +1,10 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Diffing where
 
+import GHC.Generics
 import Data.Typeable
+import Data.Aeson
+
 import Component
 
 {-
@@ -22,7 +26,10 @@ To know where to make a change, I guess you need a location and a command.
 -}
 
 data Change a = Update Location a | Delete Location a | Add Location a
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance ToJSON a => ToJSON (Change a) where
+  toEncoding = genericToEncoding defaultOptions
 
 diff :: Location -> Purview a -> Purview a -> [Change (Purview a)]
 diff location oldGraph newGraph = case (oldGraph, newGraph) of
@@ -36,7 +43,7 @@ diff location oldGraph newGraph = case (oldGraph, newGraph) of
     [Update location (Text str') | str /= str']
 
   (Html kind children, unknown) ->
-    [Update location unknown]
+    [Update location newGraph]
 
   (unknown, Html kind children) ->
     [Update location newGraph]
