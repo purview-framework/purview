@@ -29,6 +29,8 @@ library
   other-modules:
       Component
       ComponentSpec
+      Diffing
+      DiffingSpec
       Events
       PurviewSpec
       Spec
@@ -36,7 +38,6 @@ library
       Paths_purview
   hs-source-dirs:
       src
-  ghc-options: -Wall
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
@@ -90,6 +91,8 @@ test-suite purview-test
   other-modules:
       Component
       ComponentSpec
+      Diffing
+      DiffingSpec
       Events
       Purview
       PurviewSpec

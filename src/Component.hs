@@ -9,6 +9,7 @@ module Component where
 import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.List (find)
+import           Data.Typeable
 import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
@@ -32,15 +33,15 @@ data Purview a where
   Value :: Show a => a -> Purview a
 
   MessageHandler
-    :: (FromJSON action, FromJSON state)
+    :: (FromJSON action, FromJSON state, Typeable state, Eq state)
     => Identifier
     -> state
     -> (action -> state -> state)
-    -> (state -> Purview a)
-    -> Purview a
+    -> (state -> Purview action)
+    -> Purview action
 
   EffectHandler
-    :: (FromJSON action, FromJSON state, ToJSON state)
+    :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
     => Identifier
     -> state
     -> (action -> state -> IO state)
@@ -84,19 +85,19 @@ onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
 messageHandler
-  :: (FromJSON b, FromJSON t, ToJSON t)
-  => t
-  -> (b -> t -> t)
-  -> (t -> Purview b)
+  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
+  => state
+  -> (action -> state -> state)
+  -> (state -> Purview action)
   -> Purview a
 messageHandler state handler =
   Hide . MessageHandler Nothing state handler
 
 effectHandler
-  :: (FromJSON b, FromJSON state, ToJSON state)
+  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
   => state
-  -> (b -> state -> IO state)
-  -> (state -> Purview b)
+  -> (action -> state -> IO state)
+  -> (state -> Purview action)
   -> Purview a
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
@@ -237,6 +238,8 @@ apply eventBus fromEvent@FromEvent {event=eventKind} component =
 This walks through the tree and collects actions that should be run
 only once, and sets their run value to True.  It's up to something
 else to actually send the actions.
+
+It also assigns a location to message and effect handlers.
 
 -}
 

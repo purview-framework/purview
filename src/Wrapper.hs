@@ -24,7 +24,7 @@ websocketScript = [r|
       var event = JSON.parse(evt.data);
       if (event.event === "setHtml") {
         // cool enough for now
-        document.body.innerHTML = event.message;
+        event.message.map(command => setHtml(command));
         bindEvents();
       }
     };
@@ -43,6 +43,22 @@ websocketScript = [r|
     window.ws = ws;
   }
   connect();
+
+  function getNode(location) {
+    let currentNode = document.body;
+    while (location.length > 0) {
+      const index = location.pop();
+      currentNode = currentNode.childNodes[index];
+    }
+    return currentNode;
+  }
+
+  function setHtml(message) {
+    const command = message.message;
+    const [location, newHtml] = message.contents;
+    const targetNode = getNode(location.reverse());
+    targetNode.innerHTML = newHtml;
+  }
 
   function handleEvents(handler, event) {
     event.stopPropagation();

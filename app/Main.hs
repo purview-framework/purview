@@ -29,12 +29,12 @@ downButton = onClick Down $ div [ text "down" ]
 
 handler = messageHandler (0 :: Int) action
   where
-    action Up state   = state + 1
+    action Up   state = state + 1
     action Down state = state - 1
 
 handler' = messageHandler (0 :: Int) action
   where
-    action Port state   = state + 1
+    action Port      state = state + 1
     action Starboard state = state - 1
 
 component' = handler' (\state -> div [ text "" ])
@@ -50,7 +50,7 @@ component = handler counter
 
 multiCounter = div
   [ component
-  , component'
+  -- , component'
   ]
 
 logger = print

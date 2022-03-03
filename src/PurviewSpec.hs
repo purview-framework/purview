@@ -11,8 +11,8 @@ upButton = onClick ("up" :: String) $ div [ text "up" ]
 downButton :: Purview String
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
-handler :: (Int -> Purview a) -> Purview a
-handler = MessageHandler Nothing 0 action
+handler :: (Int -> Purview String) -> Purview a
+handler = messageHandler 0 action
   where
     action :: String -> Int -> Int
     action "up" _ = 1

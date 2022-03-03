@@ -8,9 +8,9 @@ import           Data.Text (Text)
 import           Data.Aeson
 import           GHC.Generics
 
-data Event = Event
+data Event m = Event
   { event :: Text
-  , message :: Text
+  , message :: m
   } deriving (Generic, Show)
 
 data FromEvent = FromEvent
@@ -24,5 +24,5 @@ instance FromJSON FromEvent where
       FromEvent <$> o .: "event" <*> (o .: "message") <*> o .: "location"
   parseJSON _ = error "fail"
 
-instance ToJSON Event where
+instance ToJSON m => ToJSON (Event m) where
   toEncoding = genericToEncoding defaultOptions
