@@ -56,15 +56,15 @@ websocketScript = [r|
   function setHtml(message) {
     const command = message.message;
     const [location, newHtml] = message.contents;
-    const targetNode = getNode(location.reverse());
+    const targetNode = getNode(location);
     targetNode.innerHTML = newHtml;
   }
 
-  function handleEvents(handler, event) {
+  function handleEvents(event) {
     event.stopPropagation();
 
     var clickValue = event.target.getAttribute("action");
-    var location = JSON.parse(handler.getAttribute("handler"))
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (clickValue) {
       window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
@@ -73,7 +73,8 @@ websocketScript = [r|
 
   function bindEvents() {
     document.querySelectorAll("[handler]").forEach(item => {
-      item.addEventListener("click", event => handleEvents(item, event));
+      item.removeEventListener("click", handleEvents);
+      item.addEventListener("click", handleEvents);
     });
     console.log('events bound');
   }

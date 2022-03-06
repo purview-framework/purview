@@ -87,7 +87,7 @@ looper log eventBus connection component = do
 
   let
     -- so I think here, we diff then render the diffs
-    diffs = diff [] component newTree'
+    diffs = diff [0] component newTree'
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
   -- log $ "new html> " <> show newTree'
