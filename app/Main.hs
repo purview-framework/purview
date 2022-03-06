@@ -50,7 +50,8 @@ component = handler counter
 
 multiCounter = div
   [ component
-  -- , component'
+  , component
+  , component
   ]
 
 logger = print
