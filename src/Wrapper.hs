@@ -57,7 +57,7 @@ websocketScript = [r|
     const command = message.message;
     const [location, newHtml] = message.contents;
     const targetNode = getNode(location);
-    targetNode.innerHTML = newHtml;
+    targetNode.outerHTML = newHtml;
   }
 
   function handleEvents(event) {

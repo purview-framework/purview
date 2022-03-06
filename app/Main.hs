@@ -56,7 +56,7 @@ multiCounter = div
 
 logger = print
 
-main = run logger multiCounter
+main = run logger component
 
 
 -------------------------
