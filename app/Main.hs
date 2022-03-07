@@ -11,52 +11,73 @@ import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
 
+----------------------------
+-- Expanding List Example --
+----------------------------
+
+data Operation = AddItem | RemoveItem
+
+$(deriveJSON defaultOptions ''Operation)
+
+handler = messageHandler ([] :: [String]) action
+  where
+    action AddItem state = "item" : state
+    action RemoveItem (x:xs) = xs
+    action RemoveItem [] = []
+
+display items = div
+  [ div $ fmap (\item -> div [ text item ]) items
+  , onClick AddItem (div [ text "add" ])
+  , onClick RemoveItem (div [ text "remove" ])
+  ]
+
+main = run print (handler display)
 
 ---------------------
 -- Stepper Example --
 ---------------------
 
-data Direction = Up | Down
-
-$(deriveJSON defaultOptions ''Direction)
-
-data OtherDirection = Port | Starboard
-
-$(deriveJSON defaultOptions ''OtherDirection)
-
-upButton = onClick Up $ div [ text "up" ]
-downButton = onClick Down $ div [ text "down" ]
-
-handler = messageHandler (0 :: Int) action
-  where
-    action Up   state = state + 1
-    action Down state = state - 1
-
-handler' = messageHandler (0 :: Int) action
-  where
-    action Port      state = state + 1
-    action Starboard state = state - 1
-
-component' = handler' (\state -> div [ text "" ])
-
-counter :: Int -> Purview Direction
-counter state = div
-  [ upButton
-  , text $ "count: " <> show state
-  , downButton
-  ]
-
-component = handler counter
-
-multiCounter = div
-  [ component
-  , component
-  , component
-  ]
-
-logger = print
-
-main = run logger component
+-- data Direction = Up | Down
+--
+-- $(deriveJSON defaultOptions ''Direction)
+--
+-- data OtherDirection = Port | Starboard
+--
+-- $(deriveJSON defaultOptions ''OtherDirection)
+--
+-- upButton = onClick Up $ div [ text "up" ]
+-- downButton = onClick Down $ div [ text "down" ]
+--
+-- handler = messageHandler (0 :: Int) action
+--   where
+--     action Up   state = state + 1
+--     action Down state = state - 1
+--
+-- handler' = messageHandler (0 :: Int) action
+--   where
+--     action Port      state = state + 1
+--     action Starboard state = state - 1
+--
+-- component' = handler' (\state -> div [ text "" ])
+--
+-- counter :: Int -> Purview Direction
+-- counter state = div
+--   [ upButton
+--   , text $ "count: " <> show state
+--   , downButton
+--   ]
+--
+-- component = handler counter
+--
+-- multiCounter = div
+--   [ component
+--   , component
+--   , component
+--   ]
+--
+-- logger = print
+--
+-- main = run logger component
 
 
 -------------------------
