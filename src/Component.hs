@@ -23,6 +23,7 @@ import Events
 data Attributes action where
   OnClick :: ToJSON action => action -> Attributes action
   Style :: String -> Attributes action
+  Generic :: String -> String -> Attributes action
 
 type Identifier = Maybe [Int]
 
@@ -84,6 +85,9 @@ style = Attribute . Style
 onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
+identifier :: String -> Purview a -> Purview a
+identifier = Attribute . Generic "id"
+
 messageHandler
   :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
   => state
@@ -110,6 +114,10 @@ isOn :: Attributes a -> Bool
 isOn (OnClick _) = True
 isOn _           = False
 
+isGeneric :: Attributes a -> Bool
+isGeneric (Generic _ _) = True
+isGeneric _ = False
+
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
   let styles = concatMap getStyle attrs
@@ -119,8 +127,14 @@ renderAttributes attrs =
       renderClick = case click of
         Just (OnClick action) -> " action=" <> unpack (encode action)
         _                     -> ""
+
+      -- find one single generic
+      generic = find isGeneric attrs
+      renderGeneric = case generic of
+        Just (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
+        _ -> ""
   in
-    renderStyle <> renderClick
+    renderStyle <> renderClick <> renderGeneric
 
 {-|
 
