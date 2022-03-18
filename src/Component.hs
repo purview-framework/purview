@@ -131,7 +131,7 @@ renderAttributes attrs =
       -- find one single generic
       generic = find isGeneric attrs
       renderGeneric = case generic of
-        Just (Generic name value) -> " " <> name <> "=" <> value
+        Just (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
         _ -> ""
   in
     renderStyle <> renderClick <> renderGeneric
