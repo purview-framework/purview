@@ -1,28 +1,28 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
-module Component where
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-import           Data.ByteString.Lazy.Char8 (unpack)
-import           Data.Aeson
-import           Data.List (find)
-import           Data.Typeable
-import           Unsafe.Coerce
-import           Control.Concurrent.STM.TChan
-import           Control.Monad.STM
-import           Control.Monad
+module Component where
 
 -- For monad effects
 import Control.Concurrent
-
+import Control.Concurrent.STM.TChan
+import Control.Monad
+import Control.Monad.STM
+import Data.Aeson
+import Data.ByteString.Lazy.Char8 (unpack)
+import Data.List (find)
+import Data.Typeable
 import Events
+import Unsafe.Coerce
 
 data Attributes action where
   OnClick :: ToJSON action => action -> Attributes action
   Style :: String -> Attributes action
+  Generic :: String -> String -> Attributes action
 
 type Identifier = Maybe [Int]
 
@@ -31,30 +31,26 @@ data Purview a where
   Text :: String -> Purview a
   Html :: String -> [Purview a] -> Purview a
   Value :: Show a => a -> Purview a
-
-  MessageHandler
-    :: (FromJSON action, FromJSON state, Typeable state, Eq state)
-    => Identifier
-    -> state
-    -> (action -> state -> state)
-    -> (state -> Purview action)
-    -> Purview action
-
-  EffectHandler
-    :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
-    => Identifier
-    -> state
-    -> (action -> state -> IO state)
-    -> (state -> Purview action)
-    -> Purview action
-
-  Once
-    :: (ToJSON action)
-    => ((action -> FromEvent) -> FromEvent)
-    -> Bool  -- has run
-    -> Purview a
-    -> Purview a
-
+  MessageHandler ::
+    (FromJSON action, FromJSON state, Typeable state, Eq state) =>
+    Identifier ->
+    state ->
+    (action -> state -> state) ->
+    (state -> Purview action) ->
+    Purview action
+  EffectHandler ::
+    (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state) =>
+    Identifier ->
+    state ->
+    (action -> state -> IO state) ->
+    (state -> Purview action) ->
+    Purview action
+  Once ::
+    (ToJSON action) =>
+    ((action -> FromEvent) -> FromEvent) ->
+    Bool -> -- has run
+    Purview a ->
+    Purview a
   Hide :: Purview b -> Purview a
 
 instance Show (Purview a) where
@@ -84,31 +80,38 @@ style = Attribute . Style
 onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
 
-messageHandler
-  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
-  => state
-  -> (action -> state -> state)
-  -> (state -> Purview action)
-  -> Purview a
+identifier :: String -> Purview a -> Purview a
+identifier = Attribute . Generic "id"
+
+messageHandler ::
+  (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state) =>
+  state ->
+  (action -> state -> state) ->
+  (state -> Purview action) ->
+  Purview a
 messageHandler state handler =
   Hide . MessageHandler Nothing state handler
 
-effectHandler
-  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
-  => state
-  -> (action -> state -> IO state)
-  -> (state -> Purview action)
-  -> Purview a
+effectHandler ::
+  (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state) =>
+  state ->
+  (action -> state -> IO state) ->
+  (state -> Purview action) ->
+  Purview a
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
 
 getStyle :: Attributes a -> String
 getStyle (Style style') = style'
-getStyle _              = ""
+getStyle _ = ""
 
 isOn :: Attributes a -> Bool
 isOn (OnClick _) = True
-isOn _           = False
+isOn _ = False
+
+isGeneric :: Attributes a -> Bool
+isGeneric (Generic _ _) = True
+isGeneric _ = False
 
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
@@ -118,17 +121,19 @@ renderAttributes attrs =
       click = find isOn attrs
       renderClick = case click of
         Just (OnClick action) -> " action=" <> unpack (encode action)
-        _                     -> ""
-  in
-    renderStyle <> renderClick
+        _ -> ""
 
-{-|
+      -- find one single generic
+      generic = find isGeneric attrs
+      renderGeneric = case generic of
+        Just (Generic name action) -> " " <> name <> "=" <> unpack (encode action)
+        _ -> ""
+   in renderStyle <> renderClick <> renderGeneric
 
-Takes the tree and turns it into HTML.  Attributes are passed down to children until
-they reach a real HTML tag.
-
--}
-
+-- |
+--
+-- Takes the tree and turns it into HTML.  Attributes are passed down to children until
+-- they reach a real HTML tag.
 render :: Purview a -> String
 render = render' []
 
@@ -136,113 +141,95 @@ render' :: [Attributes a] -> Purview a -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (render' attrs) rest <>
-    "</" <> kind <> ">"
-
+      <> concatMap (render' attrs) rest
+      <> "</"
+      <> kind
+      <> ">"
   Text val -> val
-
   Attribute attr rest ->
-    render' (attr:attrs) rest
-
+    render' (attr : attrs) rest
   MessageHandler location state _ cont ->
-    "<div handler=" <> (show . encode) location <> ">" <>
-      render' attrs (cont state) <>
-    "</div>"
-
+    "<div handler=" <> (show . encode) location <> ">"
+      <> render' attrs (cont state)
+      <> "</div>"
   EffectHandler location state _ cont ->
-    "<div handler=" <> (show . encode) location <> ">" <>
-      render' attrs (cont state) <>
-    "</div>"
-
+    "<div handler=" <> (show . encode) location <> ">"
+      <> render' attrs (cont state)
+      <> "</div>"
   Once _ _hasRun cont ->
     render' attrs cont
-
   Value a -> show a
-
   Hide a -> render' attrs (unsafeCoerce a)
 
-{-|
-
-This is a special case event to assign state to message handlers
-
--}
-
+-- |
+--
+-- This is a special case event to assign state to message handlers
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyNewState _eventBus FromEvent { message } component = case component of
+applyNewState _eventBus FromEvent {message} component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler loc newState handler cont
     Error _ ->
       cont state
-
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
       pure $ EffectHandler loc newState handler cont
     Error _ ->
       pure $ EffectHandler loc state handler cont
-
   x -> pure x
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
+applyEvent eventBus fromEvent@FromEvent {message, location} component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success action' ->
       if loc == location
-      then MessageHandler loc (handler action' state) handler cont
-      else MessageHandler loc state handler cont
+        then MessageHandler loc (handler action' state) handler cont
+        else MessageHandler loc state handler cont
     Error _ ->
       MessageHandler loc state handler cont
-
   EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
         newState <-
           if loc == location
-          then handler parsedAction state
-          else pure state
+            then handler parsedAction state
+            else pure state
 
-        atomically $ writeTChan eventBus $ FromEvent
-          { event = "newState"
-          , message = toJSON newState
-          , location = loc
-          }
+        atomically $
+          writeTChan eventBus $
+            FromEvent
+              { event = "newState",
+                message = toJSON newState,
+                location = loc
+              }
       pure $ EffectHandler loc state handler cont
     Error _err ->
       pure $ EffectHandler loc state handler cont
-
   Html kind children -> do
     children' <- mapM (applyEvent eventBus fromEvent) children
     pure $ Html kind children'
-
   Hide x -> do
     child <- applyEvent eventBus fromEvent x
     pure $ Hide child
-
   x -> pure x
 
-{-|
-
-For now the only special event kind is "newState" which replaces
-the inner state of a Handler (Message or Effect)
-
--}
-
+-- |
+--
+-- For now the only special event kind is "newState" which replaces
+-- the inner state of a Handler (Message or Effect)
 apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus fromEvent@FromEvent {event=eventKind} component =
+apply eventBus fromEvent@FromEvent {event = eventKind} component =
   case eventKind of
     "newState" -> applyNewState eventBus fromEvent component
-    _          -> applyEvent eventBus fromEvent component
+    _ -> applyEvent eventBus fromEvent component
 
-{-|
-
-This walks through the tree and collects actions that should be run
-only once, and sets their run value to True.  It's up to something
-else to actually send the actions.
-
-It also assigns a location to message and effect handlers.
-
--}
-
+-- |
+--
+-- This walks through the tree and collects actions that should be run
+-- only once, and sets their run value to True.  It's up to something
+-- else to actually send the actions.
+--
+-- It also assigns a location to message and effect handlers.
 prepareGraph :: Purview a -> (Purview a, [FromEvent])
 prepareGraph = prepareGraph' []
 
@@ -252,44 +239,31 @@ prepareGraph' :: Location -> Purview a -> (Purview a, [FromEvent])
 prepareGraph' location component = case component of
   Attribute attrs cont ->
     let result = prepareGraph' location cont
-    in (Attribute attrs (fst result), snd result)
-
+     in (Attribute attrs (fst result), snd result)
   Html kind children ->
-    let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
-    in (Html kind (fmap fst result), concatMap snd result)
-
+    let result = fmap (\(index, child) -> prepareGraph' (index : location) child) (zip [0 ..] children)
+     in (Html kind (fmap fst result), concatMap snd result)
   MessageHandler _loc state handler cont ->
-    let
-      rest = fmap (prepareGraph' (0:location)) cont
-    in
-      (MessageHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
-
+    let rest = fmap (prepareGraph' (0 : location)) cont
+     in (MessageHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
   EffectHandler _loc state handler cont ->
-    let
-      rest = fmap (prepareGraph' (0:location)) cont
-    in
-      (EffectHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
-
+    let rest = fmap (prepareGraph' (0 : location)) cont
+     in (EffectHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
   Once effect hasRun cont ->
     let send message =
           FromEvent
-            { event = "once"
-            , message = toJSON message
-            , location = Just location
+            { event = "once",
+              message = toJSON message,
+              location = Just location
             }
-    in if not hasRun then
-        let
-          rest = prepareGraph' location cont
-        in
-          (Once effect True (fst rest), [effect send] <> (snd rest))
-       else
-        let
-          rest = prepareGraph' location cont
-        in
-          (Once effect True (fst rest), snd rest)
-
+     in if not hasRun
+          then
+            let rest = prepareGraph' location cont
+             in (Once effect True (fst rest), [effect send] <> (snd rest))
+          else
+            let rest = prepareGraph' location cont
+             in (Once effect True (fst rest), snd rest)
   Hide x ->
     let (child, actions) = prepareGraph' location x
-    in (Hide child, actions)
-
+     in (Hide child, actions)
   component' -> (component', [])
