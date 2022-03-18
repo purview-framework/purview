@@ -45,6 +45,17 @@ spec = parallel $ do
             identifier "hello" $ div [text "it's a hello div"]
       render element `shouldBe` "<div id=\"hello\">it's a hello div</div>"
 
+    it "can add one class" $ do
+      let element =
+            classes ["class1"] $ div [text "it's a hello div"]
+      render element `shouldBe` "<div class=\"class1\">it's a hello div</div>"
+
+    it "can add classes" $ do
+      let element =
+            classes ["class1", "class2", "class3"] $ div [text "it's a hello div"]
+      render element `shouldBe` "<div class=\"class1 class2 class3\">it's a hello div</div>"
+
+
     it "can render a message handler" $ do
       let
         actionHandler :: String -> Int -> Int
