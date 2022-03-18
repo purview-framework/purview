@@ -40,6 +40,11 @@ spec = parallel $ do
       render element `shouldBe`
         "<div action=1>hello world</div>"
 
+    it "can add an id" $ do
+      let element =
+            identifier "hello" $ div [text "it's a hello div"]
+      render element `shouldBe` "<div id=hello>it's a hello div</div>"
+
     it "can render a message handler" $ do
       let
         actionHandler :: String -> Int -> Int
