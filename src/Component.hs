@@ -6,7 +6,7 @@
 {-# LANGUAGE GADTs #-}
 module Component where
 
-import           Data.ByteString.Lazy.Char8 (unpack, intercalate)
+import           Data.ByteString.Lazy.Char8 (unpack)
 import           Data.Aeson
 import           Data.List (find)
 import           Data.Typeable
