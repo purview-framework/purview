@@ -166,7 +166,7 @@ render' :: [Attributes a] -> Purview a -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (render' attrs) rest <>
+    <> concatMap (render' []) rest <>
     "</" <> kind <> ">"
 
   Text val -> val

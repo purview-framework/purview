@@ -48,9 +48,12 @@ spec = parallel $ do
       let
         named = Attribute . Generic "name"
         input = Html "input"
-        form = onSubmit ("initialValue" :: String) $ Html "form" [ named "name" $ input [] ]
+        form = Html "form"
+        component = onSubmit ("initialValue" :: String) $ form [ named "name" $ input [] ]
 
-      render form `shouldBe` ""
+      render component
+        `shouldBe`
+        "<form action=\"initialValue\"><input name=\"name\"></input></form>"
 
     it "can render a message handler" $ do
       let
