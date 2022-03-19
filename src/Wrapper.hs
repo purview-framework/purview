@@ -77,7 +77,7 @@ websocketScript = [r|
 
     var form = new FormData(event.target);
     var entries = Object.fromEntries(form.entries());
-    var location = JSON.parse(event.currentTarget.getAttributes("handler"))
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (entries) {
       window.ws.send(JSON.stringify({ "event": "submit", "message": entries, "location": location }));
