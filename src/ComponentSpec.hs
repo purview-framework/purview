@@ -41,9 +41,19 @@ spec = parallel $ do
         "<div action=1>hello world</div>"
 
     it "can add an id" $ do
-      let element =
-            identifier "hello" $ div [text "it's a hello div"]
+      let element = identifier "hello" $ div [text "it's a hello div"]
       render element `shouldBe` "<div id=\"hello\">it's a hello div</div>"
+
+    it "can render a form" $ do
+      let
+        named = Attribute . Generic "name"
+        input = Html "input"
+        form = Html "form"
+        component = onSubmit ("initialValue" :: String) $ form [ named "name" $ input [] ]
+
+      render component
+        `shouldBe`
+        "<form action=\"initialValue\"><input name=\"name\"></input></form>"
 
     it "can render a message handler" $ do
       let
