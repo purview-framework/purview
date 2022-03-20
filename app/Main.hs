@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
@@ -11,39 +12,87 @@ import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
 
--------------------------
--- Using Input Example --
--------------------------
 
+-----------------------
+-- Todo List Example --
+-----------------------
+
+-- helpers
 input = Html "input"
 button = Html "button"
+ul = Html "ul"
+li = Html "li"
 
 nameAttr = Attribute . Generic "name"
 typeAttr = Attribute . Generic "type"
 
-data Fields = Fields
-  { textField :: String
-  }
+-- actions
+newtype NewTodo = NewTodo { description :: String }
+newtype Actions = Submit NewTodo
 
-$(deriveJSON defaultOptions ''Fields)
+$(deriveJSON defaultOptions  ''NewTodo)
+$(deriveJSON defaultOptions  ''Actions)
 
-handler = messageHandler "" action
+-- handler
+handler = messageHandler [] action
   where
-    action (Fields txt) _ = txt
+    action (Submit NewTodo { description }) todos = todos <> [description]
 
-submitButton = typeAttr "submit" $ button [ text "submit" ]
-
-defaultFields = Fields { textField="" }
-
-display txt = div
-  [ text ("you submitted: " <> txt)
-  , onSubmit defaultFields $ form
-    [ nameAttr "textField" $ input []
-    , submitButton
-    ]
+-- overall view
+view todos = div
+  [ ul $ fmap (\todo -> li [ text todo ]) todos
+  , addNewTodoForm
   ]
 
-main = run print (handler display)
+-- submission form
+submitButton = typeAttr "submit" $ button [ text "submit" ]
+
+defaultNewTodo = NewTodo { description="" }
+
+addNewTodoForm =
+  div
+    [ onSubmit (Submit defaultNewTodo) $
+        form
+          [ nameAttr "description" $ input []
+          , submitButton
+          ]
+    ]
+
+main = run print (handler view)
+
+-------------------------
+-- Using Input Example --
+-------------------------
+
+-- input = Html "input"
+-- button = Html "button"
+--
+-- nameAttr = Attribute . Generic "name"
+-- typeAttr = Attribute . Generic "type"
+--
+-- data Fields = Fields
+--   { textField :: String
+--   }
+--
+-- $(deriveJSON defaultOptions ''Fields)
+--
+-- handler = messageHandler "" action
+--   where
+--     action (Fields txt) _ = txt
+--
+-- submitButton = typeAttr "submit" $ button [ text "submit" ]
+--
+-- defaultFields = Fields { textField="" }
+--
+-- display txt = div
+--   [ text ("you submitted: " <> txt)
+--   , onSubmit defaultFields $ form
+--     [ nameAttr "textField" $ input []
+--     , submitButton
+--     ]
+--   ]
+--
+-- main = run print (handler display)
 
 ----------------------------
 -- Expanding List Example --
