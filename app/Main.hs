@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
@@ -19,24 +18,28 @@ import           Data.Aeson.TH
 input = Html "input"
 button = Html "button"
 
-named = Attribute . Generic "name"
-withType = Attribute . Generic "type"
+nameAttr = Attribute . Generic "name"
+typeAttr = Attribute . Generic "type"
 
-data Input = Input
+data Fields = Fields
   { textField :: String
   }
 
-$(deriveJSON defaultOptions ''Input)
+$(deriveJSON defaultOptions ''Fields)
 
 handler = messageHandler "" action
   where
-    action (Input txt) _ = txt
+    action (Fields txt) _ = txt
+
+submitButton = typeAttr "submit" $ button [ text "submit" ]
+
+defaultFields = Fields { textField="" }
 
 display txt = div
-  [ text txt
-  , onSubmit (Input "") $ form
-    [ named "textField" $ input []
-    , withType "submit" $ button [ text "submit" ]
+  [ text ("you submitted: " <> txt)
+  , onSubmit defaultFields $ form
+    [ nameAttr "textField" $ input []
+    , submitButton
     ]
   ]
 
