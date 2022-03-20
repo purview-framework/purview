@@ -1,6 +1,6 @@
 # Purview
 
-A work in progress implementation of Phoenix Liveview for Haskell
+A work in progress implementation of Phoenix Liveview for Haskell, with a React flavor.
 
 The main library is in `src/Purview.hs`. 
 
