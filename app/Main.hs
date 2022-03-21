@@ -28,7 +28,7 @@ typeAttr = Attribute . Generic "type"
 
 -- actions
 newtype NewTodo = NewTodo { description :: String }
-newtype Actions = Submit NewTodo
+data Actions = Submit NewTodo | Wumbo String
 
 $(deriveJSON defaultOptions  ''NewTodo)
 $(deriveJSON defaultOptions  ''Actions)
@@ -48,6 +48,31 @@ view todos = div
 submitButton = typeAttr "submit" $ button [ text "submit" ]
 
 defaultNewTodo = NewTodo { description="" }
+
+{-
+
+Hmm true, Submit NewTodo _is not_ the default values for the form
+
+NewTodo alone is
+
+So there needs to be a way to specify doing something with the form values
+and then passing it up
+
+Maybe form should be special?  No.
+
+There needs to be a way to pass an action up the chain, form can be a short
+hand for whatever method is needed to pass an event back up
+
+messageHandler
+  join parentLocation
+    passes down a fn that can be used to emit an event?
+      messageHandler
+        form
+
+Alternately, add a transform fn to onClick / onSubmit that would take in the value
+and produce the event?
+
+-}
 
 addNewTodoForm =
   div
