@@ -60,7 +60,7 @@ websocketScript = [r|
     targetNode.outerHTML = newHtml;
   }
 
-  function handleEvents(event) {
+  function handleClickEvents(event) {
     event.stopPropagation();
 
     var clickValue = event.target.getAttribute("action");
@@ -71,10 +71,26 @@ websocketScript = [r|
     }
   }
 
+  function handleFormEvents(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    var form = new FormData(event.target);
+    var entries = Object.fromEntries(form.entries());
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
+
+    if (entries) {
+      window.ws.send(JSON.stringify({ "event": "submit", "message": entries, "location": location }));
+    }
+  }
+
   function bindEvents() {
     document.querySelectorAll("[handler]").forEach(item => {
-      item.removeEventListener("click", handleEvents);
-      item.addEventListener("click", handleEvents);
+      item.removeEventListener("click", handleClickEvents);
+      item.addEventListener("click", handleClickEvents);
+
+      item.removeEventListener("submit", handleFormEvents);
+      item.addEventListener("submit", handleFormEvents);
     });
     console.log('events bound');
   }

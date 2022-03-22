@@ -22,6 +22,7 @@ import Events
 
 data Attributes action where
   OnClick :: ToJSON action => action -> Attributes action
+  OnSubmit :: ToJSON action => action -> Attributes action
   Style :: String -> Attributes action
   Generic :: String -> String -> Attributes action
 
@@ -76,6 +77,9 @@ instance Eq (Purview a) where
 div :: [Purview a] -> Purview a
 div = Html "div"
 
+form :: [Purview a] -> Purview a
+form = Html "form"
+
 text :: String -> Purview a
 text = Text
 
@@ -84,6 +88,9 @@ style = Attribute . Style
 
 onClick :: ToJSON b => b -> Purview b -> Purview b
 onClick = Attribute . OnClick
+
+onSubmit :: ToJSON b => b -> Purview b -> Purview b
+onSubmit = Attribute . OnSubmit
 
 identifier :: String -> Purview a -> Purview a
 identifier = Attribute . Generic "id"
@@ -121,6 +128,10 @@ isGeneric :: Attributes a -> Bool
 isGeneric (Generic _ _) = True
 isGeneric _ = False
 
+isSubmit :: Attributes a -> Bool
+isSubmit (OnSubmit _) = True
+isSubmit _            = False
+
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
   let styles = concatMap getStyle attrs
@@ -136,8 +147,13 @@ renderAttributes attrs =
       renderGeneric = case generic of
         Just (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
         _ -> ""
+
+      submit = find isSubmit attrs
+      renderSubmit = case submit of
+        Just (OnSubmit action) -> " action=" <> unpack (encode action)
+        _                      -> ""
   in
-    renderStyle <> renderClick <> renderGeneric
+    renderStyle <> renderClick <> renderSubmit <> renderGeneric
 
 {-|
 
@@ -153,7 +169,7 @@ render' :: [Attributes a] -> Purview a -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
-    <> concatMap (render' attrs) rest <>
+    <> concatMap (render' []) rest <>
     "</" <> kind <> ">"
 
   Text val -> val

@@ -3,9 +3,12 @@
 
 module Purview
   ( div
+  , form
   , text
   , onClick
+  , onSubmit
   , Purview (..)
+  , Attributes (..)
   , messageHandler
   , effectHandler
   , run
