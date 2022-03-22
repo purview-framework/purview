@@ -95,6 +95,9 @@ onSubmit = Attribute . OnSubmit
 identifier :: String -> Purview a -> Purview a
 identifier = Attribute . Generic "id"
 
+classes :: [String] -> Purview a -> Purview a
+classes xs = Attribute . Generic "class" $ unwords xs
+
 messageHandler
   :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
   => state
