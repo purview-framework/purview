@@ -132,6 +132,11 @@ isSubmit :: Attributes a -> Bool
 isSubmit (OnSubmit _) = True
 isSubmit _            = False
 
+renderGeneric :: Attributes a -> String
+renderGeneric attr = case attr of
+  (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
+  _ -> ""
+
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
   let styles = concatMap getStyle attrs
@@ -142,18 +147,15 @@ renderAttributes attrs =
         Just (OnClick action) -> " action=" <> unpack (encode action)
         _                     -> ""
 
-      -- find one single generic
-      generic = find isGeneric attrs
-      renderGeneric = case generic of
-        Just (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
-        _ -> ""
+      generics = filter isGeneric attrs
+      renderedGenerics = concatMap renderGeneric generics
 
       submit = find isSubmit attrs
       renderSubmit = case submit of
         Just (OnSubmit action) -> " action=" <> unpack (encode action)
         _                      -> ""
   in
-    renderStyle <> renderClick <> renderSubmit <> renderGeneric
+    renderStyle <> renderClick <> renderSubmit <> renderedGenerics
 
 {-|
 
