@@ -54,6 +54,13 @@ spec = parallel $ do
             classes ["class1", "class2", "class3"] $ div [text "it's a hello div"]
       render element `shouldBe` "<div class=\"class1 class2 class3\">it's a hello div</div>"
 
+    it "can render classes and ids at the same time" $ do
+      let element =
+            classes ["class1", "class2", "class3"]
+            $ identifier "hello"
+            $ div [text "it's a hello div"]
+      render element `shouldBe` "<div id=\"hello\" class=\"class1 class2 class3\">it's a hello div</div>"
+
     it "can render a form" $ do
       let
         named = Attribute . Generic "name"
