@@ -14,6 +14,7 @@ import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
+import           Control.Monad.Writer
 
 -- For monad effects
 import Control.Concurrent
@@ -50,6 +51,10 @@ data Purview a where
     -> (state -> Purview action)
     -> Purview action
 
+  Jack
+    :: ((action -> IO FromEvent) -> Purview a)
+    -> Purview a
+
   Once
     :: (ToJSON action)
     => ((action -> FromEvent) -> FromEvent)
@@ -63,6 +68,7 @@ instance Show (Purview a) where
   show (EffectHandler location state _action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
   show (MessageHandler location state _action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
+  show (Jack cont) = "Jack " <> show (cont (const undefined))
   show (Attribute _attrs cont) = "Attr " <> show cont
   show (Text str) = show str
   show (Html kind children) =
@@ -317,6 +323,11 @@ prepareGraph' location component = case component of
           rest = prepareGraph' location cont
         in
           (Once effect True (fst rest), snd rest)
+
+  Jack cont ->
+    let send message = undefined
+        rest = prepareGraph' location (cont send)
+    in (Jack cont, snd rest)
 
   Hide x ->
     let (child, actions) = prepareGraph' location x

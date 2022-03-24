@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -11,6 +12,8 @@ import           Purview
 import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
+
+import Control.Monad.Writer
 
 
 -----------------------
@@ -48,6 +51,14 @@ view todos = div
 submitButton = typeAttr "submit" $ button [ text "submit" ]
 
 defaultNewTodo = NewTodo { description="" }
+
+test send = messageHandler ([] :: [String]) action $ \state -> (text "")
+  where
+    action (NewTodo { description }) state = do
+      tell $ send (Submit (NewTodo description))
+      pure []
+
+-- x = Jack test
 
 {-
 
@@ -202,7 +213,9 @@ main = run print (handler view)
 --   , onClick UpdateTime $ div [ text "check time" ]
 --   ]
 --
--- startClock cont state = Once (\send -> send UpdateTime) False (cont state)
+--startClock cont state = Once temp False (cont state)
+--  where temp send = do
+--          send UpdateTime
 --
 -- timeHandler = effectHandler Nothing handle
 --   where
