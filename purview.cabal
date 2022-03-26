@@ -45,7 +45,6 @@ library
     , base >=4.7 && <5
     , bytestring
     , hspec
-    , mtl
     , raw-strings-qq
     , scotty
     , stm
@@ -73,7 +72,6 @@ executable purview-exe
     , base >=4.7 && <5
     , bytestring
     , hspec
-    , mtl
     , purview
     , raw-strings-qq
     , scotty
@@ -110,7 +108,6 @@ test-suite purview-test
     , base >=4.7 && <5
     , bytestring
     , hspec
-    , mtl
     , purview
     , raw-strings-qq
     , scotty

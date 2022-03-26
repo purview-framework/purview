@@ -24,7 +24,6 @@ dependencies:
 - aeson
 - text
 - stm
-- mtl
 - bytestring
 - raw-strings-qq
 - warp

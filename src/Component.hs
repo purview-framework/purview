@@ -14,7 +14,6 @@ import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
-import           Control.Monad.Writer
 
 -- For monad effects
 import Control.Concurrent
