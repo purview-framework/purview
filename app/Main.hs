@@ -30,16 +30,17 @@ nameAttr = Attribute . Generic "name"
 typeAttr = Attribute . Generic "type"
 
 -- actions
-newtype NewTodo = NewTodo { description :: String }
+data NewTodo = NewTodo { description :: String }
 data Actions = Submit NewTodo | Wumbo String
 
 $(deriveJSON defaultOptions  ''NewTodo)
 $(deriveJSON defaultOptions  ''Actions)
 
--- handler
-handler = messageHandler [] action
+handler = effectHandler [] action
   where
-    action (Submit NewTodo { description }) todos = todos <> [description]
+    -- hmm, a little ungainly having to specify
+    action :: Actions -> [String] -> IO ([String], [DirectedEvent Actions Actions])
+    action (Submit NewTodo { description }) todos = pure $ (todos <> [description], [])
 
 -- overall view
 view todos = div
@@ -52,49 +53,20 @@ submitButton = typeAttr "submit" $ button [ text "submit" ]
 
 defaultNewTodo = NewTodo { description="" }
 
-test send = messageHandler ([] :: [String]) action $ \state -> (text "")
+formHandler = effectHandler ([] :: [String]) action
   where
-    action (NewTodo { description }) state = do
-      tell $ send (Submit (NewTodo description))
-      pure []
-
--- x = Jack test
-
-{-
-
-Hmm true, Submit NewTodo _is not_ the default values for the form
-
-NewTodo alone is
-
-So there needs to be a way to specify doing something with the form values
-and then passing it up
-
-Maybe form should be special?  No.
-
-There needs to be a way to pass an action up the chain, form can be a short
-hand for whatever method is needed to pass an event back up
-
-messageHandler
-  join parentLocation
-    passes down a fn that can be used to emit an event?
-      messageHandler
-        form
-
-Alternately, add a transform fn to onClick / onSubmit that would take in the value
-and produce the event?
-
--}
+    action newTodo state = pure $ (state, [Parent (Submit newTodo)])
 
 addNewTodoForm =
   div
-    [ onSubmit (Submit defaultNewTodo) $
+    [ onSubmit defaultNewTodo $
         form
           [ nameAttr "description" $ input []
           , submitButton
           ]
     ]
 
-main = run print (handler view)
+main = run print (handler (\todos -> (formHandler (\rejected -> view todos))))
 
 -------------------------
 -- Using Input Example --

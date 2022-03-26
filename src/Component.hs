@@ -44,15 +44,15 @@ data Purview a where
     -> Purview action
 
   EffectHandler
-    :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
+    :: (FromJSON action, FromJSON state, ToJSON action, ToJSON a, ToJSON state, Typeable state, Eq state)
     => Identifier
     -> state
-    -> (action -> state -> IO state)
+    -> (action -> state -> IO (state, [DirectedEvent a action]))
     -> (state -> Purview action)
     -> Purview action
 
   Jack
-    :: ((action -> IO FromEvent) -> Purview a)
+    :: ((action -> IO ()) -> Purview a) -- maybe?
     -> Purview a
 
   Once
@@ -111,9 +111,9 @@ messageHandler state handler =
   Hide . MessageHandler Nothing state handler
 
 effectHandler
-  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
+  :: (FromJSON action, FromJSON state, ToJSON action, ToJSON parent, ToJSON state, Typeable state, Eq state)
   => state
-  -> (action -> state -> IO state)
+  -> (action -> state -> IO (state, [DirectedEvent parent action]))
   -> (state -> Purview action)
   -> Purview a
 effectHandler state handler =
@@ -232,19 +232,47 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
   EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
-        newState <-
+        -- if locations match, we actually run what is in the handler
+        (newState, events) <-
           if loc == location
           then handler parsedAction state
-          else pure state
+          else pure (state, [])
 
         atomically $ writeTChan eventBus $ FromEvent
           { event = "newState"
           , message = toJSON newState
           , location = loc
           }
-      pure $ EffectHandler loc state handler cont
-    Error _err ->
-      pure $ EffectHandler loc state handler cont
+
+        let createMessage directedEvent = case directedEvent of
+              (Parent event) -> FromEvent
+                { event = "internal"
+                , message = toJSON event
+                -- since locations are a list of indexes reversed,
+                -- getting the parent location is easy as dropping
+                -- the first item
+                , location = drop 1 <$> loc
+                }
+              (Self event) -> FromEvent
+                { event = "internal"
+                , message = toJSON event
+                , location = loc
+                }
+
+        -- here we handle sending events returned to either this
+        -- same handler or passing it up the chain
+        mapM_ (atomically . writeTChan eventBus . createMessage) events
+
+      print "hello"
+      let appliedChildren = fmap (\y -> applyEvent eventBus fromEvent y) cont
+      -- (EffectHandler loc state handler) <$> appliedChildren
+      undefined
+
+    Error _err -> do
+      print "here"
+      appliedChildren <- applyEvent eventBus fromEvent (cont state)
+      pure $ EffectHandler loc state handler (\state -> appliedChildren)
+      -- pure $ EffectHandler loc state handler cont
 
   Html kind children -> do
     children' <- mapM (applyEvent eventBus fromEvent) children
