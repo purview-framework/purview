@@ -213,23 +213,17 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
 
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
-      print "otherHere"
-      print $ fromEvent
       if loc == location
         then pure $ EffectHandler loc newState handler cont
         else pure $ EffectHandler loc state handler cont
     Error _ -> do
-      print "here"
-      print $ fromEvent
       pure $ EffectHandler loc state handler cont
 
   Hide x -> do
-    children <- applyNewState eventBus fromEvent (unsafeCoerce x)
+    children <- applyNewState eventBus fromEvent x
     pure $ Hide children
 
   x -> do
-    print "huh?"
-    print x
     pure x
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
