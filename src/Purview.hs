@@ -16,6 +16,7 @@ module Purview
   , render
   -- for experiment
   , FromEvent (..)
+  , DirectedEvent (..)
   )
 where
 
