@@ -1,6 +1,4 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
@@ -14,11 +12,9 @@ import           Unsafe.Coerce
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
+import           Control.Concurrent
 
--- For monad effects
-import Control.Concurrent
-
-import Events
+import           Events
 
 data Attributes action where
   OnClick :: ToJSON action => action -> Attributes action
@@ -214,6 +210,7 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
     Success newState -> do
       if loc == location
         then pure $ EffectHandler loc newState handler cont
+        -- TODO: continue down the tree
         else pure $ EffectHandler loc state handler cont
     Error _ -> do
       pure $ EffectHandler loc state handler cont
@@ -222,8 +219,8 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
     children <- applyNewState eventBus fromEvent x
     pure $ Hide children
 
-  x -> do
-    pure x
+  -- TODO: continue down the tree
+  x -> pure x
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of

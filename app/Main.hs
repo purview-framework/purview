@@ -13,8 +13,6 @@ import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
 
-import Control.Monad.Writer
-
 
 -----------------------
 -- Todo List Example --

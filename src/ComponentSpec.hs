@@ -184,10 +184,12 @@ spec = parallel $ do
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing Nothing handle
-          where
-            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-            handle "setTime" _ = Just <$> getCurrentTime
-            handle _ state     = pure state
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
+        handle "setTime" _     = do
+          time <- getCurrentTime
+          pure (Just time, [])
+        handle _         state = pure (state, [])
 
         component = timeHandler (startClock display)
 
@@ -209,10 +211,12 @@ spec = parallel $ do
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
         timeHandler = EffectHandler Nothing Nothing handle
-          where
-            handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-            handle "setTime" _ = Just <$> getCurrentTime
-            handle _ state     = pure state
+
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
+        handle "setTime" _     = do
+          time <- getCurrentTime
+          pure (Just time, [])
+        handle _         state = pure (state, [])
 
         component = timeHandler (startClock display)
 
@@ -229,26 +233,30 @@ spec = parallel $ do
       let
         timeHandler = effectHandler Nothing handle
 
-        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" _     = Just <$> getCurrentTime
-        handle _         state = pure state
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
+        handle "setTime" _     = do
+          time <- getCurrentTime
+          pure (Just time, [])
+        handle _         state = pure (state, [])
 
         component = timeHandler (const (Text ""))
 
-      component `shouldBe` EffectHandler Nothing Nothing handle (const (Text ""))
+      component `shouldBe` Hide (EffectHandler Nothing Nothing handle (const (Text "")))
 
       let
         graphWithLocation = fst (prepareGraph component)
 
-      graphWithLocation `shouldBe` EffectHandler (Just []) Nothing handle (const (Text ""))
+      graphWithLocation `shouldBe` Hide (EffectHandler (Just []) Nothing handle (const (Text "")))
 
     it "assigns a different location to child handlers" $ do
       let
         timeHandler = effectHandler Nothing handle
 
-        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" _     = Just <$> getCurrentTime
-        handle _         state = pure state
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
+        handle "setTime" _     = do
+          time <- getCurrentTime
+          pure (Just time, [])
+        handle _         state = pure (state, [])
 
         component = div
           [ timeHandler (const (Text ""))
@@ -257,15 +265,17 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareGraph component)
 
-      show graphWithLocation `shouldBe` "div [  EffectHandler Just [0] \"\" EffectHandler Just [1] \"\" ] "
+      show graphWithLocation `shouldBe` "div [  Hide EffectHandler Just [0] \"\" Hide EffectHandler Just [1] \"\" ] "
 
     it "assigns a different location to nested handlers" $ do
       let
         timeHandler = effectHandler Nothing handle
 
-        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime)
-        handle "setTime" _     = Just <$> getCurrentTime
-        handle _         state = pure state
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
+        handle "setTime" _     = do
+          time <- getCurrentTime
+          pure (Just time, [])
+        handle _         state = pure (state, [])
 
         component =
           timeHandler (const (timeHandler (const (Text ""))))
@@ -273,7 +283,7 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareGraph component)
 
-      show graphWithLocation `shouldBe` "EffectHandler Just [] EffectHandler Just [0] \"\""
+      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Hide EffectHandler Just [0] \"\""
 
 main :: IO ()
 main = hspec spec
