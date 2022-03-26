@@ -62,7 +62,7 @@ data Purview a where
     -> Purview a
     -> Purview a
 
-  Hide :: Purview b -> Purview a
+  Hide :: Purview a -> Purview b
 
 instance Show (Purview a) where
   show (EffectHandler location state _action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
@@ -74,7 +74,7 @@ instance Show (Purview a) where
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
-  show (Hide a) = show a
+  show (Hide a) = "Hide " <> show a
 
 instance Eq (Purview a) where
   a == b = show a == show b
@@ -204,7 +204,7 @@ This is a special case event to assign state to message handlers
 -}
 
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyNewState _eventBus FromEvent { message } component = case component of
+applyNewState eventBus fromEvent@FromEvent { message } component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler loc newState handler cont
@@ -213,11 +213,22 @@ applyNewState _eventBus FromEvent { message } component = case component of
 
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
+      print "otherHere"
+      print $ fromEvent
       pure $ EffectHandler loc newState handler cont
-    Error _ ->
+    Error _ -> do
+      print "here"
+      print $ fromEvent
       pure $ EffectHandler loc state handler cont
 
-  x -> pure x
+  Hide x -> do
+    children <- applyNewState eventBus fromEvent (unsafeCoerce x)
+    pure$ Hide children
+
+  x -> do
+    print "huh?"
+    print x
+    pure x
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
@@ -263,16 +274,16 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
         -- same handler or passing it up the chain
         mapM_ (atomically . writeTChan eventBus . createMessage) events
 
-      print "hello"
-      let appliedChildren = fmap (\y -> applyEvent eventBus fromEvent y) cont
-      -- (EffectHandler loc state handler) <$> appliedChildren
-      undefined
+      -- ok, right, no where in this function does the tree actually change
+      -- that's handled by the setting state event
+      _ <- applyEvent eventBus fromEvent (cont state)
+
+      -- so we can ignore the results from applyEvent and continue
+      pure $ EffectHandler loc state handler cont
 
     Error _err -> do
-      print "here"
-      appliedChildren <- applyEvent eventBus fromEvent (cont state)
-      pure $ EffectHandler loc state handler (\state -> appliedChildren)
-      -- pure $ EffectHandler loc state handler cont
+      _ <- applyEvent eventBus fromEvent (cont state)
+      pure $ EffectHandler loc state handler cont
 
   Html kind children -> do
     children' <- mapM (applyEvent eventBus fromEvent) children
