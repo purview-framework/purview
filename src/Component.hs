@@ -204,7 +204,7 @@ This is a special case event to assign state to message handlers
 -}
 
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyNewState eventBus fromEvent@FromEvent { message } component = case component of
+applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
   MessageHandler loc state handler cont -> pure $ case fromJSON message of
     Success newState ->
       MessageHandler loc newState handler cont
@@ -215,7 +215,9 @@ applyNewState eventBus fromEvent@FromEvent { message } component = case componen
     Success newState -> do
       print "otherHere"
       print $ fromEvent
-      pure $ EffectHandler loc newState handler cont
+      if loc == location
+        then pure $ EffectHandler loc newState handler cont
+        else pure $ EffectHandler loc state handler cont
     Error _ -> do
       print "here"
       print $ fromEvent
@@ -223,7 +225,7 @@ applyNewState eventBus fromEvent@FromEvent { message } component = case componen
 
   Hide x -> do
     children <- applyNewState eventBus fromEvent (unsafeCoerce x)
-    pure$ Hide children
+    pure $ Hide children
 
   x -> do
     print "huh?"
