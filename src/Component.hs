@@ -30,14 +30,6 @@ data Purview a where
   Html :: String -> [Purview a] -> Purview a
   Value :: Show a => a -> Purview a
 
-  MessageHandler
-    :: (FromJSON action, FromJSON state, Typeable state, Eq state)
-    => Identifier
-    -> state
-    -> (action -> state -> state)
-    -> (state -> Purview action)
-    -> Purview action
-
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON action, ToJSON a, ToJSON state, Typeable state, Eq state)
     => Identifier
@@ -57,7 +49,6 @@ data Purview a where
 
 instance Show (Purview a) where
   show (EffectHandler location state _action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
-  show (MessageHandler location state _action cont) = "MessageHandler " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute _attrs cont) = "Attr " <> show cont
   show (Text str) = show str
@@ -94,15 +85,6 @@ identifier = Attribute . Generic "id"
 classes :: [String] -> Purview a -> Purview a
 classes xs = Attribute . Generic "class" $ unwords xs
 
-messageHandler
-  :: (FromJSON action, FromJSON state, ToJSON state, Typeable state, Eq state)
-  => state
-  -> (action -> state -> state)
-  -> (state -> Purview action)
-  -> Purview a
-messageHandler state handler =
-  Hide . MessageHandler Nothing state handler
-
 effectHandler
   :: (FromJSON action, FromJSON state, ToJSON action, ToJSON parent, ToJSON state, Typeable state, Eq state)
   => state
@@ -111,6 +93,8 @@ effectHandler
   -> Purview a
 effectHandler state handler =
   Hide . EffectHandler Nothing state handler
+
+messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
 
 getStyle :: Attributes a -> String
 getStyle (Style style') = style'
@@ -175,11 +159,6 @@ render' attrs tree = case tree of
   Attribute attr rest ->
     render' (attr:attrs) rest
 
-  MessageHandler location state _ cont ->
-    "<div handler=" <> (show . encode) location <> ">" <>
-      render' attrs (cont state) <>
-    "</div>"
-
   EffectHandler location state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
       render' attrs (cont state) <>
@@ -200,12 +179,6 @@ This is a special case event to assign state to message handlers
 
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
-  MessageHandler loc state handler cont -> pure $ case fromJSON message of
-    Success newState ->
-      MessageHandler loc newState handler cont
-    Error _ ->
-      cont state
-
   EffectHandler loc state handler cont -> case fromJSON message of
     Success newState -> do
       if loc == location
@@ -224,14 +197,6 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
-  MessageHandler loc state handler cont -> pure $ case fromJSON message of
-    Success action' ->
-      if loc == location
-      then MessageHandler loc (handler action' state) handler cont
-      else MessageHandler loc state handler cont
-    Error _ ->
-      MessageHandler loc state handler cont
-
   EffectHandler loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
@@ -324,12 +289,6 @@ prepareGraph' location component = case component of
   Html kind children ->
     let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
-
-  MessageHandler _loc state handler cont ->
-    let
-      rest = fmap (prepareGraph' (0:location)) cont
-    in
-      (MessageHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
 
   EffectHandler _loc state handler cont ->
     let

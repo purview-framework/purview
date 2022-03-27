@@ -14,9 +14,9 @@ downButton = onClick ("down" :: String) $ div [ text "down" ]
 handler :: (Int -> Purview String) -> Purview a
 handler = messageHandler 0 action
   where
-    action :: String -> Int -> Int
-    action "up" _ = 1
-    action _    _ = 0
+    action :: String -> Int -> (Int, [DirectedEvent String String])
+    action "up" _ = (1, [])
+    action _    _ = (0, [])
 
 counter :: Show a => a -> Purview String
 counter state = div

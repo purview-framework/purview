@@ -6,6 +6,8 @@ import Test.Hspec
 import Diffing
 import Purview
 
+type DefaultAction = DirectedEvent String String
+
 spec :: SpecWith ()
 spec = parallel $ do
 
@@ -35,7 +37,7 @@ spec = parallel $ do
     describe "message handlers" $ do
       it "doesn't diff handler children if the state is the same" $ do
         let
-          mkHandler = messageHandler "initial state" (\action state -> state <> action)
+          mkHandler = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
           oldTree = div [ mkHandler (const (text "the original")) ]
           newTree = div [ mkHandler (const (text "this is different")) ]
 
@@ -43,8 +45,8 @@ spec = parallel $ do
 
       it "diffs handler children if the state is different" $ do
         let
-          handler1 = messageHandler "initial state" (\action state -> state <> action)
-          handler2 = messageHandler "different state" (\action state -> state <> action)
+          handler1 = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
+          handler2 = messageHandler "different state" (\action state -> (state <> action, [] :: [DefaultAction]))
           oldTree = div [ handler1 (const (text "the original")) ]
           newTree = div [ handler2 (const (text "this is different")) ]
 
