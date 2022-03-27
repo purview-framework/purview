@@ -6,6 +6,7 @@ module ComponentSpec where
 
 import Prelude hiding (div)
 import Control.Concurrent.STM.TChan
+import Control.Monad.STM (atomically)
 import Test.Hspec
 import Data.Aeson
 import Data.Aeson.TH
@@ -72,21 +73,6 @@ spec = parallel $ do
         `shouldBe`
         "<form action=\"initialValue\"><input name=\"name\"></input></form>"
 
-    it "can render a message handler" $ do
-      let
-        actionHandler :: String -> Int -> Int
-        actionHandler "up" _ = 1
-        actionHandler _    _ = 0
-
-        handler =
-          messageHandler (0 :: Int)
-            actionHandler
-            (Text . show)
-
-      render handler
-        `shouldBe`
-        "<div handler=\"null\">0</div>"
-
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
 
@@ -109,13 +95,13 @@ spec = parallel $ do
         `shouldBe`
         "<div style=\"width: 50%; height: 50%;color: blue;\">box</div>"
 
-  describe "applyEvent" $ do
+  describe "apply" $ do
 
     it "changes state" $ do
       let
-        actionHandler :: String -> Int -> Int
-        actionHandler "up" _ = 1
-        actionHandler _    _ = 0
+        actionHandler :: String -> Int -> (Int, [DirectedEvent String String])
+        actionHandler "up" _ = (1, [])
+        actionHandler _    _ = (0, [])
 
         handler =
           messageHandler (0 :: Int)
@@ -130,17 +116,25 @@ spec = parallel $ do
 
       let event' = FromEvent { event="click", message="up", location=Nothing }
 
-      appliedHandler <- applyEvent chan event' handler
+      appliedHandler <- apply chan event' handler
 
-      render appliedHandler
+      stateEvent <- atomically $ readTChan chan
+
+      stateEvent
+        `shouldBe`
+        FromEvent { event="newState", message=Number 1, location=Nothing }
+
+      afterState <- apply chan stateEvent appliedHandler
+
+      render afterState
         `shouldBe`
         "<div handler=\"null\">1</div>"
 
     it "works with typed messages" $ do
       let
-        actionHandler :: TestAction -> Int -> Int
-        actionHandler Up   _ = 1
-        actionHandler Down _ = 0
+        actionHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
+        actionHandler Up   _ = (1, [])
+        actionHandler Down _ = (0, [])
 
         handler =
           messageHandler (0 :: Int)
@@ -155,17 +149,21 @@ spec = parallel $ do
 
       let event' = FromEvent { event="click", message=toJSON Up, location=Nothing }
 
-      appliedHandler <- applyEvent chan event' handler
+      appliedHandler <- apply chan event' handler
 
-      render appliedHandler
+      stateEvent <- atomically $ readTChan chan
+
+      afterState <- apply chan stateEvent appliedHandler
+
+      render afterState
         `shouldBe`
         "<div handler=\"null\">1</div>"
 
     it "works after sending an event that did not match anything" $ do
       let
-        actionHandler :: TestAction -> Int -> Int
-        actionHandler Up   _ = 1
-        actionHandler Down _ = 0
+        actionHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
+        actionHandler Up   _ = (1, [])
+        actionHandler Down _ = (0, [])
 
         handler =
           messageHandler (0 :: Int)
@@ -184,7 +182,11 @@ spec = parallel $ do
       let event1 = FromEvent { event="init", message=toJSON Up, location=Nothing }
 
       appliedHandler1 <- applyEvent chan event1 appliedHandler0
-      render appliedHandler1
+
+      stateEvent <- atomically $ readTChan chan
+      appliedHandler2 <- apply chan stateEvent appliedHandler1
+
+      render appliedHandler2
         `shouldBe`
         "<div handler=\"null\">1</div>"
 
