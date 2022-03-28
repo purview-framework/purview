@@ -5,6 +5,7 @@ module Purview
   ( div
   , form
   , text
+  , style
   , onClick
   , onSubmit
   , Purview (..)

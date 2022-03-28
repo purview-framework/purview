@@ -27,6 +27,7 @@ li = Html "li"
 
 nameAttr = Attribute . Generic "name"
 typeAttr = Attribute . Generic "type"
+checkedAttr = Attribute . Generic "checked"
 
 data Fields = Fields { description :: String }
 
@@ -52,12 +53,14 @@ handler = effectHandler [] action
             if index == n
             then todo { done=True }
             else todo
-      in
-        undefined
+      in pure (fmap change (zip [0..] todos), [])
+
+topStyle = style "font-family: sans-serif"
 
 todoItem (index, Todo { description, done }) = div
   [ text description
-  , onClick (Toggle index) $ typeAttr "checkbox" $ button []
+  , onClick (Toggle index) $ typeAttr "checkbox" $
+      if done then checkedAttr "checked" $ input [] else input []
   ]
 
 -- overall view
