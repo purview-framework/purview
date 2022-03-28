@@ -48,7 +48,7 @@ diff location oldGraph newGraph = case (oldGraph, newGraph) of
   (unknown, Html kind children) ->
     [Update location newGraph]
 
-  (Hide (EffectHandler _ state _ cont), Hide (EffectHandler _ newState _ newCont)) ->
+  (Hide (EffectHandler _ _ state _ cont), Hide (EffectHandler _ _ newState _ newCont)) ->
     case cast state of
       Just state' ->
         [Update location newGraph | state' /= newState]
