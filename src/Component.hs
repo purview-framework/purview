@@ -23,6 +23,7 @@ data Attributes action where
   Generic :: String -> String -> Attributes action
 
 type Identifier = Maybe [Int]
+type ParentIdentifier = Identifier
 
 data Purview a where
   Attribute :: Attributes a -> Purview a -> Purview a
@@ -32,7 +33,8 @@ data Purview a where
 
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON action, ToJSON a, ToJSON state, Typeable state, Eq state)
-    => Identifier
+    => ParentIdentifier
+    -> Identifier
     -> state
     -> (action -> state -> IO (state, [DirectedEvent a action]))
     -> (state -> Purview action)
@@ -48,7 +50,8 @@ data Purview a where
   Hide :: Purview a -> Purview b
 
 instance Show (Purview a) where
-  show (EffectHandler location state _action cont) = "EffectHandler " <> show location <> " " <> show (cont state)
+  show (EffectHandler parentLocation location state _action cont) =
+    "EffectHandler " <> show parentLocation <> " " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute _attrs cont) = "Attr " <> show cont
   show (Text str) = show str
@@ -92,7 +95,7 @@ effectHandler
   -> (state -> Purview action)
   -> Purview a
 effectHandler state handler =
-  Hide . EffectHandler Nothing state handler
+  Hide . EffectHandler Nothing Nothing state handler
 
 messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
 
@@ -159,7 +162,7 @@ render' attrs tree = case tree of
   Attribute attr rest ->
     render' (attr:attrs) rest
 
-  EffectHandler location state _ cont ->
+  EffectHandler parentLocation location state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
       render' attrs (cont state) <>
     "</div>"
@@ -179,14 +182,14 @@ This is a special case event to assign state to message handlers
 
 applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
-  EffectHandler loc state handler cont -> case fromJSON message of
+  EffectHandler ploc loc state handler cont -> case fromJSON message of
     Success newState -> do
       if loc == location
-        then pure $ EffectHandler loc newState handler cont
+        then pure $ EffectHandler ploc loc newState handler cont
         -- TODO: continue down the tree
-        else pure $ EffectHandler loc state handler cont
+        else pure $ EffectHandler ploc loc state handler cont
     Error _ -> do
-      pure $ EffectHandler loc state handler cont
+      pure $ EffectHandler ploc loc state handler cont
 
   Hide x -> do
     children <- applyNewState eventBus fromEvent x
@@ -197,7 +200,7 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
 
 applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
 applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
-  EffectHandler loc state handler cont -> case fromJSON message of
+  EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       void . forkIO $ do
         -- if locations match, we actually run what is in the handler
@@ -219,7 +222,7 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
                 -- since locations are a list of indexes reversed,
                 -- getting the parent location is easy as dropping
                 -- the first item
-                , location = drop 1 <$> loc
+                , location = parentLocation
                 }
               (Self event) -> FromEvent
                 { event = "internal"
@@ -236,11 +239,11 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
       _ <- applyEvent eventBus fromEvent (cont state)
 
       -- so we can ignore the results from applyEvent and continue
-      pure $ EffectHandler loc state handler cont
+      pure $ EffectHandler parentLocation loc state handler cont
 
     Error _err -> do
       _ <- applyEvent eventBus fromEvent (cont state)
-      pure $ EffectHandler loc state handler cont
+      pure $ EffectHandler parentLocation loc state handler cont
 
   Html kind children -> do
     children' <- mapM (applyEvent eventBus fromEvent) children
@@ -276,25 +279,27 @@ It also assigns a location to message and effect handlers.
 -}
 
 prepareGraph :: Purview a -> (Purview a, [FromEvent])
-prepareGraph = prepareGraph' []
+prepareGraph = prepareGraph' [] []
 
 type Location = [Int]
 
-prepareGraph' :: Location -> Purview a -> (Purview a, [FromEvent])
-prepareGraph' location component = case component of
+prepareGraph' :: Location -> Location -> Purview a -> (Purview a, [FromEvent])
+prepareGraph' parentLocation location component = case component of
   Attribute attrs cont ->
-    let result = prepareGraph' location cont
+    let result = prepareGraph' parentLocation location cont
     in (Attribute attrs (fst result), snd result)
 
   Html kind children ->
-    let result = fmap (\(index, child) -> prepareGraph' (index:location) child) (zip [0..] children)
+    let result = fmap (\(index, child) -> prepareGraph' parentLocation (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
 
-  EffectHandler _loc state handler cont ->
+  EffectHandler _ploc _loc state handler cont ->
     let
-      rest = fmap (prepareGraph' (0:location)) cont
+      rest = fmap (prepareGraph' location (0:location)) cont
     in
-      (EffectHandler (Just location) state handler (\state' -> fst (rest state')), snd (rest state))
+      ( EffectHandler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
+      , snd (rest state)
+      )
 
   Once effect hasRun cont ->
     let send message =
@@ -305,17 +310,17 @@ prepareGraph' location component = case component of
             }
     in if not hasRun then
         let
-          rest = prepareGraph' location cont
+          rest = prepareGraph' parentLocation location cont
         in
           (Once effect True (fst rest), [effect send] <> (snd rest))
        else
         let
-          rest = prepareGraph' location cont
+          rest = prepareGraph' parentLocation location cont
         in
           (Once effect True (fst rest), snd rest)
 
   Hide x ->
-    let (child, actions) = prepareGraph' location x
+    let (child, actions) = prepareGraph' parentLocation location x
     in (Hide child, actions)
 
   component' -> (component', [])

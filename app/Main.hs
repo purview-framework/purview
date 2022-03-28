@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -27,29 +28,48 @@ li = Html "li"
 nameAttr = Attribute . Generic "name"
 typeAttr = Attribute . Generic "type"
 
--- actions
-data NewTodo = NewTodo { description :: String }
-data Actions = Submit NewTodo | Wumbo String
+data Fields = Fields { description :: String }
 
-$(deriveJSON defaultOptions  ''NewTodo)
+data Actions = Submit Fields | Toggle Int
+
+data Todo = Todo { description :: String, done :: Bool }
+  deriving (Eq)
+
+$(deriveJSON defaultOptions  ''Fields)
 $(deriveJSON defaultOptions  ''Actions)
+$(deriveJSON defaultOptions  ''Todo)
 
 handler = effectHandler [] action
   where
     -- hmm, a little ungainly having to specify
-    action :: Actions -> [String] -> IO ([String], [DirectedEvent Actions Actions])
-    action (Submit NewTodo { description }) todos = pure $ (todos <> [description], [])
+    action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
+
+    action (Submit Fields { description }) todos = pure $
+      (todos <> [Todo { description=description, done=False }], [])
+
+    action (Toggle n) todos =
+      let change (index, todo) =
+            if index == n
+            then todo { done=True }
+            else todo
+      in
+        undefined
+
+todoItem (index, Todo { description, done }) = div
+  [ text description
+  , onClick (Toggle index) $ typeAttr "checkbox" $ button []
+  ]
 
 -- overall view
 view todos = div
-  [ ul $ fmap (\todo -> li [ text todo ]) todos
-  , addNewTodoForm
+  [ div $ fmap todoItem (zip [0..] todos)
+  , formHandler $ const addNewTodoForm
   ]
 
 -- submission form
 submitButton = typeAttr "submit" $ button [ text "submit" ]
 
-defaultNewTodo = NewTodo { description="" }
+defaultFields = Fields { description="" }
 
 formHandler = effectHandler ([] :: [String]) action
   where
@@ -57,14 +77,14 @@ formHandler = effectHandler ([] :: [String]) action
 
 addNewTodoForm =
   div
-    [ onSubmit defaultNewTodo $
+    [ onSubmit defaultFields $
         form
           [ nameAttr "description" $ input []
           , submitButton
           ]
     ]
 
-main = run print (handler (\todos -> (formHandler (\rejected -> view todos))))
+main = run print (handler view)
 
 -------------------------
 -- Using Input Example --

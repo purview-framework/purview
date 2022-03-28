@@ -202,7 +202,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing Nothing handle
+        timeHandler = EffectHandler Nothing Nothing Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -214,7 +214,7 @@ spec = parallel $ do
 
       show (fst (prepareGraph component))
         `shouldBe`
-        "EffectHandler Just [] Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
+        "EffectHandler Just [] Just [] Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
 
       length (snd (prepareGraph component))
         `shouldBe`
@@ -229,7 +229,7 @@ spec = parallel $ do
 
         startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
 
-        timeHandler = EffectHandler Nothing Nothing handle
+        timeHandler = EffectHandler Nothing Nothing Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -260,12 +260,12 @@ spec = parallel $ do
 
         component = timeHandler (const (Text ""))
 
-      component `shouldBe` Hide (EffectHandler Nothing Nothing handle (const (Text "")))
+      component `shouldBe` Hide (EffectHandler Nothing Nothing Nothing handle (const (Text "")))
 
       let
         graphWithLocation = fst (prepareGraph component)
 
-      graphWithLocation `shouldBe` Hide (EffectHandler (Just []) Nothing handle (const (Text "")))
+      graphWithLocation `shouldBe` Hide (EffectHandler (Just []) (Just []) Nothing handle (const (Text "")))
 
     it "assigns a different location to child handlers" $ do
       let
@@ -284,7 +284,9 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareGraph component)
 
-      show graphWithLocation `shouldBe` "div [  Hide EffectHandler Just [0] \"\" Hide EffectHandler Just [1] \"\" ] "
+      show graphWithLocation
+        `shouldBe`
+        "div [  Hide EffectHandler Just [] Just [0] \"\" Hide EffectHandler Just [] Just [1] \"\" ] "
 
     it "assigns a different location to nested handlers" $ do
       let
@@ -302,7 +304,7 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareGraph component)
 
-      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Hide EffectHandler Just [0] \"\""
+      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Just [] Hide EffectHandler Just [] Just [0] \"\""
 
 main :: IO ()
 main = hspec spec
