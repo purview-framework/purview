@@ -63,7 +63,13 @@ websocketScript = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
 
-    var clickValue = event.target.getAttribute("action");
+    var clickValue;
+    try {
+      clickValue = JSON.parse(event.target.getAttribute("action"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      clickValue = event.target.getAttribute("action");
+    }
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (clickValue) {
