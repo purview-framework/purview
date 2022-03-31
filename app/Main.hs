@@ -30,7 +30,6 @@ typeAttr = Attribute . Generic "type"
 checkedAttr = Attribute . Generic "checked"
 
 data Fields = Fields { description :: String }
-
 data Actions = Submit Fields | Toggle Int
 
 data Todo = Todo { description :: String, done :: Bool }
@@ -59,8 +58,10 @@ topStyle = style "font-family: sans-serif"
 
 todoItem (index, Todo { description, done }) = div
   [ text description
-  , onClick (Toggle index) $ typeAttr "checkbox" $
-      if done then checkedAttr "checked" $ input [] else input []
+  , onClick (Toggle index)
+      $ typeAttr "checkbox"
+      $ (if done then checkedAttr "checked" else checkedAttr "")
+      $ input []
   ]
 
 -- overall view
@@ -76,7 +77,7 @@ defaultFields = Fields { description="" }
 
 formHandler = effectHandler ([] :: [String]) action
   where
-    action newTodo state = pure $ (state, [Parent (Submit newTodo)])
+    action newTodo state = pure (state, [Parent (Submit newTodo)])
 
 addNewTodoForm =
   div
