@@ -174,14 +174,14 @@ spec = parallel $ do
 
       let event0 = FromEvent { event="init", message="init", location=Nothing }
 
-      appliedHandler0 <- applyEvent chan event0 handler
+      appliedHandler0 <- apply chan event0 handler
       render appliedHandler0
         `shouldBe`
         "<div handler=\"null\">0</div>"
 
       let event1 = FromEvent { event="init", message=toJSON Up, location=Nothing }
 
-      appliedHandler1 <- applyEvent chan event1 appliedHandler0
+      appliedHandler1 <- apply chan event1 appliedHandler0
 
       stateEvent <- atomically $ readTChan chan
       appliedHandler2 <- apply chan stateEvent appliedHandler1
@@ -190,6 +190,82 @@ spec = parallel $ do
         `shouldBe`
         "<div handler=\"null\">1</div>"
 
+    describe "sending events" $ do
+
+      it "can send an event to a parent" $ do
+        let
+          childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
+          childHandler Up   _ = (1, [Parent "hello"])
+          childHandler Down _ = (0, [])
+
+          parentHandler :: String -> String -> (String, [DirectedEvent String String])
+          parentHandler "hello" _ = ("bye", [])
+          parentHandler "bye" _ = ("hello", [])
+
+          handler =
+            messageHandler ("" :: String) parentHandler
+              $ \message ->
+                  div
+                  [ text message
+                  , messageHandler (0 :: Int)
+                      childHandler
+                      (text . show)
+                  ]
+
+        chan <- newTChanIO
+
+        let locatedGraph = fst $ prepareGraph handler
+
+        render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
+
+        let event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+
+        afterEvent1 <- apply chan event1 locatedGraph
+
+        receivedEvent1 <- atomically $ readTChan chan
+        receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+
+        receivedEvent2 <- atomically $ readTChan chan
+        -- correctly targeted to the parent
+        receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just []}
+
+
+      it "can send an event to self" $ do
+        let
+          childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
+          childHandler Up   _ = (1, [Self Down])
+          childHandler Down _ = (0, [])
+
+          parentHandler :: String -> String -> (String, [DirectedEvent String String])
+          parentHandler "hello" _ = ("bye", [])
+          parentHandler "bye" _ = ("hello", [])
+
+          handler =
+            messageHandler ("" :: String) parentHandler
+              $ \message ->
+                  div
+                  [ text message
+                  , messageHandler (0 :: Int)
+                      childHandler
+                      (text . show)
+                  ]
+
+        chan <- newTChanIO
+
+        let locatedGraph = fst $ prepareGraph handler
+
+        render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
+
+        let event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+
+        afterEvent1 <- apply chan event1 locatedGraph
+
+        receivedEvent1 <- atomically $ readTChan chan
+        receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+
+        receivedEvent2 <- atomically $ readTChan chan
+        -- correctly targeted to self
+        receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "Down", location = Just [1,0]}
 
   describe "prepareGraph" $ do
 
