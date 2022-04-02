@@ -9,9 +9,9 @@ version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/purview#readme>
 homepage:       https://github.com/githubuser/purview#readme
 bug-reports:    https://github.com/githubuser/purview/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2021 Author name here
+author:         Ian Davidson
+maintainer:     bontaq@gmail.com
+copyright:      2022 Ian Davidson
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
