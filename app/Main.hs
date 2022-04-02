@@ -48,9 +48,9 @@ handler = effectHandler [] action
       (todos <> [Todo { description=description, done=False }], [])
 
     action (Toggle n) todos =
-      let change (index, todo) =
+      let change (index, todo@Todo { done=alreadyDone }) =
             if index == n
-            then todo { done=True }
+            then todo { done=not alreadyDone }
             else todo
       in pure (fmap change (zip [0..] todos), [])
 
@@ -60,7 +60,7 @@ todoItem (index, Todo { description, done }) = div
   [ text description
   , onClick (Toggle index)
       $ typeAttr "checkbox"
-      $ (if done then checkedAttr "checked" else checkedAttr "")
+      $ (if done then checkedAttr "checked" else id)
       $ input []
   ]
 
