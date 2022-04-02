@@ -65,7 +65,9 @@ todoItem (index, Todo { description, done }) = div
   ]
 
 -- overall view
-view todos = div
+container = style "font-size: 24px" . div
+
+view todos = container
   [ div $ fmap todoItem (zip [0..] todos)
   , formHandler $ const addNewTodoForm
   ]

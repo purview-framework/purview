@@ -248,6 +248,10 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
     children' <- mapM (applyEvent eventBus fromEvent) children
     pure $ Html kind children'
 
+  Attribute n cont -> do
+    child <- applyEvent eventBus fromEvent cont
+    pure $ Attribute n child
+
   Hide x -> do
     child <- applyEvent eventBus fromEvent x
     pure $ Hide child

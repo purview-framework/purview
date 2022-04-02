@@ -190,6 +190,44 @@ spec = parallel $ do
         `shouldBe`
         "<div handler=\"null\">1</div>"
 
+    it "works with a nested attribute" $ do
+      let
+        childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
+        childHandler Up   _ = (1, [Parent "hello"])
+        childHandler Down _ = (0, [])
+
+        parentHandler :: String -> String -> (String, [DirectedEvent String String])
+        parentHandler "hello" _ = ("bye", [])
+        parentHandler "bye" _ = ("hello", [])
+
+        styledContainer = style "font-size: 10px;" . div
+
+        handler =
+          messageHandler ("" :: String) parentHandler
+            $ \message ->
+                styledContainer
+                [ text message
+                , messageHandler (0 :: Int)
+                    childHandler
+                    (text . show)
+                ]
+
+        component = handler
+
+      chan <- newTChanIO
+
+      let
+        locatedGraph = fst $ prepareGraph component
+        event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+
+      afterEvent1 <- apply chan event1 locatedGraph
+
+      receivedEvent1 <- atomically $ readTChan chan
+      receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+
+      receivedEvent2 <- atomically $ readTChan chan
+      receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just []}
+
     describe "sending events" $ do
 
       it "can send an event to a parent" $ do
