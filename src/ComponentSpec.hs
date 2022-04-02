@@ -226,7 +226,7 @@ spec = parallel $ do
       receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
 
       receivedEvent2 <- atomically $ readTChan chan
-      receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just [1]}
+      receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just []}
 
     describe "sending events" $ do
 
