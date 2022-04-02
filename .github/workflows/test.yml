@@ -9,12 +9,12 @@ jobs:
     strategy:
       matrix:
         stack: ["2.7.1"]
-        ghc: ["8.10.7"]
+        ghc: ["8.10.4"]
 
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-haskell@v1.1.4
+    - uses: haskell/actions/setup@v1
       name: Setup Haskell Stack
       with:
         ghc-version: ${{ matrix.ghc }}
