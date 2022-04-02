@@ -30,7 +30,6 @@ typeAttr = Attribute . Generic "type"
 checkedAttr = Attribute . Generic "checked"
 
 data Fields = Fields { description :: String }
-
 data Actions = Submit Fields | Toggle Int
 
 data Todo = Todo { description :: String, done :: Bool }
@@ -49,9 +48,9 @@ handler = effectHandler [] action
       (todos <> [Todo { description=description, done=False }], [])
 
     action (Toggle n) todos =
-      let change (index, todo) =
+      let change (index, todo@Todo { done=alreadyDone }) =
             if index == n
-            then todo { done=True }
+            then todo { done=not alreadyDone }
             else todo
       in pure (fmap change (zip [0..] todos), [])
 
@@ -59,12 +58,16 @@ topStyle = style "font-family: sans-serif"
 
 todoItem (index, Todo { description, done }) = div
   [ text description
-  , onClick (Toggle index) $ typeAttr "checkbox" $
-      if done then checkedAttr "checked" $ input [] else input []
+  , onClick (Toggle index)
+      $ typeAttr "checkbox"
+      $ (if done then checkedAttr "checked" else id)
+      $ input []
   ]
 
 -- overall view
-view todos = div
+container = style "font-size: 24px" . div
+
+view todos = container
   [ div $ fmap todoItem (zip [0..] todos)
   , formHandler $ const addNewTodoForm
   ]
@@ -76,7 +79,7 @@ defaultFields = Fields { description="" }
 
 formHandler = effectHandler ([] :: [String]) action
   where
-    action newTodo state = pure $ (state, [Parent (Submit newTodo)])
+    action newTodo state = pure (state, [Parent (Submit newTodo)])
 
 addNewTodoForm =
   div

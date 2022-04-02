@@ -130,13 +130,13 @@ renderAttributes attrs =
         Just (OnClick action) -> " action=" <> unpack (encode action)
         _                     -> ""
 
-      generics = filter isGeneric attrs
-      renderedGenerics = concatMap renderGeneric generics
-
       submit = find isSubmit attrs
       renderSubmit = case submit of
         Just (OnSubmit action) -> " action=" <> unpack (encode action)
         _                      -> ""
+
+      generics = filter isGeneric attrs
+      renderedGenerics = concatMap renderGeneric generics
   in
     renderStyle <> renderClick <> renderSubmit <> renderedGenerics
 
@@ -209,7 +209,9 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
           then handler parsedAction state
           else pure (state, [])
 
-        atomically $ writeTChan eventBus $ FromEvent
+        -- although it doesn't break anything, only send this when the
+        -- locations match (cuts down on noise)
+        when (loc == location) $ atomically $ writeTChan eventBus $ FromEvent
           { event = "newState"
           , message = toJSON newState
           , location = loc
@@ -219,9 +221,6 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
               (Parent event) -> FromEvent
                 { event = "internal"
                 , message = toJSON event
-                -- since locations are a list of indexes reversed,
-                -- getting the parent location is easy as dropping
-                -- the first item
                 , location = parentLocation
                 }
               (Self event) -> FromEvent
@@ -248,6 +247,10 @@ applyEvent eventBus fromEvent@FromEvent { message, location } component = case c
   Html kind children -> do
     children' <- mapM (applyEvent eventBus fromEvent) children
     pure $ Html kind children'
+
+  Attribute n cont -> do
+    child <- applyEvent eventBus fromEvent cont
+    pure $ Attribute n child
 
   Hide x -> do
     child <- applyEvent eventBus fromEvent x
