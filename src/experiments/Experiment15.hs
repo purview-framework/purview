@@ -3,7 +3,7 @@
 module Experiment15 where
 
 import Prelude hiding (log)
-import Control.Monad.Writer
+-- import Control.Monad.Writer
 -- import Purview
 
 f :: Integer -> Integer
