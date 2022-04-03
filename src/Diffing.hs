@@ -31,7 +31,7 @@ data Change a = Update Location a | Delete Location a | Add Location a
 instance ToJSON a => ToJSON (Change a) where
   toEncoding = genericToEncoding defaultOptions
 
-diff :: Location -> Purview a -> Purview a -> [Change (Purview a)]
+diff :: Location -> Purview a m -> Purview a m -> [Change (Purview a m)]
 diff location oldGraph newGraph = case (oldGraph, newGraph) of
 
   (Html kind children, Html kind' children') ->

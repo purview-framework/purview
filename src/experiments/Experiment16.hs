@@ -14,6 +14,13 @@ import Control.Monad.Freer
 import Control.Monad.Freer.TH
 import Control.Monad.IO.Class
 
+data View action where
+  ActionHandler
+    :: state -- initial state
+    -> (action -> state -> IO state) -- action handler run by system for events
+    -> (state -> View action) -- continuation
+    -> View action
+
 data Temp a m where
   Box :: String -> m String -> Temp a m
 

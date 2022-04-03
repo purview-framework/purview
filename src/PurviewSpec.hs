@@ -5,27 +5,27 @@ import Prelude hiding (div)
 import Test.Hspec
 import Purview
 
-upButton :: Purview String
+upButton :: Purview String m
 upButton = onClick ("up" :: String) $ div [ text "up" ]
 
-downButton :: Purview String
+downButton :: Purview String m
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
-handler :: (Int -> Purview String) -> Purview a
+handler :: (Int -> Purview String m) -> Purview a m
 handler = messageHandler 0 action
   where
     action :: String -> Int -> (Int, [DirectedEvent String String])
     action "up" _ = (1, [])
     action _    _ = (0, [])
 
-counter :: Show a => a -> Purview String
+counter :: Show a => a -> Purview String m
 counter state = div
   [ upButton
   , text $ "count: " <> show state
   , downButton
   ]
 
-component :: Purview String
+component :: Purview String m
 component = handler counter
 
 event' :: String

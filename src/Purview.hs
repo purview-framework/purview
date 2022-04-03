@@ -44,7 +44,7 @@ import           Diffing
 
 type Log m = String -> m ()
 
-run :: Log IO -> Purview a -> IO ()
+run :: Log IO -> Purview a m -> IO ()
 run log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -55,7 +55,7 @@ run log routes = do
         (webSocketHandler log routes)
         requestHandler'
 
-requestHandler :: Purview a -> IO Wai.Application
+requestHandler :: Purview a m -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -77,7 +77,7 @@ requestHandler routes =
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
+looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
 looper log eventBus connection component = do
   message <- atomically $ readTChan eventBus
   log $ "received> " <> show message
@@ -114,7 +114,7 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   webSocketMessageHandler eventBus websocketConnection
 
-webSocketHandler :: Log IO -> Purview a -> WS.ServerApp
+webSocketHandler :: Log IO -> Purview a m -> WS.ServerApp
 webSocketHandler log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
