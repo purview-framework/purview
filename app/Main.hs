@@ -1,3 +1,4 @@
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE LambdaCase #-}
@@ -27,39 +28,91 @@ import Control.Monad.IO.Class
 -- Algebraic Effects Example --
 -------------------------------
 
+{-
+
+Creating a simple effect
+
+-}
+
 data Time r where
   GetTime :: Time String
 
 makeEffect ''Time
 
-data UpdateTime = UpdateTime
+{-
 
-$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
+With a really basic interpreter
+
+-}
 
 runPureTime :: Eff (Time ': effs) ~> Eff effs
 runPureTime = interpret $ \case
-  GetTime -> pure "123"
+  GetTime -> pure "10:10 am"
 
-display :: Maybe String -> Purview UpdateTime m
-display time = div
-  [ text (show time)
-  , onClick UpdateTime $ div [ text "check time" ]
-  ]
+runIOTime :: LastMember IO effs => Eff (Time ': effs) a -> Eff effs a
+runIOTime = interpretM $ \case
+  GetTime -> show <$> getCurrentTime
 
-startClock cont state = Once temp False (cont state)
-  where temp send = do
-          send UpdateTime
+{-
 
-reducer :: Member Time effs => UpdateTime -> Maybe String -> Eff effs (Maybe String, [DirectedEvent String UpdateTime])
+The allowed actions for the reducer and components
+
+-}
+
+data UpdateTime = UpdateTime
+  deriving Eq
+
+$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
+
+{-
+
+The reducer that uses the effect
+
+-}
+
+reducer
+  :: Member Time effs
+  => UpdateTime -> Maybe String -> Eff effs (Maybe String, [DirectedEvent String UpdateTime])
 reducer action state = do
   time <- getTime
   pure (Just time, [])
 
-timeHandler = effectHandler Nothing reducer
+{-
 
-component = timeHandler (startClock display)
+Example of a tiny test for the reducer
 
-main = Purview.run (runM . runPureTime) print (timeHandler (startClock display))
+-}
+
+test = do
+  newState <- runM . runPureTime $ reducer UpdateTime (Just "current state")
+  print $ newState == (Just "10:10 am", [])
+
+{-
+
+The display component, handler, and combined component
+
+-}
+
+display :: Maybe String -> Purview UpdateTime m
+display time = div
+  [ text (show time)
+  , onClick UpdateTime $ button [ text "check time" ]
+  ]
+
+timeHandler = effectHandler Nothing reducer -- tie the reducer in with initial state of "Nothing"
+
+component = timeHandler display
+
+{-
+
+Putting it all together
+
+-}
+
+main = Purview.run
+  (runM . runIOTime) -- interpreter that goes from m a -> IO a
+  print              -- the logging fn, in this case just print
+  component          -- the top level component
 
 -- main = undefined
 
