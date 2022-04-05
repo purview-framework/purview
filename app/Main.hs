@@ -1,8 +1,12 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GADTs #-}
 module Main where
 
 import           Prelude      hiding (div)
@@ -14,83 +18,127 @@ import           Data.Time
 import           Data.Aeson
 import           Data.Aeson.TH
 
+-- for effects example
+import Control.Monad.Freer
+import Control.Monad.Freer.TH
+import Control.Monad.IO.Class
+
+-------------------------------
+-- Algebraic Effects Example --
+-------------------------------
+
+data Time r where
+  GetTime :: Time String
+
+makeEffect ''Time
+
+data UpdateTime = UpdateTime
+
+$(deriveJSON (defaultOptions {tagSingleConstructors = True}) ''UpdateTime)
+
+runPureTime :: Eff (Time ': effs) ~> Eff effs
+runPureTime = interpret $ \case
+  GetTime -> pure "123"
+
+display :: Maybe String -> Purview UpdateTime m
+display time = div
+  [ text (show time)
+  , onClick UpdateTime $ div [ text "check time" ]
+  ]
+
+startClock cont state = Once temp False (cont state)
+  where temp send = do
+          send UpdateTime
+
+reducer :: Member Time effs => UpdateTime -> Maybe String -> Eff effs (Maybe String, [DirectedEvent String UpdateTime])
+reducer action state = do
+  time <- getTime
+  pure (Just time, [])
+
+timeHandler = effectHandler Nothing reducer
+
+component = timeHandler (startClock display)
+
+main = Purview.run (runM . runPureTime) print (timeHandler (startClock display))
+
+-- main = undefined
 
 -----------------------
 -- Todo List Example --
 -----------------------
 
 -- helpers
-input = Html "input"
-button = Html "button"
-ul = Html "ul"
-li = Html "li"
-
-nameAttr = Attribute . Generic "name"
-typeAttr = Attribute . Generic "type"
-checkedAttr = Attribute . Generic "checked"
-
-data Fields = Fields { description :: String }
-data Actions = Submit Fields | Toggle Int
-
-data Todo = Todo { description :: String, done :: Bool }
-  deriving (Eq)
-
-$(deriveJSON defaultOptions  ''Fields)
-$(deriveJSON defaultOptions  ''Actions)
-$(deriveJSON defaultOptions  ''Todo)
-
-handler = effectHandler [] action
-  where
-    -- hmm, a little ungainly having to specify
-    action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
-
-    action (Submit Fields { description }) todos = pure $
-      (todos <> [Todo { description=description, done=False }], [])
-
-    action (Toggle n) todos =
-      let change (index, todo@Todo { done=alreadyDone }) =
-            if index == n
-            then todo { done=not alreadyDone }
-            else todo
-      in pure (fmap change (zip [0..] todos), [])
-
-topStyle = style "font-family: sans-serif"
-
-todoItem (index, Todo { description, done }) = div
-  [ text description
-  , onClick (Toggle index)
-      $ typeAttr "checkbox"
-      $ (if done then checkedAttr "checked" else id)
-      $ input []
-  ]
-
--- overall view
-container = style "font-size: 24px" . div
-
-view todos = container
-  [ div $ fmap todoItem (zip [0..] todos)
-  , formHandler $ const addNewTodoForm
-  ]
-
--- submission form
-submitButton = typeAttr "submit" $ button [ text "submit" ]
-
-defaultFields = Fields { description="" }
-
-formHandler = effectHandler ([] :: [String]) action
-  where
-    action newTodo state = pure (state, [Parent (Submit newTodo)])
-
-addNewTodoForm =
-  div
-    [ onSubmit defaultFields $
-        form
-          [ nameAttr "description" $ input []
-          , submitButton
-          ]
-    ]
-
-main = run print (handler view)
+-- input = Html "input"
+-- button = Html "button"
+-- ul = Html "ul"
+-- li = Html "li"
+--
+-- nameAttr = Attribute . Generic "name"
+-- typeAttr = Attribute . Generic "type"
+-- checkedAttr = Attribute . Generic "checked"
+--
+-- data Fields = Fields { description :: String }
+-- data Actions = Submit Fields | Toggle Int
+--
+-- data Todo = Todo { description :: String, done :: Bool }
+--   deriving (Eq)
+--
+-- $(deriveJSON defaultOptions  ''Fields)
+-- $(deriveJSON defaultOptions  ''Actions)
+-- $(deriveJSON defaultOptions  ''Todo)
+--
+-- handler = effectHandler [] action
+--   where
+--     -- hmm, a little ungainly having to specify
+--     action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
+--
+--     action (Submit Fields { description }) todos = pure $
+--       (todos <> [Todo { description=description, done=False }], [])
+--
+--     action (Toggle n) todos =
+--       let change (index, todo@Todo { done=alreadyDone }) =
+--             if index == n
+--             then todo { done=not alreadyDone }
+--             else todo
+--       in pure (fmap change (zip [0..] todos), [])
+--
+-- topStyle = style "font-family: sans-serif"
+--
+-- todoItem (index, Todo { description, done }) = div
+--   [ text description
+--   , onClick (Toggle index)
+--       $ typeAttr "checkbox"
+--       $ (if done then checkedAttr "checked" else id)
+--       $ input []
+--   ]
+--
+-- -- overall view
+-- container = style "font-size: 24px" . div
+--
+-- view todos = container
+--   [ div $ fmap todoItem (zip [0..] todos)
+--   , formHandler $ const addNewTodoForm
+--   ]
+--
+-- -- submission form
+-- submitButton = typeAttr "submit" $ button [ text "submit" ]
+--
+-- defaultFields = Fields { description="" }
+--
+-- formHandler = effectHandler ([] :: [String]) action
+--   where
+--     action newTodo state = pure (state, [Parent (Submit newTodo)])
+--
+-- addNewTodoForm =
+--   div
+--     [ onSubmit defaultFields $
+--         form
+--           [ nameAttr "description" $ input []
+--           , submitButton
+--           ]
+--     ]
+--
+-- main = run print (handler view)
 
 -------------------------
 -- Using Input Example --

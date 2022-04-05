@@ -44,6 +44,7 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , freer-simple
     , hspec
     , raw-strings-qq
     , scotty
@@ -71,6 +72,7 @@ executable purview-exe
       aeson
     , base >=4.7 && <5
     , bytestring
+    , freer-simple
     , hspec
     , purview
     , raw-strings-qq
@@ -107,6 +109,7 @@ test-suite purview-test
       aeson
     , base >=4.7 && <5
     , bytestring
+    , freer-simple
     , hspec
     , purview
     , raw-strings-qq

@@ -36,7 +36,7 @@ data Purview a m where
     => ParentIdentifier
     -> Identifier
     -> state
-    -> (action -> state -> IO (state, [DirectedEvent a action]))
+    -> (action -> state -> m (state, [DirectedEvent a action]))
     -> (state -> Purview action m)
     -> Purview action m
 
@@ -180,83 +180,86 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: TChan FromEvent -> FromEvent -> Purview a m -> IO (Purview a m)
+applyNewState :: TChan FromEvent -> FromEvent -> Purview a m -> Purview a m
 applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
   EffectHandler ploc loc state handler cont -> case fromJSON message of
     Success newState -> do
       if loc == location
-        then pure $ EffectHandler ploc loc newState handler cont
+        then EffectHandler ploc loc newState handler cont
         -- TODO: continue down the tree
-        else pure $ EffectHandler ploc loc state handler cont
+        else EffectHandler ploc loc state handler cont
     Error _ -> do
-      pure $ EffectHandler ploc loc state handler cont
+      EffectHandler ploc loc state handler cont
 
-  Hide x -> do
-    children <- applyNewState eventBus fromEvent x
-    pure $ Hide children
+  Hide x ->
+    let
+      children = applyNewState eventBus fromEvent x
+    in
+      Hide children
 
   -- TODO: continue down the tree
-  x -> pure x
+  x -> x
 
-applyEvent :: TChan FromEvent -> FromEvent -> Purview a m -> IO (Purview a m)
-applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
+runEvent :: Monad m => FromEvent -> Purview a m -> m [FromEvent]
+runEvent fromEvent@FromEvent { message, location } component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
-      void . forkIO $ do
-        -- if locations match, we actually run what is in the handler
-        (newState, events) <-
-          if loc == location
-          then handler parsedAction state
-          else pure (state, [])
+      -- if locations match, we actually run what is in the handler
+      (newState, events) <-
+        if loc == location
+        then handler parsedAction state
+        else pure (state, [])
 
-        -- although it doesn't break anything, only send this when the
-        -- locations match (cuts down on noise)
-        when (loc == location) $ atomically $ writeTChan eventBus $ FromEvent
-          { event = "newState"
-          , message = toJSON newState
-          , location = loc
-          }
-
-        let createMessage directedEvent = case directedEvent of
-              (Parent event) -> FromEvent
-                { event = "internal"
-                , message = toJSON event
-                , location = parentLocation
-                }
-              (Self event) -> FromEvent
-                { event = "internal"
-                , message = toJSON event
+      -- although it doesn't break anything, only send this when the
+      -- locations match (cuts down on noise)
+      let newStateEvent =
+            if loc == location then
+              [
+                FromEvent
+                { event = "newState"
+                , message = toJSON newState
                 , location = loc
                 }
+              ]
+            else
+              []
 
-        -- here we handle sending events returned to either this
-        -- same handler or passing it up the chain
-        mapM_ (atomically . writeTChan eventBus . createMessage) events
+      let createMessage directedEvent = case directedEvent of
+            (Parent event) -> FromEvent
+              { event = "internal"
+              , message = toJSON event
+              , location = parentLocation
+              }
+            (Self event) -> FromEvent
+              { event = "internal"
+              , message = toJSON event
+              , location = loc
+              }
+
+      -- here we handle sending events returned to either this
+      -- same handler or passing it up the chain
+      -- mapM_ (atomically . writeTChan eventBus . createMessage) events
+      let handlerEvents = fmap createMessage events
 
       -- ok, right, no where in this function does the tree actually change
       -- that's handled by the setting state event
-      _ <- applyEvent eventBus fromEvent (cont state)
+      childEvents <- runEvent fromEvent (cont state)
 
       -- so we can ignore the results from applyEvent and continue
-      pure $ EffectHandler parentLocation loc state handler cont
+      -- pure $ EffectHandler parentLocation loc state handler cont
+      pure $ newStateEvent <> handlerEvents <> childEvents
 
-    Error _err -> do
-      _ <- applyEvent eventBus fromEvent (cont state)
-      pure $ EffectHandler parentLocation loc state handler cont
+    Error _err -> runEvent fromEvent (cont state)
 
   Html kind children -> do
-    children' <- mapM (applyEvent eventBus fromEvent) children
-    pure $ Html kind children'
+    childEvents' <- mapM (runEvent fromEvent) children
+    pure $ concat childEvents'
 
-  Attribute n cont -> do
-    child <- applyEvent eventBus fromEvent cont
-    pure $ Attribute n child
+  Attribute n cont -> runEvent fromEvent cont
 
-  Hide x -> do
-    child <- applyEvent eventBus fromEvent x
-    pure $ Hide child
+  Hide x -> runEvent fromEvent x
 
-  x -> pure x
+  x -> pure []
 
 {-|
 
@@ -265,11 +268,14 @@ the inner state of a Handler (Message or Effect)
 
 -}
 
-apply :: TChan FromEvent -> FromEvent -> Purview a m -> IO (Purview a m)
-apply eventBus fromEvent@FromEvent {event=eventKind} component =
-  case eventKind of
-    "newState" -> applyNewState eventBus fromEvent component
-    _          -> applyEvent eventBus fromEvent component
+-- apply :: Monad m => TChan FromEvent -> FromEvent -> Purview a m -> m (Purview a m)
+-- apply eventBus fromEvent@FromEvent {event=eventKind} component =
+--   case eventKind of
+--     "newState" -> applyNewState eventBus fromEvent component
+--     _          -> do
+--       void . forkIO $ do
+--         runEvent fromEvent component
+--       pure component
 
 {-|
 
