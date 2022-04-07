@@ -7,6 +7,7 @@ module ComponentSpec where
 import Prelude hiding (div)
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM (atomically)
+import Control.Monad.IO.Class
 import Test.Hspec
 import Data.Aeson
 import Data.Aeson.TH
@@ -22,6 +23,24 @@ $(deriveJSON defaultOptions ''TestAction)
 data SingleConstructor = SingleConstructor
 
 $(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
+
+{-
+
+Just to clean up tests a bit. I dunno if this approach would work to clean
+up the main loop as well, since it calls "runEvent" (re: applying the event)
+in a non-forked fashioned.  If you try void . forkIO you end up back in m a -> IO a
+hell.
+
+-}
+apply :: MonadIO m => TChan FromEvent -> FromEvent -> Purview a m -> m (Purview a m)
+apply eventBus fromEvent@FromEvent {event=eventKind} component =
+  case eventKind of
+    "newState" -> pure $ applyNewState eventBus fromEvent component
+    _          -> do
+      events <- runEvent fromEvent component
+      liftIO $ mapM_ (atomically . writeTChan eventBus) events
+      pure component
+
 
 spec :: SpecWith ()
 spec = parallel $ do

@@ -263,22 +263,6 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
 
 {-|
 
-For now the only special event kind is "newState" which replaces
-the inner state of a Handler (Message or Effect)
-
--}
-
--- apply :: Monad m => TChan FromEvent -> FromEvent -> Purview a m -> m (Purview a m)
--- apply eventBus fromEvent@FromEvent {event=eventKind} component =
---   case eventKind of
---     "newState" -> applyNewState eventBus fromEvent component
---     _          -> do
---       void . forkIO $ do
---         runEvent fromEvent component
---       pure component
-
-{-|
-
 This walks through the tree and collects actions that should be run
 only once, and sets their run value to True.  It's up to something
 else to actually send the actions.

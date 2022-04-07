@@ -96,7 +96,7 @@ The display component, handler, and combined component
 display :: Maybe String -> Purview UpdateTime m
 display time = div
   [ text (show time)
-  , onClick UpdateTime $ button [ text "check time" ]
+  , onClick UpdateTime $ div [ text "check time" ]
   ]
 
 timeHandler = effectHandler Nothing reducer -- tie the reducer in with initial state of "Nothing"
