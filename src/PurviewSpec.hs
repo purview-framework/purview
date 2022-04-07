@@ -11,7 +11,7 @@ upButton = onClick ("up" :: String) $ div [ text "up" ]
 downButton :: Purview String m
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
-handler :: (Int -> Purview String m) -> Purview a m
+handler :: Applicative m => (Int -> Purview String m) -> Purview String m
 handler = messageHandler 0 action
   where
     action :: String -> Int -> (Int, [DirectedEvent String String])
@@ -25,7 +25,7 @@ counter state = div
   , downButton
   ]
 
-component :: Purview String m
+component :: Applicative m => Purview String m
 component = handler counter
 
 event' :: String
