@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -44,18 +45,18 @@ import           Diffing
 
 type Log m = String -> m ()
 
-run :: Log IO -> Purview a -> IO ()
-run log routes = do
+run :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview a m -> IO ()
+run runner log routes = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
   requestHandler' <- requestHandler routes
   Warp.runSettings settings
     $ WaiWs.websocketsOr
         WS.defaultConnectionOptions
-        (webSocketHandler log routes)
+        (webSocketHandler runner log routes)
         requestHandler'
 
-requestHandler :: Purview a -> IO Wai.Application
+requestHandler :: Purview a m -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -77,18 +78,23 @@ requestHandler routes =
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Log IO -> TChan FromEvent -> WS.Connection -> Purview a -> IO ()
-looper log eventBus connection component = do
-  message <- atomically $ readTChan eventBus
+looper :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
+looper runner log eventBus connection component = do
+  message@FromEvent { event } <- atomically $ readTChan eventBus
   log $ "received> " <> show message
 
   let
     (newTree, actions) = prepareGraph component
 
   -- apply can replace state
-  newTree' <- apply eventBus message newTree
+  let newTree' = case event of
+        "newState" -> applyNewState eventBus message newTree
+        _          -> newTree
+
+  newEvents <- runner $ runEvent message newTree'
 
   mapM_ (atomically . writeTChan eventBus) actions
+  mapM_ (atomically . writeTChan eventBus) newEvents
 
   let
     -- so I think here, we diff then render the diffs
@@ -102,7 +108,7 @@ looper log eventBus connection component = do
     connection
     (encode $ Event { event = "setHtml", message = renderedDiffs })
 
-  looper log eventBus connection newTree'
+  looper runner log eventBus connection newTree'
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
@@ -114,8 +120,8 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   webSocketMessageHandler eventBus websocketConnection
 
-webSocketHandler :: Log IO -> Purview a -> WS.ServerApp
-webSocketHandler log component pending = do
+webSocketHandler :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview a m -> WS.ServerApp
+webSocketHandler runner log component pending = do
   putStrLn "ws connected"
   conn <- WS.acceptRequest pending
 
@@ -125,4 +131,4 @@ webSocketHandler log component pending = do
 
   WS.withPingThread conn 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus conn
-    looper log eventBus conn component
+    looper runner log eventBus conn component

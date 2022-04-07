@@ -25,31 +25,31 @@ data Attributes action where
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
 
-data Purview a where
-  Attribute :: Attributes a -> Purview a -> Purview a
-  Text :: String -> Purview a
-  Html :: String -> [Purview a] -> Purview a
-  Value :: Show a => a -> Purview a
+data Purview a m where
+  Attribute :: Attributes a -> Purview a m -> Purview a m
+  Text :: String -> Purview a m
+  Html :: String -> [Purview a m] -> Purview a m
+  Value :: Show a => a -> Purview a m
 
   EffectHandler
     :: (FromJSON action, FromJSON state, ToJSON action, ToJSON a, ToJSON state, Typeable state, Eq state)
     => ParentIdentifier
     -> Identifier
     -> state
-    -> (action -> state -> IO (state, [DirectedEvent a action]))
-    -> (state -> Purview action)
-    -> Purview action
+    -> (action -> state -> m (state, [DirectedEvent a action]))
+    -> (state -> Purview action m)
+    -> Purview action m
 
   Once
     :: (ToJSON action)
     => ((action -> FromEvent) -> FromEvent)
     -> Bool  -- has run
-    -> Purview a
-    -> Purview a
+    -> Purview a m
+    -> Purview a m
 
-  Hide :: Purview a -> Purview b
+  Hide :: Purview a m -> Purview b m
 
-instance Show (Purview a) where
+instance Show (Purview a m) where
   show (EffectHandler parentLocation location state _action cont) =
     "EffectHandler " <> show parentLocation <> " " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
@@ -60,40 +60,40 @@ instance Show (Purview a) where
   show (Value value) = show value
   show (Hide a) = "Hide " <> show a
 
-instance Eq (Purview a) where
+instance Eq (Purview a m) where
   a == b = show a == show b
 
 -- Various helpers
-div :: [Purview a] -> Purview a
+div :: [Purview a m] -> Purview a m
 div = Html "div"
 
-form :: [Purview a] -> Purview a
+form :: [Purview a m] -> Purview a m
 form = Html "form"
 
-text :: String -> Purview a
+text :: String -> Purview a m
 text = Text
 
-style :: String -> Purview a -> Purview a
+style :: String -> Purview a m -> Purview a m
 style = Attribute . Style
 
-onClick :: ToJSON b => b -> Purview b -> Purview b
+onClick :: ToJSON b => b -> Purview b m -> Purview b m
 onClick = Attribute . OnClick
 
-onSubmit :: ToJSON b => b -> Purview b -> Purview b
+onSubmit :: ToJSON b => b -> Purview b m -> Purview b m
 onSubmit = Attribute . OnSubmit
 
-identifier :: String -> Purview a -> Purview a
+identifier :: String -> Purview a m -> Purview a m
 identifier = Attribute . Generic "id"
 
-classes :: [String] -> Purview a -> Purview a
+classes :: [String] -> Purview a m -> Purview a m
 classes xs = Attribute . Generic "class" $ unwords xs
 
-effectHandler
-  :: (FromJSON action, FromJSON state, ToJSON action, ToJSON parent, ToJSON state, Typeable state, Eq state)
-  => state
-  -> (action -> state -> IO (state, [DirectedEvent parent action]))
-  -> (state -> Purview action)
-  -> Purview a
+-- effectHandler
+--   :: (FromJSON action, FromJSON state, ToJSON action, ToJSON parent, ToJSON state, Typeable state, Eq state)
+--   => state
+--   -> (action -> state -> IO (state, [DirectedEvent parent action]))
+--   -> (state -> Purview action)
+--   -> Purview a
 effectHandler state handler =
   Hide . EffectHandler Nothing Nothing state handler
 
@@ -147,10 +147,10 @@ they reach a real HTML tag.
 
 -}
 
-render :: Purview a -> String
+render :: Purview a m -> String
 render = render' []
 
-render' :: [Attributes a] -> Purview a -> String
+render' :: [Attributes a] -> Purview a m -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
@@ -180,96 +180,86 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
+applyNewState :: TChan FromEvent -> FromEvent -> Purview a m -> Purview a m
 applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
   EffectHandler ploc loc state handler cont -> case fromJSON message of
     Success newState -> do
       if loc == location
-        then pure $ EffectHandler ploc loc newState handler cont
+        then EffectHandler ploc loc newState handler cont
         -- TODO: continue down the tree
-        else pure $ EffectHandler ploc loc state handler cont
+        else EffectHandler ploc loc state handler cont
     Error _ -> do
-      pure $ EffectHandler ploc loc state handler cont
+      EffectHandler ploc loc state handler cont
 
-  Hide x -> do
-    children <- applyNewState eventBus fromEvent x
-    pure $ Hide children
+  Hide x ->
+    let
+      children = applyNewState eventBus fromEvent x
+    in
+      Hide children
 
   -- TODO: continue down the tree
-  x -> pure x
+  x -> x
 
-applyEvent :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-applyEvent eventBus fromEvent@FromEvent { message, location } component = case component of
+runEvent :: Monad m => FromEvent -> Purview a m -> m [FromEvent]
+runEvent fromEvent@FromEvent { message, location } component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
-      void . forkIO $ do
-        -- if locations match, we actually run what is in the handler
-        (newState, events) <-
-          if loc == location
-          then handler parsedAction state
-          else pure (state, [])
+      -- if locations match, we actually run what is in the handler
+      (newState, events) <-
+        if loc == location
+        then handler parsedAction state
+        else pure (state, [])
 
-        -- although it doesn't break anything, only send this when the
-        -- locations match (cuts down on noise)
-        when (loc == location) $ atomically $ writeTChan eventBus $ FromEvent
-          { event = "newState"
-          , message = toJSON newState
-          , location = loc
-          }
-
-        let createMessage directedEvent = case directedEvent of
-              (Parent event) -> FromEvent
-                { event = "internal"
-                , message = toJSON event
-                , location = parentLocation
-                }
-              (Self event) -> FromEvent
-                { event = "internal"
-                , message = toJSON event
+      -- although it doesn't break anything, only send this when the
+      -- locations match (cuts down on noise)
+      let newStateEvent =
+            if loc == location then
+              [
+                FromEvent
+                { event = "newState"
+                , message = toJSON newState
                 , location = loc
                 }
+              ]
+            else
+              []
 
-        -- here we handle sending events returned to either this
-        -- same handler or passing it up the chain
-        mapM_ (atomically . writeTChan eventBus . createMessage) events
+      let createMessage directedEvent = case directedEvent of
+            (Parent event) -> FromEvent
+              { event = "internal"
+              , message = toJSON event
+              , location = parentLocation
+              }
+            (Self event) -> FromEvent
+              { event = "internal"
+              , message = toJSON event
+              , location = loc
+              }
+
+      -- here we handle sending events returned to either this
+      -- same handler or passing it up the chain
+      -- mapM_ (atomically . writeTChan eventBus . createMessage) events
+      let handlerEvents = fmap createMessage events
 
       -- ok, right, no where in this function does the tree actually change
       -- that's handled by the setting state event
-      _ <- applyEvent eventBus fromEvent (cont state)
+      childEvents <- runEvent fromEvent (cont state)
 
       -- so we can ignore the results from applyEvent and continue
-      pure $ EffectHandler parentLocation loc state handler cont
+      -- pure $ EffectHandler parentLocation loc state handler cont
+      pure $ newStateEvent <> handlerEvents <> childEvents
 
-    Error _err -> do
-      _ <- applyEvent eventBus fromEvent (cont state)
-      pure $ EffectHandler parentLocation loc state handler cont
+    Error _err -> runEvent fromEvent (cont state)
 
   Html kind children -> do
-    children' <- mapM (applyEvent eventBus fromEvent) children
-    pure $ Html kind children'
+    childEvents' <- mapM (runEvent fromEvent) children
+    pure $ concat childEvents'
 
-  Attribute n cont -> do
-    child <- applyEvent eventBus fromEvent cont
-    pure $ Attribute n child
+  Attribute n cont -> runEvent fromEvent cont
 
-  Hide x -> do
-    child <- applyEvent eventBus fromEvent x
-    pure $ Hide child
+  Hide x -> runEvent fromEvent x
 
-  x -> pure x
-
-{-|
-
-For now the only special event kind is "newState" which replaces
-the inner state of a Handler (Message or Effect)
-
--}
-
-apply :: TChan FromEvent -> FromEvent -> Purview a -> IO (Purview a)
-apply eventBus fromEvent@FromEvent {event=eventKind} component =
-  case eventKind of
-    "newState" -> applyNewState eventBus fromEvent component
-    _          -> applyEvent eventBus fromEvent component
+  x -> pure []
 
 {-|
 
@@ -281,12 +271,12 @@ It also assigns a location to message and effect handlers.
 
 -}
 
-prepareGraph :: Purview a -> (Purview a, [FromEvent])
+prepareGraph :: Purview a m -> (Purview a m, [FromEvent])
 prepareGraph = prepareGraph' [] []
 
 type Location = [Int]
 
-prepareGraph' :: Location -> Location -> Purview a -> (Purview a, [FromEvent])
+prepareGraph' :: Location -> Location -> Purview a m -> (Purview a m, [FromEvent])
 prepareGraph' parentLocation location component = case component of
   Attribute attrs cont ->
     let result = prepareGraph' parentLocation location cont
