@@ -41,6 +41,7 @@ import           Component
 import           Wrapper
 import           Events
 import           Diffing
+import           Rendering
 
 
 type Log m = String -> m ()
@@ -78,8 +79,8 @@ requestHandler routes =
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-looper :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
-looper runner log eventBus connection component = do
+eventLoop :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
+eventLoop runner log eventBus connection component = do
   message@FromEvent { event } <- atomically $ readTChan eventBus
   log $ "received> " <> show message
 
@@ -108,7 +109,7 @@ looper runner log eventBus connection component = do
     connection
     (encode $ Event { event = "setHtml", message = renderedDiffs })
 
-  looper runner log eventBus connection newTree'
+  eventLoop runner log eventBus connection newTree'
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
@@ -131,4 +132,4 @@ webSocketHandler runner log component pending = do
 
   WS.withPingThread conn 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus conn
-    looper runner log eventBus conn component
+    eventLoop runner log eventBus conn component

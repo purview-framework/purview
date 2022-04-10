@@ -33,6 +33,8 @@ library
       DiffingSpec
       Events
       PurviewSpec
+      Rendering
+      RenderingSpec
       Spec
       Wrapper
       Paths_purview
@@ -98,6 +100,8 @@ test-suite purview-test
       Events
       Purview
       PurviewSpec
+      Rendering
+      RenderingSpec
       Wrapper
       Paths_purview
   hs-source-dirs:
