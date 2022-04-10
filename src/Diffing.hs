@@ -24,6 +24,7 @@ to add that div.
 To know where to make a change, I guess you need a location and a command.
 
 -}
+type Location = [Int]
 
 data Change a = Update Location a | Delete Location a | Add Location a
   deriving (Show, Eq, Generic)

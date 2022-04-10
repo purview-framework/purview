@@ -31,8 +31,15 @@ library
       ComponentSpec
       Diffing
       DiffingSpec
+      EventHandling
+      EventHandlingSpec
+      EventLoop
       Events
+      PrepareTree
+      PrepareTreeSpec
       PurviewSpec
+      Rendering
+      RenderingSpec
       Spec
       Wrapper
       Paths_purview
@@ -95,9 +102,16 @@ test-suite purview-test
       ComponentSpec
       Diffing
       DiffingSpec
+      EventHandling
+      EventHandlingSpec
+      EventLoop
       Events
+      PrepareTree
+      PrepareTreeSpec
       Purview
       PurviewSpec
+      Rendering
+      RenderingSpec
       Wrapper
       Paths_purview
   hs-source-dirs:
