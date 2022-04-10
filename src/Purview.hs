@@ -38,10 +38,10 @@ import           Control.Monad.STM
 import           Control.Concurrent
 
 import           Component
-import           Wrapper
+import           EventLoop
 import           Events
-import           Diffing
 import           Rendering
+import           Wrapper
 
 
 type Log m = String -> m ()
@@ -61,6 +61,7 @@ requestHandler :: Purview a m -> IO Wai.Application
 requestHandler routes =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
+
     -- Sc.middleware S.logStdoutDev
 
     Sc.get "/"
@@ -70,46 +71,6 @@ requestHandler routes =
       $ Data.Text.pack
       $ render . fst
       $ prepareGraph routes
-
-
---
--- This is the main event loop of handling messages from the websocket
---
--- pretty much just get a message, then run the message via the component
--- handler, and then send the "setHtml" back downstream to tell it to replace
--- the html with the new.
---
-eventLoop :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
-eventLoop runner log eventBus connection component = do
-  message@FromEvent { event } <- atomically $ readTChan eventBus
-  log $ "received> " <> show message
-
-  let
-    (newTree, actions) = prepareGraph component
-
-  -- apply can replace state
-  let newTree' = case event of
-        "newState" -> applyNewState eventBus message newTree
-        _          -> newTree
-
-  newEvents <- runner $ runEvent message newTree'
-
-  mapM_ (atomically . writeTChan eventBus) actions
-  mapM_ (atomically . writeTChan eventBus) newEvents
-
-  let
-    -- so I think here, we diff then render the diffs
-    diffs = diff [0] component newTree'
-    renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
-
-  -- log $ "new html> " <> show newTree'
-  log $ "sending> " <> show renderedDiffs
-
-  WS.sendTextData
-    connection
-    (encode $ Event { event = "setHtml", message = renderedDiffs })
-
-  eventLoop runner log eventBus connection newTree'
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
