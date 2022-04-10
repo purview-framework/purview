@@ -14,8 +14,9 @@ import qualified Network.WebSockets as WS
 
 import           Component
 import           Diffing
-import           Events
 import           EventHandling
+import           Events
+import           PrepareTree
 import           Rendering
 
 type Log m = String -> m ()
@@ -34,8 +35,9 @@ eventLoop runner log eventBus connection component = do
 
   let
     -- this collects any actions that should run once and sets them
-    -- to "run" in the tree
-    (newTree, actions) = prepareGraph component
+    -- to "run" in the tree, while assigning locations / identifiers
+    -- to the event handlers
+    (newTree, actions) = prepareTree component
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case event of

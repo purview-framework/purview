@@ -38,9 +38,9 @@ import           Control.Monad.STM
 import           Control.Concurrent
 
 import           Component
-import           EventHandling
 import           EventLoop
 import           Events
+import           PrepareTree
 import           Rendering
 import           Wrapper
 
@@ -71,7 +71,7 @@ requestHandler routes =
       $ wrapHtml
       $ Data.Text.pack
       $ render . fst
-      $ prepareGraph routes
+      $ prepareTree routes
 
 webSocketMessageHandler :: TChan FromEvent -> WS.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do

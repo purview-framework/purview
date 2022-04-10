@@ -35,6 +35,8 @@ library
       EventHandlingSpec
       EventLoop
       Events
+      PrepareTree
+      PrepareTreeSpec
       PurviewSpec
       Rendering
       RenderingSpec
@@ -104,6 +106,8 @@ test-suite purview-test
       EventHandlingSpec
       EventLoop
       Events
+      PrepareTree
+      PrepareTreeSpec
       Purview
       PurviewSpec
       Rendering
