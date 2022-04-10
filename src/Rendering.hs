@@ -19,6 +19,10 @@ isSubmit :: Attributes a -> Bool
 isSubmit (OnSubmit _) = True
 isSubmit _            = False
 
+getStyle :: Attributes a -> String
+getStyle (Style style') = style'
+getStyle _              = ""
+
 renderGeneric :: Attributes a -> String
 renderGeneric attr = case attr of
   (Generic name value) -> " " <> name <> "=" <> unpack (encode value)

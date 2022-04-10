@@ -31,6 +31,8 @@ library
       ComponentSpec
       Diffing
       DiffingSpec
+      EventHandling
+      EventHandlingSpec
       EventLoop
       Events
       PurviewSpec
@@ -98,6 +100,8 @@ test-suite purview-test
       ComponentSpec
       Diffing
       DiffingSpec
+      EventHandling
+      EventHandlingSpec
       EventLoop
       Events
       Purview

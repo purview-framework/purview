@@ -38,6 +38,7 @@ import           Control.Monad.STM
 import           Control.Concurrent
 
 import           Component
+import           EventHandling
 import           EventLoop
 import           Events
 import           Rendering

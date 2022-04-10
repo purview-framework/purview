@@ -15,6 +15,7 @@ import qualified Network.WebSockets as WS
 import           Component
 import           Diffing
 import           Events
+import           EventHandling
 import           Rendering
 
 type Log m = String -> m ()
@@ -32,21 +33,28 @@ eventLoop runner log eventBus connection component = do
   log $ "received> " <> show message
 
   let
+    -- this collects any actions that should run once and sets them
+    -- to "run" in the tree
     (newTree, actions) = prepareGraph component
 
-  -- apply can replace state
+  -- if it's special newState event, the state is replaced in the tree
   let newTree' = case event of
         "newState" -> applyNewState eventBus message newTree
         _          -> newTree
 
+  -- this is where handlers are actually called, and their events are sent back into
+  -- this loop
   newEvents <- runner $ runEvent message newTree'
 
   mapM_ (atomically . writeTChan eventBus) actions
   mapM_ (atomically . writeTChan eventBus) newEvents
 
   let
-    -- so I think here, we diff then render the diffs
+    -- collect diffs
     diffs = diff [0] component newTree'
+    -- for now it's just "Update", which the javascript handles as replacing
+    -- the html beneath the handler.  I imagine it could be more exact, with
+    -- Delete / Create events.
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
   -- log $ "new html> " <> show newTree'
