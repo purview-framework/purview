@@ -8,6 +8,7 @@ where
 
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
+import           Control.Monad
 import           Control.Concurrent
 import           Data.Aeson (encode)
 import qualified Network.WebSockets as WS
@@ -46,10 +47,11 @@ eventLoop runner log eventBus connection component = do
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
-  newEvents <- runner $ runEvent message newTree'
+  void . forkIO $ do
+    newEvents <- runner $ runEvent message newTree'
+    mapM_ (atomically . writeTChan eventBus) newEvents
 
   mapM_ (atomically . writeTChan eventBus) actions
-  mapM_ (atomically . writeTChan eventBus) newEvents
 
   let
     -- collect diffs
