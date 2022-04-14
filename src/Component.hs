@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
@@ -90,3 +89,5 @@ effectHandler state handler =
   Hide . EffectHandler Nothing Nothing state handler
 
 messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
+
+once sendAction = Once sendAction False

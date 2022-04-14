@@ -35,6 +35,7 @@ dependencies:
 - hspec
 - time
 - freer-simple
+- QuickCheck
 
 build-tools:
   - hspec-discover == 2.*

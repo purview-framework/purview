@@ -48,7 +48,8 @@ library
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
@@ -76,7 +77,8 @@ executable purview-exe
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
@@ -120,7 +122,8 @@ test-suite purview-test
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple

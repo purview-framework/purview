@@ -1,21 +1,52 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RenderingSpec where
 
 import Prelude hiding (div)
 import Data.Aeson.TH
 import Test.Hspec
+import Test.Hspec.QuickCheck
+import Test.QuickCheck hiding (classes, once)
 
 import Component
+import Events
 import Rendering
 
 data SingleConstructor = SingleConstructor
 
 $(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
+data TestPurviewT a m = Purview a m
+
+testHandler :: (String -> Purview String IO) -> Purview a IO
+testHandler = effectHandler ("" :: String) reducer
+  where
+    reducer :: String -> String -> IO (String, [DirectedEvent String String])
+    reducer action state = pure ("", [])
+
+testOnce = once (\send -> send "")
+
+sizedArbExpr :: Int -> Gen (Purview String IO)
+sizedArbExpr 0 = do pure $ text "always present"
+sizedArbExpr n = do
+  es <- vectorOf 2 (sizedArbExpr (n-1))
+  elements
+    [ div es
+    , style "" $ div es
+    , testHandler (const $ div es)
+    , testOnce (div es)
+    ]
+
+instance Arbitrary (Purview String IO) where
+  arbitrary = resize 3 $ sized sizedArbExpr
+
 spec :: SpecWith ()
 spec = parallel $ do
 
   describe "render" $ do
+
+    it "can render an assortment of different trees" $
+      property $ \x -> render (x :: Purview String IO) `shouldContain` "always present"
 
     it "can create a div" $ do
       let element = Html "div" [Text "hello world"]
