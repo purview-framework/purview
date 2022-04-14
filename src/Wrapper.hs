@@ -136,11 +136,12 @@ websocketScript = [r|
   }
 |]
 
-wrapHtml :: [HtmlEventHandler] -> Text -> Text
-wrapHtml htmlEventHandlers body =
+wrapHtml :: Text -> [HtmlEventHandler] -> Text -> Text
+wrapHtml htmlHead htmlEventHandlers body =
   "<html>"
   <> "<head>"
   <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "bindEvents();" <> "</script>"
+  <> htmlHead
   <> "</head>"
   <> "<body>"<> body <> "</body>"
   <> "</html>"

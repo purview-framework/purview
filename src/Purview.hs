@@ -26,7 +26,7 @@ where
 
 import Prelude hiding (div, log)
 import qualified Web.Scotty as Sc
-import           Data.Text (pack)
+import           Data.Text (pack, Text)
 import qualified Data.Text.Lazy as LazyText
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWebSocket
@@ -49,33 +49,35 @@ import           Wrapper
 type Log m = String -> m ()
 
 data Configuration a m = Configuration
-  { component :: Purview a m
-  , interpreter :: m [FromEvent] -> IO [FromEvent]
-  , logger :: String -> IO ()
+  { component         :: Purview a m
+  , interpreter       :: m [FromEvent] -> IO [FromEvent]
+  , logger            :: String -> IO ()
   , htmlEventHandlers :: [HtmlEventHandler]
+  , htmlHead          :: Text
   }
 
 defaultConfiguration :: Configuration a IO
 defaultConfiguration = Configuration
-  { component=div []
-  , interpreter=id
-  , logger=print
+  { component         = div []
+  , interpreter       = id
+  , logger            = print
   , htmlEventHandlers = [clickEventHandler, submitEventHandler]
+  , htmlHead          = ""
   }
 
 run :: Monad m => Configuration () m -> IO ()
-run Configuration { component, logger, interpreter, htmlEventHandlers } = do
+run Configuration { component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler' <- requestHandler component htmlEventHandlers
+  requestHandler' <- requestHandler component htmlHead htmlEventHandlers
   Warp.runSettings settings
     $ WaiWebSocket.websocketsOr
         WebSocket.defaultConnectionOptions
         (webSocketHandler interpreter logger component)
         requestHandler'
 
-requestHandler :: Purview a m -> [HtmlEventHandler] -> IO Wai.Application
-requestHandler routes htmlEventHandlers =
+requestHandler :: Purview a m -> Text -> [HtmlEventHandler] -> IO Wai.Application
+requestHandler routes htmlHead htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
 
@@ -84,7 +86,7 @@ requestHandler routes htmlEventHandlers =
     Sc.get "/"
       $ Sc.html
       $ LazyText.fromStrict
-      $ wrapHtml htmlEventHandlers
+      $ wrapHtml htmlHead htmlEventHandlers
       $ Data.Text.pack
       $ render . fst
       $ prepareTree routes
