@@ -11,7 +11,7 @@ import           Control.Monad.STM
 import           Control.Monad
 import           Control.Concurrent
 import           Data.Aeson (encode)
-import qualified Network.WebSockets as WS
+import qualified Network.WebSockets as WebSockets
 
 import           Component
 import           Diffing
@@ -29,7 +29,14 @@ type Log m = String -> m ()
 -- handler, and then send the "setHtml" back downstream to tell it to replace
 -- the html with the new.
 --
-eventLoop :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> TChan FromEvent -> WS.Connection -> Purview a m -> IO ()
+eventLoop
+  :: Monad m
+  => (m [FromEvent] -> IO [FromEvent])
+  -> Log IO
+  -> TChan FromEvent
+  -> WebSockets.Connection
+  -> Purview a m
+  -> IO ()
 eventLoop runner log eventBus connection component = do
   message@FromEvent { event } <- atomically $ readTChan eventBus
   log $ "received> " <> show message
@@ -61,10 +68,9 @@ eventLoop runner log eventBus connection component = do
     -- Delete / Create events.
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
-  -- log $ "new html> " <> show newTree'
   log $ "sending> " <> show renderedDiffs
 
-  WS.sendTextData
+  WebSockets.sendTextData
     connection
     (encode $ Event { event = "setHtml", message = renderedDiffs })
 
