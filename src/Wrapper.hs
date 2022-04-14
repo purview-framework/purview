@@ -5,6 +5,81 @@ module Wrapper where
 import           Text.RawString.QQ (r)
 import           Data.Text (Text)
 
+
+data HtmlEventHandler = HtmlEventHandler
+  { eventType :: Text -- eg submit or click
+  , functionName :: Text -- called whenever the event happens
+  , handlingFunction :: Text -- receives the event and sends the event over the websocket
+  }
+
+clickEventHandlingFunction :: Text
+clickEventHandlingFunction = [r|
+  function handleClickEvents(event) {
+    event.stopPropagation();
+
+    var clickValue;
+    try {
+      clickValue = JSON.parse(event.target.getAttribute("action"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      clickValue = event.target.getAttribute("action");
+    }
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
+
+    if (clickValue) {
+      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
+    }
+  }
+|]
+
+clickEventHandler :: HtmlEventHandler
+clickEventHandler = HtmlEventHandler "click" "handleClickEvents" clickEventHandlingFunction
+
+submitEventHandlingFunction :: Text
+submitEventHandlingFunction = [r|
+  function handleFormEvents(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    var form = new FormData(event.target);
+    var entries = Object.fromEntries(form.entries());
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
+
+    if (entries) {
+      window.ws.send(JSON.stringify({ "event": "submit", "message": entries, "location": location }));
+    }
+  }
+|]
+
+submitEventHandler :: HtmlEventHandler
+submitEventHandler = HtmlEventHandler "submit" "handleFormEvents" submitEventHandlingFunction
+
+htmlEventHandlers :: [HtmlEventHandler]
+htmlEventHandlers =
+  [ clickEventHandler
+  , submitEventHandler
+  ]
+
+mkBinding :: HtmlEventHandler -> Text
+mkBinding (HtmlEventHandler kind functionName _) =
+  "item.removeEventListener(\"" <> kind <> "\", " <>  functionName <> ");"
+  <> "item.addEventListener(\"" <> kind <> "\", " <>  functionName <> ");"
+
+mkFunction :: HtmlEventHandler -> Text
+mkFunction (HtmlEventHandler _ _ function) = function
+
+bindEvents :: Text
+bindEvents =
+  let bindings = foldr (<>) "" $ fmap mkBinding htmlEventHandlers
+      functions = foldr (<>) "" $ fmap mkFunction htmlEventHandlers
+  in
+    functions
+    <> "function bindEvents() {"
+    <> "document.querySelectorAll(\"[handler]\").forEach(item => {"
+    <> bindings
+    <> "});"
+    <> "};"
+
 websocketScript :: Text
 websocketScript = [r|
   var timeoutTime = -50;
@@ -59,55 +134,13 @@ websocketScript = [r|
     const targetNode = getNode(location);
     targetNode.outerHTML = newHtml;
   }
-
-  function handleClickEvents(event) {
-    event.stopPropagation();
-
-    var clickValue;
-    try {
-      clickValue = JSON.parse(event.target.getAttribute("action"));
-    } catch (error) {
-      // if the action is just a string, parsing it as JSON would fail
-      clickValue = event.target.getAttribute("action");
-    }
-    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
-
-    if (clickValue) {
-      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
-    }
-  }
-
-  function handleFormEvents(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    var form = new FormData(event.target);
-    var entries = Object.fromEntries(form.entries());
-    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
-
-    if (entries) {
-      window.ws.send(JSON.stringify({ "event": "submit", "message": entries, "location": location }));
-    }
-  }
-
-  function bindEvents() {
-    document.querySelectorAll("[handler]").forEach(item => {
-      item.removeEventListener("click", handleClickEvents);
-      item.addEventListener("click", handleClickEvents);
-
-      item.removeEventListener("submit", handleFormEvents);
-      item.addEventListener("submit", handleFormEvents);
-    });
-    console.log('events bound');
-  }
-  bindEvents();
 |]
 
 wrapHtml :: Text -> Text
 wrapHtml body =
   "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents <> "bindEvents();" <> "</script>"
   <> "</head>"
   <> "<body>"<> body <> "</body>"
   <> "</html>"

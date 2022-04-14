@@ -10,6 +10,7 @@ import           Data.Typeable
 import           Events
 
 data Attributes action where
+  On :: ToJSON action => String -> action -> Attributes action
   OnClick :: ToJSON action => action -> Attributes action
   OnSubmit :: ToJSON action => action -> Attributes action
   Style :: String -> Attributes action
