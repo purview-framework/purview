@@ -11,8 +11,6 @@ import           Events
 
 data Attributes action where
   On :: ToJSON action => String -> action -> Attributes action
-  OnClick :: ToJSON action => action -> Attributes action
-  OnSubmit :: ToJSON action => action -> Attributes action
   Style :: String -> Attributes action
   Generic :: String -> String -> Attributes action
 
@@ -71,10 +69,10 @@ style :: String -> Purview a m -> Purview a m
 style = Attribute . Style
 
 onClick :: ToJSON b => b -> Purview b m -> Purview b m
-onClick = Attribute . OnClick
+onClick = Attribute . On "click"
 
 onSubmit :: ToJSON b => b -> Purview b m -> Purview b m
-onSubmit = Attribute . OnSubmit
+onSubmit = Attribute . On "submit"
 
 identifier :: String -> Purview a m -> Purview a m
 identifier = Attribute . Generic "id"

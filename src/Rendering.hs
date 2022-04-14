@@ -2,22 +2,17 @@ module Rendering where
 
 import           Data.Aeson
 import           Data.ByteString.Lazy.Char8 (unpack)
-import           Data.List (find)
 import           Unsafe.Coerce
 
 import           Component
 
 isOn :: Attributes a -> Bool
-isOn (OnClick _) = True
-isOn _           = False
+isOn (On _ _) = True
+isOn _        = False
 
 isGeneric :: Attributes a -> Bool
 isGeneric (Generic _ _) = True
 isGeneric _ = False
-
-isSubmit :: Attributes a -> Bool
-isSubmit (OnSubmit _) = True
-isSubmit _            = False
 
 getStyle :: Attributes a -> String
 getStyle (Style style') = style'
@@ -30,23 +25,19 @@ renderGeneric attr = case attr of
 
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
-  let styles = concatMap getStyle attrs
-      renderStyle = if not (null styles) then " style=" <> show styles else ""
+  let
+    styles = concatMap getStyle attrs
+    renderedStyle = if not (null styles) then " style=" <> show styles else ""
 
-      click = find isOn attrs
-      renderClick = case click of
-        Just (OnClick action) -> " action=" <> unpack (encode action)
-        _                     -> ""
+    listeners = filter isOn attrs
+    renderedListeners = concatMap
+      (\(On name action) -> " action=" <> (unpack $ encode action))
+      listeners
 
-      submit = find isSubmit attrs
-      renderSubmit = case submit of
-        Just (OnSubmit action) -> " action=" <> unpack (encode action)
-        _                      -> ""
-
-      generics = filter isGeneric attrs
-      renderedGenerics = concatMap renderGeneric generics
+    generics = filter isGeneric attrs
+    renderedGenerics = concatMap renderGeneric generics
   in
-    renderStyle <> renderClick <> renderSubmit <> renderedGenerics
+    renderedStyle <> renderedListeners <> renderedGenerics
 
 {-|
 
