@@ -54,8 +54,8 @@ submitEventHandlingFunction = [r|
 submitEventHandler :: HtmlEventHandler
 submitEventHandler = HtmlEventHandler "submit" "handleFormEvents" submitEventHandlingFunction
 
-htmlEventHandlers :: [HtmlEventHandler]
-htmlEventHandlers =
+defaultHtmlEventHandlers :: [HtmlEventHandler]
+defaultHtmlEventHandlers =
   [ clickEventHandler
   , submitEventHandler
   ]
@@ -68,8 +68,8 @@ mkBinding (HtmlEventHandler kind functionName _) =
 mkFunction :: HtmlEventHandler -> Text
 mkFunction (HtmlEventHandler _ _ function) = function
 
-bindEvents :: Text
-bindEvents =
+bindEvents :: [HtmlEventHandler] -> Text
+bindEvents htmlEventHandlers =
   let bindings = foldr (<>) "" $ fmap mkBinding htmlEventHandlers
       functions = foldr (<>) "" $ fmap mkFunction htmlEventHandlers
   in
@@ -136,11 +136,11 @@ websocketScript = [r|
   }
 |]
 
-wrapHtml :: Text -> Text
-wrapHtml body =
+wrapHtml :: [HtmlEventHandler] -> Text -> Text
+wrapHtml htmlEventHandlers body =
   "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> bindEvents <> "bindEvents();" <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "bindEvents();" <> "</script>"
   <> "</head>"
   <> "<body>"<> body <> "</body>"
   <> "</html>"

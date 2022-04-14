@@ -60,22 +60,22 @@ defaultConfiguration = Configuration
   { component=div []
   , interpreter=id
   , logger=print
-  , htmlEventHandlers = []
+  , htmlEventHandlers = [clickEventHandler, submitEventHandler]
   }
 
 run :: Monad m => Configuration () m -> IO ()
-run (Configuration { component, logger, interpreter }) = do
+run Configuration { component, logger, interpreter, htmlEventHandlers } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler' <- requestHandler component
+  requestHandler' <- requestHandler component htmlEventHandlers
   Warp.runSettings settings
     $ WaiWebSocket.websocketsOr
         WebSocket.defaultConnectionOptions
         (webSocketHandler interpreter logger component)
         requestHandler'
 
-requestHandler :: Purview a m -> IO Wai.Application
-requestHandler routes =
+requestHandler :: Purview a m -> [HtmlEventHandler] -> IO Wai.Application
+requestHandler routes htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
 
@@ -84,7 +84,7 @@ requestHandler routes =
     Sc.get "/"
       $ Sc.html
       $ LazyText.fromStrict
-      $ wrapHtml
+      $ wrapHtml htmlEventHandlers
       $ Data.Text.pack
       $ render . fst
       $ prepareTree routes
