@@ -3,16 +3,18 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Purview
-  ( div
+  ( Attributes (..)
+  , Purview (..)
+  , Configuration (..)
+  , defaultConfiguration
+  , effectHandler
+  , messageHandler
+  , div
   , form
-  , text
-  , style
   , onClick
   , onSubmit
-  , Purview (..)
-  , Attributes (..)
-  , messageHandler
-  , effectHandler
+  , style
+  , text
   , run
   -- for testing
   , render
@@ -44,18 +46,32 @@ import           PrepareTree
 import           Rendering
 import           Wrapper
 
-
 type Log m = String -> m ()
 
-run :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview () m -> IO ()
-run runner log component = do
+data Configuration a m = Configuration
+  { component :: Purview a m
+  , interpreter :: m [FromEvent] -> IO [FromEvent]
+  , logger :: String -> IO ()
+  , htmlEventHandlers :: [HtmlEventHandler]
+  }
+
+defaultConfiguration :: Configuration a IO
+defaultConfiguration = Configuration
+  { component=div []
+  , interpreter=id
+  , logger=print
+  , htmlEventHandlers = []
+  }
+
+run :: Monad m => Configuration () m -> IO ()
+run (Configuration { component, logger, interpreter }) = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
   requestHandler' <- requestHandler component
   Warp.runSettings settings
     $ WaiWebSocket.websocketsOr
         WebSocket.defaultConnectionOptions
-        (webSocketHandler runner log component)
+        (webSocketHandler interpreter logger component)
         requestHandler'
 
 requestHandler :: Purview a m -> IO Wai.Application

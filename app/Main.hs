@@ -191,7 +191,7 @@ addNewTodoForm =
           ]
     ]
 
-main = Purview.run id print (handler view)
+main = Purview.run (defaultConfiguration { component=handler view })
 
 -------------------------
 -- Using Input Example --
