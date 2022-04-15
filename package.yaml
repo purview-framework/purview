@@ -52,15 +52,15 @@ library:
     - -Wincomplete-patterns
 
 executables:
-  purview-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - purview
+#  purview-exe:
+#    main:                Main.hs
+#    source-dirs:         app
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - purview
 
   purview-perf-test:
     main: Criterion.hs
