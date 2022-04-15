@@ -174,6 +174,7 @@ spec = parallel $ do
         parentHandler :: String -> String -> (String, [DirectedEvent String String])
         parentHandler "hello" _ = ("bye", [])
         parentHandler "bye" _ = ("hello", [])
+        parentHandler str _ = (str, [])
 
         styledContainer = style "font-size: 10px;" . div
 
@@ -214,6 +215,7 @@ spec = parallel $ do
           parentHandler :: String -> String -> (String, [DirectedEvent String String])
           parentHandler "hello" _ = ("bye", [])
           parentHandler "bye" _ = ("hello", [])
+          parentHandler str _ = (str, [])
 
           handler =
             messageHandler ("" :: String) parentHandler
@@ -252,6 +254,7 @@ spec = parallel $ do
           parentHandler :: String -> String -> (String, [DirectedEvent String String])
           parentHandler "hello" _ = ("bye", [])
           parentHandler "bye" _ = ("hello", [])
+          parentHandler str _ = (str, [])
 
           handler =
             messageHandler ("" :: String) parentHandler
