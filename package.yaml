@@ -1,6 +1,6 @@
 name:                purview
 version:             0.1.0.0
-github:              "githubuser/purview"
+github:              "purview-framework/purview"
 license:             BSD3
 author:              "Ian Davidson"
 maintainer:          "bontaq@gmail.com"
