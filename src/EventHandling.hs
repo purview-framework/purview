@@ -32,8 +32,19 @@ applyNewState eventBus fromEvent@FromEvent { message, location } component = cas
     in
       Hide children
 
-  -- TODO: continue down the tree
-  x -> x
+  Html kind children ->
+    Html kind $ fmap (applyNewState eventBus fromEvent) children
+
+  Attribute n cont ->
+    Attribute n (applyNewState eventBus fromEvent cont)
+
+  Once fn run cont ->
+    Once fn run $ applyNewState eventBus fromEvent cont
+
+  Text x -> Text x
+
+  Value x -> Value x
+
 
 runEvent :: Monad m => FromEvent -> Purview a m -> m [FromEvent]
 runEvent fromEvent@FromEvent { message, location } component = case component of
@@ -94,4 +105,8 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
 
   Hide x -> runEvent fromEvent x
 
-  x -> pure []
+  Once _ _ cont -> runEvent fromEvent cont
+
+  Text _ -> pure []
+
+  Value _ -> pure []

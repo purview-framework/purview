@@ -2,8 +2,10 @@ module PrepareTreeSpec where
 
 import Prelude hiding (div)
 import Test.Hspec
+import Test.QuickCheck
 import Data.Time
 
+import TreeGenerator
 import Events
 import Component
 import PrepareTree
@@ -12,6 +14,9 @@ spec :: SpecWith ()
 spec = parallel $ do
 
   describe "prepareTree" $ do
+
+    it "works across a variety of trees" $ do
+      property $ \x -> show (fst (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
 
     it "sets hasRun to True" $ do
       let

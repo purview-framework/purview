@@ -41,14 +41,17 @@ library
       Rendering
       RenderingSpec
       Spec
+      TreeGenerator
       Wrapper
       Paths_purview
   hs-source-dirs:
       src
+  ghc-options: -Wincomplete-patterns
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
@@ -76,7 +79,8 @@ executable purview-exe
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
@@ -112,6 +116,7 @@ test-suite purview-test
       PurviewSpec
       Rendering
       RenderingSpec
+      TreeGenerator
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -120,7 +125,8 @@ test-suite purview-test
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple

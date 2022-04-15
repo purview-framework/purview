@@ -62,4 +62,6 @@ prepareTree' parentLocation location component = case component of
     let (child, actions) = prepareTree' parentLocation location x
     in (Hide child, actions)
 
-  component' -> (component', [])
+  Value x -> (Value x, [])
+
+  Text x -> (Text x, [])
