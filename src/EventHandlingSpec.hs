@@ -8,11 +8,14 @@ import Prelude hiding (div)
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM (atomically)
 import Control.Monad.IO.Class
+import Test.Hspec.QuickCheck
 import Test.Hspec
+import Test.QuickCheck
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Time
 
+
+import TreeGeneratorSpec
 import Component
 import EventHandling
 import Events
@@ -82,6 +85,26 @@ spec = parallel $ do
       render afterState
         `shouldBe`
         "<div handler=\"null\">1</div>"
+
+    it "works for clicks across many different trees" $
+      property $ \x -> do
+        let event = FromEvent { event="click", message="up", location=Nothing }
+        chan <- newTChanIO
+
+        component <- apply chan event (x :: Purview String IO)
+        render component `shouldContain` "always present"
+
+    it "works for setting state across many different trees" $
+      property $ \x -> do
+        let event = FromEvent { event="newState", message="up", location=Nothing }
+        chan <- newTChanIO
+
+        component <- apply chan event (x :: Purview String IO)
+        -- this tests 2 things
+        -- 1. that it fully goes down the tree
+        -- 2. the component remains the same, since the event doesn't
+        --    have a location that matches anything
+        component `shouldBe` x
 
     it "works with typed messages" $ do
       let

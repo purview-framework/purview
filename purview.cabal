@@ -41,6 +41,7 @@ library
       Rendering
       RenderingSpec
       Spec
+      TreeGeneratorSpec
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -114,6 +115,7 @@ test-suite purview-test
       PurviewSpec
       Rendering
       RenderingSpec
+      TreeGeneratorSpec
       Wrapper
       Paths_purview
   hs-source-dirs:
