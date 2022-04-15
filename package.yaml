@@ -36,7 +36,6 @@ dependencies:
 - time
 - freer-simple
 - QuickCheck
-- criterion
 
 build-tools:
   - hspec-discover == 2.*
@@ -45,6 +44,13 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
+    - Component
+    - Diffing
+    - EventHandling
+    - PrepareTree
+    - TreeGenerator
+    - Rendering
+    - Events
   ghc-options:
     - -Wincomplete-patterns
 
@@ -59,10 +65,19 @@ executables:
     dependencies:
     - purview
 
+  purview-perf-test:
+    main: Criterion.hs
+    source-dirs: performance
+    ghc-options:
+    - -main-is Criterion
+    dependencies:
+    - criterion
+    - purview
+
 tests:
   purview-test:
     main:                Spec.hs
-    source-dirs:         src
+    source-dirs:         tests
     ghc-options:
     - -threaded
     - -rtsopts

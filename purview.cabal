@@ -26,22 +26,15 @@ source-repository head
 library
   exposed-modules:
       Purview
-  other-modules:
       Component
-      ComponentSpec
       Diffing
-      DiffingSpec
       EventHandling
-      EventHandlingSpec
-      EventLoop
-      Events
       PrepareTree
-      PrepareTreeSpec
-      PurviewSpec
-      Rendering
-      RenderingSpec
-      Spec
       TreeGenerator
+      Rendering
+      Events
+  other-modules:
+      EventLoop
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -54,7 +47,6 @@ library
     , aeson
     , base >=4.7 && <5
     , bytestring
-    , criterion
     , freer-simple
     , hspec
     , raw-strings-qq
@@ -84,6 +76,35 @@ executable purview-exe
     , aeson
     , base >=4.7 && <5
     , bytestring
+    , freer-simple
+    , hspec
+    , purview
+    , raw-strings-qq
+    , scotty
+    , stm
+    , text
+    , time
+    , wai
+    , wai-extra
+    , wai-websockets
+    , warp
+    , websockets
+  default-language: Haskell2010
+
+executable purview-perf-test
+  main-is: Criterion.hs
+  other-modules:
+      Paths_purview
+  hs-source-dirs:
+      performance
+  ghc-options: -main-is Criterion
+  build-tool-depends:
+      hspec-discover:hspec-discover ==2.*
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , bytestring
     , criterion
     , freer-simple
     , hspec
@@ -104,25 +125,15 @@ test-suite purview-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Component
       ComponentSpec
-      Diffing
       DiffingSpec
-      EventHandling
       EventHandlingSpec
-      EventLoop
-      Events
-      PrepareTree
       PrepareTreeSpec
-      Purview
       PurviewSpec
-      Rendering
       RenderingSpec
-      TreeGenerator
-      Wrapper
       Paths_purview
   hs-source-dirs:
-      src
+      tests
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Spec
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
@@ -131,7 +142,6 @@ test-suite purview-test
     , aeson
     , base >=4.7 && <5
     , bytestring
-    , criterion
     , freer-simple
     , hspec
     , purview
