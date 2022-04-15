@@ -49,7 +49,7 @@ eventLoop runner log eventBus connection component = do
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case event of
-        "newState" -> applyNewState eventBus message newTree
+        "newState" -> applyNewState message newTree
         _          -> newTree
 
   -- this is where handlers are actually called, and their events are sent back into
