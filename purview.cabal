@@ -41,11 +41,12 @@ library
       Rendering
       RenderingSpec
       Spec
-      TreeGeneratorSpec
+      TreeGenerator
       Wrapper
       Paths_purview
   hs-source-dirs:
       src
+  ghc-options: -Wincomplete-patterns
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
@@ -115,7 +116,7 @@ test-suite purview-test
       PurviewSpec
       Rendering
       RenderingSpec
-      TreeGeneratorSpec
+      TreeGenerator
       Wrapper
       Paths_purview
   hs-source-dirs:

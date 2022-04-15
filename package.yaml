@@ -44,8 +44,8 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
-#  ghc-options:
-#    - -Wall
+  ghc-options:
+    - -Wincomplete-patterns
 
 executables:
   purview-exe:

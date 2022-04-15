@@ -7,7 +7,7 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck hiding (classes, once)
 
-import TreeGeneratorSpec
+import TreeGenerator
 import Component
 import Events
 import Rendering

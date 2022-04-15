@@ -14,8 +14,7 @@ import Test.QuickCheck
 import Data.Aeson
 import Data.Aeson.TH
 
-
-import TreeGeneratorSpec
+import TreeGenerator
 import Component
 import EventHandling
 import Events
