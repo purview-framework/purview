@@ -30,7 +30,6 @@ library
       Diffing
       EventHandling
       PrepareTree
-      TreeGenerator
       Rendering
       Events
   other-modules:
@@ -43,12 +42,10 @@ library
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      QuickCheck
-    , aeson
+      aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
-    , hspec
     , raw-strings-qq
     , scotty
     , stm
@@ -72,12 +69,10 @@ executable purview-exe
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      QuickCheck
-    , aeson
+      aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
-    , hspec
     , purview
     , raw-strings-qq
     , scotty
@@ -101,13 +96,11 @@ executable purview-perf-test
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      QuickCheck
-    , aeson
+      aeson
     , base >=4.7 && <5
     , bytestring
     , criterion
     , freer-simple
-    , hspec
     , purview
     , raw-strings-qq
     , scotty
@@ -131,6 +124,7 @@ test-suite purview-test
       PrepareTreeSpec
       PurviewSpec
       RenderingSpec
+      TreeGenerator
       Paths_purview
   hs-source-dirs:
       tests

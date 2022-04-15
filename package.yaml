@@ -32,10 +32,8 @@ dependencies:
 - wai-extra
 - websockets
 - scotty
-- hspec
 - time
 - freer-simple
-- QuickCheck
 
 build-tools:
   - hspec-discover == 2.*
@@ -48,7 +46,6 @@ library:
     - Diffing
     - EventHandling
     - PrepareTree
-    - TreeGenerator
     - Rendering
     - Events
   ghc-options:
@@ -71,8 +68,8 @@ executables:
     ghc-options:
     - -main-is Criterion
     dependencies:
-    - criterion
     - purview
+    - criterion
 
 tests:
   purview-test:
@@ -85,3 +82,5 @@ tests:
     - -main-is Spec
     dependencies:
     - purview
+    - QuickCheck
+    - hspec
