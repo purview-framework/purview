@@ -32,10 +32,8 @@ dependencies:
 - wai-extra
 - websockets
 - scotty
-- hspec
 - time
 - freer-simple
-- QuickCheck
 
 build-tools:
   - hspec-discover == 2.*
@@ -44,24 +42,39 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
+    - Component
+    - Diffing
+    - EventHandling
+    - PrepareTree
+    - Rendering
+    - Events
   ghc-options:
     - -Wincomplete-patterns
 
 executables:
-  purview-exe:
-    main:                Main.hs
-    source-dirs:         app
+#  purview-exe:
+#    main:                Main.hs
+#    source-dirs:         app
+#    ghc-options:
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - purview
+
+  purview-perf-test:
+    main: Criterion.hs
+    source-dirs: performance
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    - -main-is Criterion
     dependencies:
     - purview
+    - criterion
 
 tests:
   purview-test:
     main:                Spec.hs
-    source-dirs:         src
+    source-dirs:         tests
     ghc-options:
     - -threaded
     - -rtsopts
@@ -69,3 +82,5 @@ tests:
     - -main-is Spec
     dependencies:
     - purview
+    - QuickCheck
+    - hspec

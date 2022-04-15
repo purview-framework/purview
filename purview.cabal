@@ -26,22 +26,14 @@ source-repository head
 library
   exposed-modules:
       Purview
-  other-modules:
       Component
-      ComponentSpec
       Diffing
-      DiffingSpec
       EventHandling
-      EventHandlingSpec
-      EventLoop
-      Events
       PrepareTree
-      PrepareTreeSpec
-      PurviewSpec
       Rendering
-      RenderingSpec
-      Spec
-      TreeGenerator
+      Events
+  other-modules:
+      EventLoop
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -50,12 +42,10 @@ library
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      QuickCheck
-    , aeson
+      aeson
     , base >=4.7 && <5
     , bytestring
     , freer-simple
-    , hspec
     , raw-strings-qq
     , scotty
     , stm
@@ -68,23 +58,21 @@ library
     , websockets
   default-language: Haskell2010
 
-executable purview-exe
-  main-is: Main.hs
+executable purview-perf-test
+  main-is: Criterion.hs
   other-modules:
-      Shop
       Paths_purview
   hs-source-dirs:
-      app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+      performance
+  ghc-options: -main-is Criterion
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*
   build-depends:
-      QuickCheck
-    , aeson
+      aeson
     , base >=4.7 && <5
     , bytestring
+    , criterion
     , freer-simple
-    , hspec
     , purview
     , raw-strings-qq
     , scotty
@@ -102,25 +90,16 @@ test-suite purview-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Component
       ComponentSpec
-      Diffing
       DiffingSpec
-      EventHandling
       EventHandlingSpec
-      EventLoop
-      Events
-      PrepareTree
       PrepareTreeSpec
-      Purview
       PurviewSpec
-      Rendering
       RenderingSpec
       TreeGenerator
-      Wrapper
       Paths_purview
   hs-source-dirs:
-      src
+      tests
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Spec
   build-tool-depends:
       hspec-discover:hspec-discover ==2.*

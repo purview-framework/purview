@@ -15,31 +15,33 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: TChan FromEvent -> FromEvent -> Purview a m -> Purview a m
-applyNewState eventBus fromEvent@FromEvent { message, location } component = case component of
+applyNewState :: FromEvent -> Purview a m -> Purview a m
+applyNewState fromEvent@FromEvent { message, location } component = case component of
   EffectHandler ploc loc state handler cont -> case fromJSON message of
     Success newState -> do
       if loc == location
         then EffectHandler ploc loc newState handler cont
-        -- TODO: continue down the tree
-        else EffectHandler ploc loc state handler cont
-    Error _ -> do
-      EffectHandler ploc loc state handler cont
+        else
+          let cont' = fmap (applyNewState fromEvent) cont
+          in EffectHandler ploc loc state handler cont'
+    Error _ ->
+      let cont' = fmap (applyNewState fromEvent) cont
+      in EffectHandler ploc loc state handler cont'
 
   Hide x ->
     let
-      children = applyNewState eventBus fromEvent x
+      children = applyNewState fromEvent x
     in
       Hide children
 
   Html kind children ->
-    Html kind $ fmap (applyNewState eventBus fromEvent) children
+    Html kind $ fmap (applyNewState fromEvent) children
 
   Attribute n cont ->
-    Attribute n (applyNewState eventBus fromEvent cont)
+    Attribute n (applyNewState fromEvent cont)
 
   Once fn run cont ->
-    Once fn run $ applyNewState eventBus fromEvent cont
+    Once fn run $ applyNewState fromEvent cont
 
   Text x -> Text x
 

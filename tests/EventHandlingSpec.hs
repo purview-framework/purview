@@ -42,7 +42,7 @@ hell.
 apply :: MonadIO m => TChan FromEvent -> FromEvent -> Purview a m -> m (Purview a m)
 apply eventBus fromEvent@FromEvent {event=eventKind} component =
   case eventKind of
-    "newState" -> pure $ applyNewState eventBus fromEvent component
+    "newState" -> pure $ applyNewState fromEvent component
     _          -> do
       events <- runEvent fromEvent component
       liftIO $ mapM_ (atomically . writeTChan eventBus) events
