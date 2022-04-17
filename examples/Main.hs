@@ -142,9 +142,6 @@ $(deriveJSON defaultOptions  ''Todo)
 
 handler = effectHandler [] action
   where
-    -- hmm, a little ungainly having to specify
-    action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
-
     action (Submit Fields { description }) todos = pure $
       (todos <> [Todo { description=description, done=False }], [])
 
@@ -191,6 +188,7 @@ addNewTodoForm =
           ]
     ]
 
+top :: Monad m => (() -> Purview () any m) -> Purview () () m
 top = effectHandler () reducer
   where
     reducer _ _ = pure ((), [])
