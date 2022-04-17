@@ -48,15 +48,15 @@ import           Wrapper
 
 type Log m = String -> m ()
 
-data Configuration a m = Configuration
-  { component         :: Purview a m
+data Configuration parentAction action m = Configuration
+  { component         :: Purview parentAction action m
   , interpreter       :: m [FromEvent] -> IO [FromEvent]
   , logger            :: String -> IO ()
   , htmlEventHandlers :: [HtmlEventHandler]
   , htmlHead          :: Text
   }
 
-defaultConfiguration :: Configuration a IO
+defaultConfiguration :: Configuration parentAction action IO
 defaultConfiguration = Configuration
   { component         = div []
   , interpreter       = id
@@ -65,7 +65,7 @@ defaultConfiguration = Configuration
   , htmlHead          = ""
   }
 
-run :: Monad m => Configuration () m -> IO ()
+run :: Monad m => Configuration () () m -> IO ()
 run Configuration { component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -76,7 +76,7 @@ run Configuration { component, logger, interpreter, htmlEventHandlers, htmlHead 
         (webSocketHandler interpreter logger component)
         requestHandler'
 
-requestHandler :: Purview a m -> Text -> [HtmlEventHandler] -> IO Wai.Application
+requestHandler :: Purview parentAction action m -> Text -> [HtmlEventHandler] -> IO Wai.Application
 requestHandler routes htmlHead htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -101,7 +101,7 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   webSocketMessageHandler eventBus websocketConnection
 
-webSocketHandler :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview a m -> WebSocket.ServerApp
+webSocketHandler :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview parentAction action m -> WebSocket.ServerApp
 webSocketHandler runner log component pending = do
   putStrLn "ws connected"
   conn <- WebSocket.acceptRequest pending

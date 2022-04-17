@@ -15,7 +15,7 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: FromEvent -> Purview a m -> Purview a m
+applyNewState :: FromEvent -> Purview parentAction action m -> Purview parentAction action m
 applyNewState fromEvent@FromEvent { message, location } component = case component of
   EffectHandler ploc loc state handler cont -> case fromJSON message of
     Success newState -> do
@@ -48,7 +48,7 @@ applyNewState fromEvent@FromEvent { message, location } component = case compone
   Value x -> Value x
 
 
-runEvent :: Monad m => FromEvent -> Purview a m -> m [FromEvent]
+runEvent :: Monad m => FromEvent -> Purview parentAction action m -> m [FromEvent]
 runEvent fromEvent@FromEvent { message, location } component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do

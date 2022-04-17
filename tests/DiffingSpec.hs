@@ -37,7 +37,7 @@ spec = parallel $ do
     describe "message handlers" $ do
       it "doesn't diff handler children if the state is the same" $ do
         let
-          mkHandler :: (String -> Purview String IO) -> Purview a IO
+          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
           mkHandler = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
           oldTree = div [ mkHandler (const (text "the original")) ]
           newTree = div [ mkHandler (const (text "this is different")) ]
@@ -46,7 +46,7 @@ spec = parallel $ do
 
       it "diffs handler children if the state is different" $ do
         let
-          handler1 :: (String -> Purview String IO) -> Purview a IO
+          handler1 :: (String -> Purview String action IO) -> Purview String action IO
           handler1 = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
           handler2 = messageHandler "different state" (\action state -> (state <> action, [] :: [DefaultAction]))
           oldTree = div [ handler1 (const (text "the original")) ]
@@ -57,7 +57,7 @@ spec = parallel $ do
     describe "effect handlers" $ do
       it "doesn't diff handler children if the state is the same" $ do
         let
-          mkHandler :: (String -> Purview String IO) -> Purview a IO
+          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
           mkHandler = effectHandler "initial state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
           oldTree = div [ mkHandler (const (text "the original")) ]
           newTree = div [ mkHandler (const (text "this is different")) ]
@@ -66,7 +66,7 @@ spec = parallel $ do
 
       it "diffs handler children if the state is different" $ do
         let
-          handler1 :: (String -> Purview String IO) -> Purview a IO
+          handler1 :: (String -> Purview String action IO) -> Purview String action IO
           handler1 = effectHandler "initial state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
           handler2 = effectHandler "different state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
           oldTree = div [ handler1 (const (text "the original")) ]

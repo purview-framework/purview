@@ -39,7 +39,7 @@ hell.
 
 -}
 
-apply :: MonadIO m => TChan FromEvent -> FromEvent -> Purview a m -> m (Purview a m)
+apply :: MonadIO m => TChan FromEvent -> FromEvent -> Purview parentAction action m -> m (Purview parentAction action m)
 apply eventBus fromEvent@FromEvent {event=eventKind} component =
   case eventKind of
     "newState" -> pure $ applyNewState fromEvent component
@@ -90,7 +90,7 @@ spec = parallel $ do
         let event = FromEvent { event="click", message="up", location=Nothing }
         chan <- newTChanIO
 
-        component <- apply chan event (x :: Purview String IO)
+        component <- apply chan event (x :: Purview String String IO)
         render component `shouldContain` "always present"
 
     it "works for setting state across many different trees" $
@@ -98,7 +98,7 @@ spec = parallel $ do
         let event = FromEvent { event="newState", message="up", location=Nothing }
         chan <- newTChanIO
 
-        component <- apply chan event (x :: Purview String IO)
+        component <- apply chan event (x :: Purview String String IO)
         -- this tests 2 things
         -- 1. that it fully goes down the tree
         -- 2. the component remains the same, since the event doesn't

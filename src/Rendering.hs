@@ -46,10 +46,10 @@ they reach a real HTML tag.
 
 -}
 
-render :: Purview a m -> String
+render :: Purview parentAction action m -> String
 render = render' []
 
-render' :: [Attributes a] -> Purview a m -> String
+render' :: [Attributes action] -> Purview parentAction action m -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"
@@ -63,7 +63,7 @@ render' attrs tree = case tree of
 
   EffectHandler parentLocation location state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
-      render' attrs (cont state) <>
+      render' attrs (unsafeCoerce cont state) <>
     "</div>"
 
   Once _ _hasRun cont ->

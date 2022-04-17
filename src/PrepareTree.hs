@@ -17,12 +17,12 @@ It also assigns a location to message and effect handlers.
 
 -}
 
-prepareTree :: Purview a m -> (Purview a m, [FromEvent])
+prepareTree :: Purview parentAction action m -> (Purview parentAction action m, [FromEvent])
 prepareTree = prepareTree' [] []
 
 type Location = [Int]
 
-prepareTree' :: Location -> Location -> Purview a m -> (Purview a m, [FromEvent])
+prepareTree' :: Location -> Location -> Purview parentAction action m -> (Purview parentAction action m, [FromEvent])
 prepareTree' parentLocation location component = case component of
   Attribute attrs cont ->
     let result = prepareTree' parentLocation location cont

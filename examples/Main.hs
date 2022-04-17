@@ -142,9 +142,6 @@ $(deriveJSON defaultOptions  ''Todo)
 
 handler = effectHandler [] action
   where
-    -- hmm, a little ungainly having to specify
-    action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
-
     action (Submit Fields { description }) todos = pure $
       (todos <> [Todo { description=description, done=False }], [])
 
@@ -191,7 +188,12 @@ addNewTodoForm =
           ]
     ]
 
-main = Purview.run (defaultConfiguration { component=handler view })
+top :: Monad m => (() -> Purview () any m) -> Purview () () m
+top = effectHandler () reducer
+  where
+    reducer _ _ = pure ((), [])
+
+main = Purview.run (defaultConfiguration { component=top $ const $ handler view })
 
 -------------------------
 -- Using Input Example --
