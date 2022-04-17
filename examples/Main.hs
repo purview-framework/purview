@@ -191,7 +191,11 @@ addNewTodoForm =
           ]
     ]
 
-main = Purview.run (defaultConfiguration { component=handler view })
+top = effectHandler () reducer
+  where
+    reducer _ _ = pure ((), [])
+
+main = Purview.run (defaultConfiguration { component=top $ const $ handler view })
 
 -------------------------
 -- Using Input Example --

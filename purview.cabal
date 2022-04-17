@@ -62,6 +62,7 @@ executable purview-exe
   main-is: Main.hs
   other-modules:
       Shop
+      Typings
       Paths_purview
   hs-source-dirs:
       examples

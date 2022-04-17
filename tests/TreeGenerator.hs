@@ -17,7 +17,7 @@ nicely.
 
 -}
 
-testHandler :: (String -> Purview String IO) -> Purview a IO
+testHandler :: (String -> Purview parentAction action IO) -> Purview parentAction action IO
 testHandler = effectHandler ("" :: String) reducer
   where
     reducer :: String -> String -> IO (String, [DirectedEvent String String])
@@ -25,7 +25,7 @@ testHandler = effectHandler ("" :: String) reducer
 
 testOnce = once (\send -> send "")
 
-sizedArbExpr :: Int -> Gen (Purview String IO)
+sizedArbExpr :: Int -> Gen (Purview parentAction action IO)
 sizedArbExpr 0 = do pure $ text "always present"
 sizedArbExpr n = do
   es <- vectorOf 2 (sizedArbExpr (n-1))
@@ -36,5 +36,5 @@ sizedArbExpr n = do
     , testOnce (div es)
     ]
 
-instance Arbitrary (Purview String IO) where
+instance Arbitrary (Purview parentAction action IO) where
   arbitrary = resize 3 $ sized sizedArbExpr

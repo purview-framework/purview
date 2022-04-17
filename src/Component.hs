@@ -16,31 +16,38 @@ data Attributes action where
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
 
-data Purview a m where
-  Attribute :: Attributes a -> Purview a m -> Purview a m
-  Text :: String -> Purview a m
-  Html :: String -> [Purview a m] -> Purview a m
-  Value :: Show a => a -> Purview a m
+data Purview parentAction action m where
+  Attribute :: Attributes action -> Purview parentAction action m -> Purview parentAction action m
+  Text :: String -> Purview parentAction action m
+  Html :: String -> [Purview parentAction action m] -> Purview parentAction action m
+  Value :: Show a => a -> Purview parentAction action m
 
   EffectHandler
-    :: (FromJSON action, FromJSON state, ToJSON action, ToJSON a, ToJSON state, Typeable state, Eq state)
+    :: ( FromJSON newAction
+       , ToJSON newAction
+       , ToJSON parentAction
+       , FromJSON state
+       , ToJSON state
+       , Typeable state
+       , Eq state
+       )
     => ParentIdentifier
     -> Identifier
     -> state
-    -> (action -> state -> m (state, [DirectedEvent a action]))
-    -> (state -> Purview action m)
-    -> Purview action m
+    -> (newAction-> state -> m (state, [DirectedEvent parentAction newAction]))
+    -> (state -> Purview newAction any m)
+    -> Purview parentAction newAction m
 
   Once
     :: (ToJSON action)
     => ((action -> FromEvent) -> FromEvent)
     -> Bool  -- has run
-    -> Purview a m
-    -> Purview a m
+    -> Purview parentAction action m
+    -> Purview parentAction action m
 
-  Hide :: Purview a m -> Purview b m
+  Hide :: Purview parentAction newAction m -> Purview parentAction any m
 
-instance Show (Purview a m) where
+instance Show (Purview parentAction action m) where
   show (EffectHandler parentLocation location state _action cont) =
     "EffectHandler " <> show parentLocation <> " " <> show location <> " " <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
@@ -51,32 +58,32 @@ instance Show (Purview a m) where
   show (Value value) = show value
   show (Hide a) = "Hide " <> show a
 
-instance Eq (Purview a m) where
+instance Eq (Purview parentAction action m) where
   a == b = show a == show b
 
 -- Various helpers
-div :: [Purview a m] -> Purview a m
+div :: [Purview parentAction action m] -> Purview parentAction action m
 div = Html "div"
 
-form :: [Purview a m] -> Purview a m
+form :: [Purview parentAction action m] -> Purview parentAction action m
 form = Html "form"
 
-text :: String -> Purview a m
+text :: String -> Purview parentAction action m
 text = Text
 
-style :: String -> Purview a m -> Purview a m
+style :: String -> Purview parentAction action m -> Purview parentAction action m
 style = Attribute . Style
 
-onClick :: ToJSON b => b -> Purview b m -> Purview b m
+onClick :: ToJSON action => action -> Purview parentAction action m -> Purview parentAction action m
 onClick = Attribute . On "click"
 
-onSubmit :: ToJSON b => b -> Purview b m -> Purview b m
+onSubmit :: ToJSON action => action -> Purview parentAction action m -> Purview parentAction action m
 onSubmit = Attribute . On "submit"
 
-identifier :: String -> Purview a m -> Purview a m
+identifier :: String -> Purview parentAction action m -> Purview parentAction action m
 identifier = Attribute . Generic "id"
 
-classes :: [String] -> Purview a m -> Purview a m
+classes :: [String] -> Purview parentAction action m -> Purview parentAction action m
 classes xs = Attribute . Generic "class" $ unwords xs
 
 -- effectHandler
