@@ -32,8 +32,6 @@ dependencies:
 - wai-extra
 - websockets
 - scotty
-- time
-- freer-simple
 
 build-tools:
   - hspec-discover == 2.*
@@ -61,6 +59,8 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - purview
+    - time
+    - freer-simple
 
   purview-perf-test:
     main: Criterion.hs

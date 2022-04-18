@@ -6,8 +6,9 @@ module EventHandling where
 import           Control.Concurrent.STM.TChan
 import           Data.Aeson
 
-import Events
-import Component
+import           Events
+import           Component
+
 
 {-|
 
