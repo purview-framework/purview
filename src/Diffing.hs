@@ -6,6 +6,7 @@ import Data.Typeable
 import Data.Aeson
 
 import Component
+import Unsafe.Coerce (unsafeCoerce)
 
 {-
 
@@ -32,7 +33,11 @@ data Change a = Update Location a | Delete Location a | Add Location a
 instance ToJSON a => ToJSON (Change a) where
   toEncoding = genericToEncoding defaultOptions
 
-diff :: Location -> Purview parentAction action m -> Purview parentAction action m -> [Change (Purview parentAction action m)]
+diff
+  :: Location
+  -> Purview parentAction action m
+  -> Purview parentAction action m
+  -> [Change (Purview parentAction action m)]
 diff location oldGraph newGraph = case (oldGraph, newGraph) of
 
   (Html kind children, Html kind' children') ->
@@ -49,12 +54,26 @@ diff location oldGraph newGraph = case (oldGraph, newGraph) of
   (unknown, Html kind children) ->
     [Update location newGraph]
 
-  (Hide (EffectHandler _ _ state _ cont), Hide (EffectHandler _ _ newState _ newCont)) ->
+  (Hide (EffectHandler _ loc state _ cont), Hide (EffectHandler _ loc' newState _ newCont)) ->
     case cast state of
       Just state' ->
-        [Update location newGraph | state' /= newState]
+        [Update location newGraph | state' /= newState && loc == loc']
+        -- TODO: this is weak, instead of walking the whole tree it should be targetted
+        --       to specific effect handlers
+        <> diff (0:location) (unsafeCoerce cont state) (unsafeCoerce newCont newState)
       -- different kinds of state
       Nothing ->
         [Update location newGraph]
 
-  (a, b) -> error (show a <> "\n" <> show b)
+  ((Attribute attr a), (Attribute attr' b)) ->
+    [Update location newGraph | attr /= attr']
+
+  ((Value _), _) ->
+    [Update location newGraph]
+
+  ((EffectHandler _ _ _ _ _), _) ->
+    [Update location newGraph]
+
+  (_, _) -> [Update location newGraph]
+
+  -- (a, b) -> error (show a <> "\n" <> show b)

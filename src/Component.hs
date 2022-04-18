@@ -13,6 +13,16 @@ data Attributes action where
   Style :: String -> Attributes action
   Generic :: String -> String -> Attributes action
 
+instance Eq (Attributes action) where
+  (Style a) == (Style b) = a == b
+  (Style _) == _ = False
+
+  (On kind action) == (On kind' action') = kind == kind' && encode action == encode action'
+  (On _ _) == _ = False
+
+  (Generic name value) == (Generic name' value') = name == name' && value == value'
+  (Generic _ _) == _ = False
+
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
 
@@ -49,7 +59,11 @@ data Purview parentAction action m where
 
 instance Show (Purview parentAction action m) where
   show (EffectHandler parentLocation location state _action cont) =
-    "EffectHandler " <> show parentLocation <> " " <> show location <> " " <> show (cont state)
+    "EffectHandler "
+    <> show parentLocation <> " "
+    <> show location <> " "
+    <> show (encode state) <> " "
+    <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute _attrs cont) = "Attr " <> show cont
   show (Text str) = show str

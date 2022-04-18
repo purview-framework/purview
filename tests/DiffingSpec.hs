@@ -35,14 +35,14 @@ spec = parallel $ do
       diff [] oldTree newTree `shouldBe` [Update [0] (div [ text "morning" ])]
 
     describe "message handlers" $ do
-      it "doesn't diff handler children if the state is the same" $ do
-        let
-          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
-          mkHandler = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
-          oldTree = div [ mkHandler (const (text "the original")) ]
-          newTree = div [ mkHandler (const (text "this is different")) ]
-
-        diff [] oldTree newTree `shouldBe` []
+--      it "doesn't diff handler children if the state is the same" $ do
+--        let
+--          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
+--          mkHandler = messageHandler "initial state" (\action state -> (state <> action, [] :: [DefaultAction]))
+--          oldTree = div [ mkHandler (const (text "the original")) ]
+--          newTree = div [ mkHandler (const (text "this is different")) ]
+--
+--        diff [] oldTree newTree `shouldBe` []
 
       it "diffs handler children if the state is different" $ do
         let
@@ -52,17 +52,20 @@ spec = parallel $ do
           oldTree = div [ handler1 (const (text "the original")) ]
           newTree = div [ handler2 (const (text "this is different")) ]
 
-        diff [] oldTree newTree `shouldBe` [Update [0] (handler2 (const (text "this is different")))]
+        diff [] oldTree newTree `shouldBe`
+          [ Update [0] (handler2 (const (text "this is different")))
+          , Update [0, 0] (text "this is different")
+          ]
 
     describe "effect handlers" $ do
-      it "doesn't diff handler children if the state is the same" $ do
-        let
-          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
-          mkHandler = effectHandler "initial state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
-          oldTree = div [ mkHandler (const (text "the original")) ]
-          newTree = div [ mkHandler (const (text "this is different")) ]
-
-        diff [] oldTree newTree `shouldBe` []
+--      it "doesn't diff handler children if the state is the same" $ do
+--        let
+--          mkHandler :: (String -> Purview String action IO) -> Purview String action IO
+--          mkHandler = effectHandler "initial state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
+--          oldTree = div [ mkHandler (const (text "the original")) ]
+--          newTree = div [ mkHandler (const (text "this is different")) ]
+--
+--        diff [] oldTree newTree `shouldBe` []
 
       it "diffs handler children if the state is different" $ do
         let
@@ -72,7 +75,23 @@ spec = parallel $ do
           oldTree = div [ handler1 (const (text "the original")) ]
           newTree = div [ handler2 (const (text "this is different")) ]
 
-        diff [] oldTree newTree `shouldBe` [Update [0] (handler2 (const (text "this is different")))]
+        diff [] oldTree newTree `shouldBe`
+          [ Update [0] (handler2 (const (text "this is different")))
+          , Update [0, 0] (text "this is different")
+          ]
+
+      it "continues going down the tree even if the state is the same at the top" $ do
+        let
+          handler1 :: (String -> Purview String action IO) -> Purview String action IO
+          handler1 = effectHandler "initial state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
+          handler2 = effectHandler "different state" (\action state -> pure $ (state <> action, ([] :: [DirectedEvent String String])))
+          oldTree = div [ handler1 . const $ handler1 (const (text "the original")) ]
+          newTree = div [ handler1 . const $ handler2 (const (text "this is different")) ]
+
+        diff [] oldTree newTree `shouldBe`
+          [ Update [0, 0] (handler2 (const (text "this is different")))
+          , Update [0, 0, 0] (text "this is different")
+          ]
 
 
 main :: IO ()
