@@ -39,7 +39,7 @@ spec = parallel $ do
 
       show (fst (prepareTree component))
         `shouldBe`
-        "EffectHandler Just [] Just [] Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
+        "EffectHandler Just [] Just [] \"null\" Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
 
       length (snd (prepareTree component))
         `shouldBe`
@@ -111,7 +111,7 @@ spec = parallel $ do
 
       show graphWithLocation
         `shouldBe`
-        "div [  Hide EffectHandler Just [] Just [0] \"\" Hide EffectHandler Just [] Just [1] \"\" ] "
+        "div [  Hide EffectHandler Just [] Just [0] \"null\" \"\" Hide EffectHandler Just [] Just [1] \"null\" \"\" ] "
 
     it "assigns a different location to nested handlers" $ do
       let
@@ -129,7 +129,7 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareTree component)
 
-      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Just [] Hide EffectHandler Just [] Just [0] \"\""
+      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Just [] \"null\" Hide EffectHandler Just [] Just [0] \"null\" \"\""
 
 
 main :: IO ()

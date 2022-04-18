@@ -193,7 +193,7 @@ top = effectHandler () reducer
   where
     reducer _ _ = pure ((), [])
 
-main = Purview.run (defaultConfiguration { component=top $ const $ handler view })
+main = Purview.run (defaultConfiguration { component=top . const $ handler view, devMode=True })
 
 -------------------------
 -- Using Input Example --
@@ -268,34 +268,32 @@ main = Purview.run (defaultConfiguration { component=top $ const $ handler view 
 --
 -- handler = messageHandler (0 :: Int) action
 --   where
---     action Up   state = state + 1
---     action Down state = state - 1
+--     action Up   state = (state + 1, [])
+--     action Down state = (state - 1, [])
 --
--- handler' = messageHandler (0 :: Int) action
---   where
---     action Port      state = state + 1
---     action Starboard state = state - 1
+-- -- handler' = messageHandler (0 :: Int) action
+-- --   where
+-- --     action Port      state = (state + 1, [])
+-- --     action Starboard state = (state - 1, [])
+-- --
+-- -- component' = handler' (\state -> div [ text "" ])
 --
--- component' = handler' (\state -> div [ text "" ])
---
--- counter :: Int -> Purview Direction
+-- counter :: Int -> Purview Direction Direction m
 -- counter state = div
 --   [ upButton
 --   , text $ "count: " <> show state
 --   , downButton
 --   ]
 --
--- component = handler counter
+-- view = handler counter
 --
 -- multiCounter = div
---   [ component
---   , component
---   , component
+--   [ view
+--   , view
+--   , view
 --   ]
 --
--- logger = print
---
--- main = run logger component
+-- main = Purview.run defaultConfiguration { component=view }
 
 
 -------------------------

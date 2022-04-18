@@ -45,12 +45,10 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
-    , freer-simple
     , raw-strings-qq
     , scotty
     , stm
     , text
-    , time
     , wai
     , wai-extra
     , wai-websockets
@@ -100,13 +98,11 @@ executable purview-perf-test
     , base >=4.7 && <5
     , bytestring
     , criterion
-    , freer-simple
     , purview
     , raw-strings-qq
     , scotty
     , stm
     , text
-    , time
     , wai
     , wai-extra
     , wai-websockets
@@ -136,7 +132,6 @@ test-suite purview-test
     , aeson
     , base >=4.7 && <5
     , bytestring
-    , freer-simple
     , hspec
     , purview
     , raw-strings-qq
