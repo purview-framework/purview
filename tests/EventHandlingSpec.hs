@@ -95,7 +95,7 @@ spec = parallel $ do
 
     it "works for setting state across many different trees" $
       property $ \x -> do
-        let event = FromEvent { event="newState", message="up", location=Nothing }
+        let event = FromEvent { event="newState", message="up", location=Just [] }
         chan <- newTChanIO
 
         component <- apply chan event (x :: Purview String String IO)

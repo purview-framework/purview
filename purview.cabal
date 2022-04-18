@@ -138,6 +138,7 @@ test-suite purview-test
     , scotty
     , stm
     , text
+    , time
     , wai
     , wai-extra
     , wai-websockets

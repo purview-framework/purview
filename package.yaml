@@ -84,3 +84,4 @@ tests:
     - purview
     - QuickCheck
     - hspec
+    - time
