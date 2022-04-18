@@ -171,7 +171,7 @@ view todos = container
   ]
 
 -- submission form
-submitButton = typeAttr "submit" $ button [ text "submit?" ]
+submitButton = typeAttr "submit" $ button [ text "submit" ]
 
 defaultFields = Fields { description="" }
 
@@ -193,7 +193,7 @@ top = effectHandler () reducer
   where
     reducer _ _ = pure ((), [])
 
-main = Purview.run (defaultConfiguration { component=top . const $ handler view })
+main = Purview.run (defaultConfiguration { component=top . const $ handler view, devMode=True })
 
 -------------------------
 -- Using Input Example --

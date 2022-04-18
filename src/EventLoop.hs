@@ -31,13 +31,14 @@ type Log m = String -> m ()
 --
 eventLoop
   :: Monad m
-  => (m [FromEvent] -> IO [FromEvent])
+  => Bool
+  -> (m [FromEvent] -> IO [FromEvent])
   -> Log IO
   -> TChan FromEvent
   -> WebSockets.Connection
   -> Purview parentAction action m
   -> IO ()
-eventLoop runner log eventBus connection component = do
+eventLoop devMode runner log eventBus connection component = do
   message@FromEvent { event } <- atomically $ readTChan eventBus
   log $ "received> " <> show message
 
@@ -74,4 +75,9 @@ eventLoop runner log eventBus connection component = do
     connection
     (encode $ Event { event = "setHtml", message = renderedDiffs })
 
-  eventLoop runner log eventBus connection newTree'
+  when (devMode && event == "init") $
+    WebSockets.sendTextData
+      connection
+      (encode $ Event { event = "setHtml", message = [ Update [] (render newTree') ] })
+
+  eventLoop devMode runner log eventBus connection newTree'

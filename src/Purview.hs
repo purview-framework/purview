@@ -54,6 +54,7 @@ data Configuration parentAction action m = Configuration
   , logger            :: String -> IO ()
   , htmlEventHandlers :: [HtmlEventHandler]
   , htmlHead          :: Text
+  , devMode           :: Bool
   }
 
 defaultConfiguration :: Configuration parentAction action IO
@@ -63,17 +64,19 @@ defaultConfiguration = Configuration
   , logger            = print
   , htmlEventHandlers = [clickEventHandler, submitEventHandler]
   , htmlHead          = ""
+  -- on websocket reconnect, send the whole page
+  , devMode           = False
   }
 
 run :: Monad m => Configuration () () m -> IO ()
-run Configuration { component, logger, interpreter, htmlEventHandlers, htmlHead } = do
+run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
   requestHandler' <- requestHandler component htmlHead htmlEventHandlers
   Warp.runSettings settings
     $ WaiWebSocket.websocketsOr
         WebSocket.defaultConnectionOptions
-        (webSocketHandler interpreter logger component)
+        (webSocketHandler devMode interpreter logger component)
         requestHandler'
 
 requestHandler :: Purview parentAction action m -> Text -> [HtmlEventHandler] -> IO Wai.Application
@@ -101,8 +104,14 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   webSocketMessageHandler eventBus websocketConnection
 
-webSocketHandler :: Monad m => (m [FromEvent] -> IO [FromEvent]) -> Log IO -> Purview parentAction action m -> WebSocket.ServerApp
-webSocketHandler runner log component pending = do
+webSocketHandler
+  :: Monad m
+  => Bool
+  -> (m [FromEvent] -> IO [FromEvent])
+  -> Log IO
+  -> Purview parentAction action m
+  -> WebSocket.ServerApp
+webSocketHandler devMode runner log component pending = do
   putStrLn "ws connected"
   conn <- WebSocket.acceptRequest pending
 
@@ -112,4 +121,4 @@ webSocketHandler runner log component pending = do
 
   WebSocket.withPingThread conn 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus conn
-    eventLoop runner log eventBus conn component
+    eventLoop devMode runner log eventBus conn component
