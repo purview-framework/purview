@@ -22,7 +22,6 @@ Using the todo example since it's big
 -}
 
 input = Html "input"
-button = Html "button"
 ul = Html "ul"
 li = Html "li"
 

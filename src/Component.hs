@@ -75,9 +75,42 @@ instance Show (Purview parentAction action m) where
 instance Eq (Purview parentAction action m) where
   a == b = show a == show b
 
--- Various helpers
+effectHandler state handler =
+  Hide . EffectHandler Nothing Nothing state handler
+
+messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
+
+once sendAction = Once sendAction False
+
+{-
+
+Helpers
+
+-}
+
 div :: [Purview parentAction action m] -> Purview parentAction action m
 div = Html "div"
+
+span :: [Purview parentAction action m] -> Purview parentAction action m
+span = Html "span"
+
+h1 :: [Purview parentAction action m] -> Purview parentAction action m
+h1 = Html "h1"
+
+h2 :: [Purview parentAction action m] -> Purview parentAction action m
+h2 = Html "h2"
+
+h3 :: [Purview parentAction action m] -> Purview parentAction action m
+h3 = Html "h3"
+
+h4 :: [Purview parentAction action m] -> Purview parentAction action m
+h4 = Html "h4"
+
+p :: [Purview parentAction action m] -> Purview parentAction action m
+p = Html "p"
+
+button :: [Purview parentAction action m] -> Purview parentAction action m
+button = Html "button"
 
 form :: [Purview parentAction action m] -> Purview parentAction action m
 form = Html "form"
@@ -99,16 +132,3 @@ identifier = Attribute . Generic "id"
 
 classes :: [String] -> Purview parentAction action m -> Purview parentAction action m
 classes xs = Attribute . Generic "class" $ unwords xs
-
--- effectHandler
---   :: (FromJSON action, FromJSON state, ToJSON action, ToJSON parent, ToJSON state, Typeable state, Eq state)
---   => state
---   -> (action -> state -> IO (state, [DirectedEvent parent action]))
---   -> (state -> Purview action)
---   -> Purview a
-effectHandler state handler =
-  Hide . EffectHandler Nothing Nothing state handler
-
-messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
-
-once sendAction = Once sendAction False

@@ -10,6 +10,13 @@ module Purview
   , effectHandler
   , messageHandler
   , div
+  , span
+  , p
+  , h1
+  , h2
+  , h3
+  , h4
+  , button
   , form
   , onClick
   , onSubmit
@@ -24,7 +31,7 @@ module Purview
   )
 where
 
-import Prelude hiding (div, log)
+import Prelude hiding (div, log, span)
 import qualified Web.Scotty as Sc
 import           Data.Text (pack, Text)
 import qualified Data.Text.Lazy as LazyText
