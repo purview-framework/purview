@@ -31,7 +31,7 @@ module Purview
   )
 where
 
-import Prelude hiding (div, log)
+import Prelude hiding (div, log, span)
 import qualified Web.Scotty as Sc
 import           Data.Text (pack, Text)
 import qualified Data.Text.Lazy as LazyText
