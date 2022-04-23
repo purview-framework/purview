@@ -10,6 +10,13 @@ module Purview
   , effectHandler
   , messageHandler
   , div
+  , span
+  , p
+  , h1
+  , h2
+  , h3
+  , h4
+  , button
   , form
   , onClick
   , onSubmit
