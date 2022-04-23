@@ -120,80 +120,80 @@ import Control.Monad.IO.Class
 -- Todo List Example --
 -----------------------
 
--- helpers
-input = Html "input"
-button = Html "button"
-ul = Html "ul"
-li = Html "li"
-
-nameAttr = Attribute . Generic "name"
-typeAttr = Attribute . Generic "type"
-checkedAttr = Attribute . Generic "checked"
-
-data Fields = Fields { description :: String }
-data Actions = Submit Fields | Toggle Int
-
-data Todo = Todo { description :: String, done :: Bool }
-  deriving (Eq)
-
-$(deriveJSON defaultOptions  ''Fields)
-$(deriveJSON defaultOptions  ''Actions)
-$(deriveJSON defaultOptions  ''Todo)
-
-handler = effectHandler [] action
-  where
-    action (Submit Fields { description }) todos = pure $
-      (todos <> [Todo { description=description, done=False }], [])
-
-    action (Toggle n) todos =
-      let change (index, todo@Todo { done=alreadyDone }) =
-            if index == n
-            then todo { done=not alreadyDone }
-            else todo
-      in pure (fmap change (zip [0..] todos), [])
-
-topStyle = style "font-family: sans-serif"
-
-todoItem (index, Todo { description, done }) = div
-  [ text description
-  , onClick (Toggle index)
-      $ typeAttr "checkbox"
-      $ (if done then checkedAttr "checked" else id)
-      $ input []
-  ]
-
--- overall view
-container = style "font-size: 24px" . div
-
-view todos = container
-  [ div $ fmap todoItem (zip [0..] todos)
-  , formHandler $ const addNewTodoForm
-  ]
-
--- submission form
-submitButton = typeAttr "submit" $ button [ text "submit" ]
-
-defaultFields = Fields { description="" }
-
-formHandler = effectHandler ([] :: [String]) action
-  where
-    action newTodo state = pure (state, [Parent (Submit newTodo)])
-
-addNewTodoForm =
-  div
-    [ onSubmit defaultFields $
-        form
-          [ nameAttr "description" $ input []
-          , submitButton
-          ]
-    ]
-
-top :: Monad m => (() -> Purview () any m) -> Purview () () m
-top = effectHandler () reducer
-  where
-    reducer _ _ = pure ((), [])
-
-main = Purview.run (defaultConfiguration { component=top . const $ handler view, devMode=True })
+-- -- helpers
+-- input = Html "input"
+-- button = Html "button"
+-- ul = Html "ul"
+-- li = Html "li"
+--
+-- nameAttr = Attribute . Generic "name"
+-- typeAttr = Attribute . Generic "type"
+-- checkedAttr = Attribute . Generic "checked"
+--
+-- data Fields = Fields { description :: String }
+-- data Actions = Submit Fields | Toggle Int
+--
+-- data Todo = Todo { description :: String, done :: Bool }
+--   deriving (Eq)
+--
+-- $(deriveJSON defaultOptions  ''Fields)
+-- $(deriveJSON defaultOptions  ''Actions)
+-- $(deriveJSON defaultOptions  ''Todo)
+--
+-- handler = effectHandler [] action
+--   where
+--     action (Submit Fields { description }) todos = pure $
+--       (todos <> [Todo { description=description, done=False }], [])
+--
+--     action (Toggle n) todos =
+--       let change (index, todo@Todo { done=alreadyDone }) =
+--             if index == n
+--             then todo { done=not alreadyDone }
+--             else todo
+--       in pure (fmap change (zip [0..] todos), [])
+--
+-- topStyle = style "font-family: sans-serif"
+--
+-- todoItem (index, Todo { description, done }) = div
+--   [ text description
+--   , onClick (Toggle index)
+--       $ typeAttr "checkbox"
+--       $ (if done then checkedAttr "checked" else id)
+--       $ input []
+--   ]
+--
+-- -- overall view
+-- container = style "font-size: 24px" . div
+--
+-- view todos = container
+--   [ div $ fmap todoItem (zip [0..] todos)
+--   , formHandler $ const addNewTodoForm
+--   ]
+--
+-- -- submission form
+-- submitButton = typeAttr "submit" $ button [ text "submit" ]
+--
+-- defaultFields = Fields { description="" }
+--
+-- formHandler = effectHandler ([] :: [String]) action
+--   where
+--     action newTodo state = pure (state, [Parent (Submit newTodo)])
+--
+-- addNewTodoForm =
+--   div
+--     [ onSubmit defaultFields $
+--         form
+--           [ nameAttr "description" $ input []
+--           , submitButton
+--           ]
+--     ]
+--
+-- top :: Monad m => (() -> Purview () any m) -> Purview () () m
+-- top = effectHandler () reducer
+--   where
+--     reducer _ _ = pure ((), [])
+--
+-- main = Purview.run (defaultConfiguration { component=top . const $ handler view, devMode=True })
 
 -------------------------
 -- Using Input Example --
@@ -255,45 +255,27 @@ main = Purview.run (defaultConfiguration { component=top . const $ handler view,
 -- Stepper Example --
 ---------------------
 
--- data Direction = Up | Down
---
--- $(deriveJSON defaultOptions ''Direction)
---
--- data OtherDirection = Port | Starboard
---
--- $(deriveJSON defaultOptions ''OtherDirection)
---
--- upButton = onClick Up $ div [ text "up" ]
--- downButton = onClick Down $ div [ text "down" ]
---
--- handler = messageHandler (0 :: Int) action
---   where
---     action Up   state = (state + 1, [])
---     action Down state = (state - 1, [])
---
--- -- handler' = messageHandler (0 :: Int) action
--- --   where
--- --     action Port      state = (state + 1, [])
--- --     action Starboard state = (state - 1, [])
--- --
--- -- component' = handler' (\state -> div [ text "" ])
---
--- counter :: Int -> Purview Direction Direction m
--- counter state = div
---   [ upButton
---   , text $ "count: " <> show state
---   , downButton
---   ]
---
--- view = handler counter
---
--- multiCounter = div
---   [ view
---   , view
---   , view
---   ]
---
--- main = Purview.run defaultConfiguration { component=view }
+data Direction = Up | Down
+
+$(deriveJSON defaultOptions ''Direction)
+
+upButton = onClick Up $ div [ text "up" ]
+downButton = onClick Down $ div [ text "down" ]
+
+handler = messageHandler (0 :: Int) reducer
+  where
+    reducer Up   state = (state + 1, [])
+    reducer Down state = (state - 1, [])
+
+counter state = div
+  [ upButton
+  , text $ "count: " <> show state
+  , downButton
+  ]
+
+view = handler counter
+
+main = Purview.run defaultConfiguration { component=view }
 
 
 -------------------------
