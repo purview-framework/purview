@@ -19,6 +19,7 @@ module Purview
   , h4
   , button
   , form
+  , input
   , onClick
   , onSubmit
   , style

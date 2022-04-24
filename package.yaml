@@ -62,7 +62,7 @@ library:
 
 executables:
   purview-exe:
-    main:                Main.hs
+    main:                Counter.hs
     source-dirs:         examples
     buildable: false
     ghc-options:

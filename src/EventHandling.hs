@@ -66,6 +66,7 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
               [
                 FromEvent
                 { event = "newState"
+                -- TODO: this should be happening in the event loop
                 , message = toJSON (newStateFn state)
                 , location = loc
                 }
