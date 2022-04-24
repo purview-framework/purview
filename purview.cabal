@@ -57,7 +57,7 @@ library
   default-language: Haskell2010
 
 executable purview-exe
-  main-is: Main.hs
+  main-is: Counter.hs
   other-modules:
       AlgebraicEffects
       ExpandingList

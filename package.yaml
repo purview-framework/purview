@@ -33,8 +33,8 @@ dependencies:
 - websockets
 - scotty
 
-# # - hspec #
-# # - QuickCheck #
+# - hspec #
+# - QuickCheck #
 
 library:
   source-dirs: src
@@ -62,7 +62,7 @@ library:
 
 executables:
   purview-exe:
-    main:                Main.hs
+    main:                Counter.hs
     source-dirs:         examples
     buildable: false
     ghc-options:
