@@ -119,6 +119,9 @@ button = Html "button"
 form :: [Purview parentAction action m] -> Purview parentAction action m
 form = Html "form"
 
+input :: [Purview parentAction action m] -> Purview parentAction action m
+input = Html "input"
+
 text :: String -> Purview parentAction action m
 text = Text
 
