@@ -42,17 +42,17 @@ $(deriveJSON defaultOptions  ''Todo)
 handler = effectHandler [] action
   where
     -- hmm, a little ungainly having to specify
-    action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
+    -- action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
 
     action (Submit Fields { description }) todos = pure $
-      (todos <> [Todo { description=description, done=False }], [])
+      (const $ todos <> [Todo { description=description, done=False }], [])
 
     action (Toggle n) todos =
       let change (index, todo@Todo { done=alreadyDone }) =
             if index == n
             then todo { done=not alreadyDone }
             else todo
-      in pure (fmap change (zip [0..] todos), [])
+      in pure (const $ fmap change (zip [0..] todos), [])
 
 topStyle = style "font-family: sans-serif"
 
@@ -79,7 +79,7 @@ defaultFields = Fields { description="" }
 
 formHandler = effectHandler ([] :: [String]) action
   where
-    action newTodo state = pure (state, [Parent (Submit newTodo)])
+    action newTodo state = pure (const state, [Parent (Submit newTodo)])
 
 addNewTodoForm =
   div
@@ -90,6 +90,7 @@ addNewTodoForm =
           ]
     ]
 
+component' :: Purview () b IO
 component' = handler view
 
 clickEvent = FromEvent { event="click", message="up", location=Nothing }

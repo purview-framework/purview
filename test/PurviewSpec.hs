@@ -12,11 +12,11 @@ downButton :: Purview parentAction String m
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
 handler :: Applicative m => (Int -> Purview String action m) -> Purview String action m
-handler = messageHandler 0 action
+handler = simpleHandler 0 action
   where
-    action :: String -> Int -> (Int, [DirectedEvent String String])
-    action "up" _ = (1, [])
-    action _    _ = (0, [])
+    action :: String -> Int -> Int
+    action "up" _ = 1
+    action _    _ = 0
 
 -- counter :: Show a => a -> Purview parentAction action m
 counter state = div

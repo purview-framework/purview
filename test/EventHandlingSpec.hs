@@ -21,6 +21,7 @@ import Events
 import PrepareTree
 import Rendering
 
+type Id a = a -> a
 
 data TestAction = Up | Down
 
@@ -54,12 +55,13 @@ spec = parallel $ do
 
     it "changes state" $ do
       let
-        actionHandler :: String -> Int -> (Int, [DirectedEvent String String])
-        actionHandler "up" _ = (1, [])
-        actionHandler _    _ = (0, [])
+        actionHandler :: String -> Int -> Int
+        actionHandler "up" _ = 1
+        actionHandler _    _ = 0
 
+        handler :: Purview () a IO
         handler =
-          messageHandler (0 :: Int)
+          simpleHandler (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -107,9 +109,9 @@ spec = parallel $ do
 
     it "works with typed messages" $ do
       let
-        actionHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
-        actionHandler Up   _ = (1, [])
-        actionHandler Down _ = (0, [])
+        actionHandler :: TestAction -> Int -> (Id Int, [DirectedEvent String TestAction])
+        actionHandler Up   _ = (const 1, [])
+        actionHandler Down _ = (const 0, [])
 
         handler =
           messageHandler (0 :: Int)
@@ -136,9 +138,9 @@ spec = parallel $ do
 
     it "works after sending an event that did not match anything" $ do
       let
-        actionHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
-        actionHandler Up   _ = (1, [])
-        actionHandler Down _ = (0, [])
+        actionHandler :: TestAction -> Int -> (Id Int, [DirectedEvent String TestAction])
+        actionHandler Up   _ = (const 1, [])
+        actionHandler Down _ = (const 0, [])
 
         handler =
           messageHandler (0 :: Int)
@@ -167,14 +169,14 @@ spec = parallel $ do
 
     it "works with a nested attribute" $ do
       let
-        childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
-        childHandler Up   _ = (1, [Parent "hello"])
-        childHandler Down _ = (0, [])
+        childHandler :: TestAction -> Int -> (Id Int, [DirectedEvent String TestAction])
+        childHandler Up   _ = (const 1, [Parent "hello"])
+        childHandler Down _ = (const 0, [])
 
-        parentHandler :: String -> String -> (String, [DirectedEvent String String])
-        parentHandler "hello" _ = ("bye", [])
-        parentHandler "bye" _ = ("hello", [])
-        parentHandler str _ = (str, [])
+        parentHandler :: String -> String -> (Id String, [DirectedEvent String String])
+        parentHandler "hello" _ = (const "bye", [])
+        parentHandler "bye" _ = (const "hello", [])
+        parentHandler str _ = (const str, [])
 
         styledContainer = style "font-size: 10px;" . div
 
@@ -208,14 +210,14 @@ spec = parallel $ do
 
       it "can send an event to a parent" $ do
         let
-          childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
-          childHandler Up   _ = (1, [Parent "hello"])
-          childHandler Down _ = (0, [])
+          childHandler :: TestAction -> Int -> (Id Int, [DirectedEvent String TestAction])
+          childHandler Up   _ = (const 1, [Parent "hello"])
+          childHandler Down _ = (const 0, [])
 
-          parentHandler :: String -> String -> (String, [DirectedEvent String String])
-          parentHandler "hello" _ = ("bye", [])
-          parentHandler "bye" _ = ("hello", [])
-          parentHandler str _ = (str, [])
+          parentHandler :: String -> String -> (Id String, [DirectedEvent String String])
+          parentHandler "hello" _ = (const "bye", [])
+          parentHandler "bye" _ = (const "hello", [])
+          parentHandler str _ = (const str, [])
 
           handler =
             messageHandler ("" :: String) parentHandler
@@ -247,14 +249,14 @@ spec = parallel $ do
 
       it "can send an event to self" $ do
         let
-          childHandler :: TestAction -> Int -> (Int, [DirectedEvent String TestAction])
-          childHandler Up   _ = (1, [Self Down])
-          childHandler Down _ = (0, [])
+          childHandler :: TestAction -> Int -> (Int -> Int, [DirectedEvent String TestAction])
+          childHandler Up   _ = (const 1, [Self Down])
+          childHandler Down _ = (const 0, [])
 
-          parentHandler :: String -> String -> (String, [DirectedEvent String String])
-          parentHandler "hello" _ = ("bye", [])
-          parentHandler "bye" _ = ("hello", [])
-          parentHandler str _ = (str, [])
+          parentHandler :: String -> String -> (String -> String, [DirectedEvent String String])
+          parentHandler "hello" _ = (const "bye", [])
+          parentHandler "bye" _ = (const "hello", [])
+          parentHandler str _ = (const str, [])
 
           handler =
             messageHandler ("" :: String) parentHandler

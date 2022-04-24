@@ -7,6 +7,7 @@ module Purview
   , Purview (..)
   , Configuration (..)
   , defaultConfiguration
+  , simpleHandler
   , effectHandler
   , messageHandler
   , div
