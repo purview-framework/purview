@@ -44,7 +44,7 @@ data Purview parentAction action m where
     => ParentIdentifier
     -> Identifier
     -> state
-    -> (newAction-> state -> m (state, [DirectedEvent parentAction newAction]))
+    -> (newAction-> state -> m (state -> state, [DirectedEvent parentAction newAction]))
     -> (state -> Purview newAction any m)
     -> Purview parentAction newAction m
 
@@ -75,10 +75,14 @@ instance Show (Purview parentAction action m) where
 instance Eq (Purview parentAction action m) where
   a == b = show a == show b
 
+simpleHandler state handler =
+  effectHandler state (\action state -> pure (const $ handler action state, []))
+
+messageHandler state handler =
+  effectHandler state (\action state -> pure (handler action state))
+
 effectHandler state handler =
   Hide . EffectHandler Nothing Nothing state handler
-
-messageHandler state handler = effectHandler state (\action state -> pure (handler action state))
 
 once sendAction = Once sendAction False
 

@@ -1,8 +1,14 @@
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE GADTs #-}
 module Experiment17 where
 
 import Data.Aeson
 
+newtype Writer log a = Writer { runWriter :: (log, a) }
+  deriving (Functor, Monoid, Semigroup, Applicative, Monad)
+
+tell :: log -> Writer log ()
+tell log = Writer (log, ())
 
 {-
 
@@ -15,7 +21,7 @@ data Box parentAction newAction m where
   Make
     :: (FromJSON parentAction, FromJSON newAction)
     => state
-    -> (newAction -> state -> [Either parentAction newAction])
+    -> (newAction -> state -> Writer [Either parentAction newAction] state) -- (state, [Either parentAction newAction]))
     -> (state -> Box newAction any m)
     -> Box parentAction newAction m
 
@@ -26,31 +32,33 @@ data Box parentAction newAction m where
 
 top = Make "f" reducer
   where
-    reducer 0 state = [Right 0] :: [Either String Integer]
+    reducer 0 state = do
+      tell ([Right 0] :: [Either String Integer])
+      state
 
-middle = Make "f" reducer
-  where
-    reducer "" state = [] :: [Either String String]
-
-bottom = Make (1 :: Integer) reducer
-  where
-{-
-
-Let's focus on this.  The type is simply wrong.  I am wrong.  The type is correct.
-
--}
-    reducer "" 0 = []
-    -- reducer "" 0 = [Left "String", Right "herrr"]
-
-topHidden = Hide . top
-
-bottomHidden = Hide . bottom
-
-middleHidden = Hide . middle
-
-x = [topHidden $ const Nil, middleHidden $ const Nil]
-
-combo = topHidden $ const (bottomHidden $ const Nil)
+-- middle = Make "f" reducer
+--   where
+--     reducer "" state = [] :: [Either String String]
+--
+-- bottom = Make (1 :: Integer) reducer
+--   where
+-- {-
+--
+-- Let's focus on this.  The type is simply wrong.  I am wrong.  The type is correct.
+--
+-- -}
+--     reducer "" 0 = []
+--     -- reducer "" 0 = [Left "String", Right "herrr"]
+--
+-- topHidden = Hide . top
+--
+-- bottomHidden = Hide . bottom
+--
+-- middleHidden = Hide . middle
+--
+-- x = [topHidden $ const Nil, middleHidden $ const Nil]
+--
+-- combo = topHidden $ const (bottomHidden $ const Nil)
 
 -- both =
 --   [ topHidden $ const Nil

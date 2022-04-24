@@ -20,8 +20,8 @@ nicely.
 testHandler :: (String -> Purview String action IO) -> Purview String action IO
 testHandler = effectHandler ("" :: String) reducer
   where
-    reducer :: String -> String -> IO (String, [DirectedEvent String String])
-    reducer action state = pure ("", [])
+    reducer :: String -> String -> IO (String -> String, [DirectedEvent String String])
+    reducer action state = pure (const "", [])
 
 testOnce = once (\send -> send "")
 

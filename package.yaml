@@ -74,7 +74,7 @@ executables:
 tests:
   purview-test:
     main:                Spec.hs
-    source-dirs:         tests
+    source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts

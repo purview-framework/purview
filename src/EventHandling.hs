@@ -54,10 +54,10 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       -- if locations match, we actually run what is in the handler
-      (newState, events) <-
+      (newStateFn, events) <-
         if loc == location
         then handler parsedAction state
-        else pure (state, [])
+        else pure (const state, [])
 
       -- although it doesn't break anything, only send this when the
       -- locations match (cuts down on noise)
@@ -66,7 +66,7 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
               [
                 FromEvent
                 { event = "newState"
-                , message = toJSON newState
+                , message = toJSON (newStateFn state)
                 , location = loc
                 }
               ]

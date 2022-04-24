@@ -264,8 +264,8 @@ downButton = onClick Down $ div [ text "down" ]
 
 handler = messageHandler (0 :: Int) reducer
   where
-    reducer Up   state = (state + 1, [])
-    reducer Down state = (state - 1, [])
+    reducer Up   state = (const $ state + 1, [])
+    reducer Down state = (const $ state - 1, [])
 
 counter state = div
   [ upButton
