@@ -39,7 +39,7 @@ eventLoop
   -> Purview parentAction action m
   -> IO ()
 eventLoop devMode runner log eventBus connection component = do
-  message@FromEvent { event } <- atomically $ readTChan eventBus
+  message@FromEvent { event, location } <- atomically $ readTChan eventBus
   log $ "received> " <> show message
 
   let
@@ -63,7 +63,7 @@ eventLoop devMode runner log eventBus connection component = do
 
   let
     -- collect diffs
-    diffs = diff [0] component newTree'
+    diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
     -- the html beneath the handler.  I imagine it could be more exact, with
     -- Delete / Create events.
