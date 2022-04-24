@@ -59,7 +59,12 @@ library
 executable purview-exe
   main-is: Main.hs
   other-modules:
+      AlgebraicEffects
+      ExpandingList
+      GettingInput
+      ServerTime
       Shop
+      TodoList
       Paths_purview
   hs-source-dirs:
       examples
