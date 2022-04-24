@@ -11,13 +11,13 @@ extra-source-files:
 - ChangeLog.md
 
 # Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis:            Build server rendered, interactive websites
+category:            Web
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/purview#readme>
+description:         Please see the README on GitHub at https://github.com/pureview-framework/purview
 
 dependencies:
 - base >= 4.7 && < 5
@@ -33,8 +33,8 @@ dependencies:
 - websockets
 - scotty
 
-build-tools:
-  - hspec-discover == 2.*
+# - hspec #
+# - QuickCheck #
 
 library:
   source-dirs: src
@@ -48,11 +48,23 @@ library:
     - Events
   ghc-options:
     - -Wincomplete-patterns
+  when:
+  - condition: false
+    other-modules:
+      - ComponentSpec
+      - DiffingSpec
+      - TreeGenerator
+      - EventHandlingSpec
+      - PrepareTreeSpec
+      - PurviewSpec
+      - RenderingSpec
+      - Spec
 
 executables:
   purview-exe:
     main:                Main.hs
     source-dirs:         examples
+    buildable: false
     ghc-options:
     - -threaded
     - -rtsopts
@@ -65,6 +77,7 @@ executables:
   purview-perf-test:
     main: Criterion.hs
     source-dirs: performance
+    buildable: false
     ghc-options:
     - -main-is Criterion
     dependencies:
@@ -74,7 +87,7 @@ executables:
 tests:
   purview-test:
     main:                Spec.hs
-    source-dirs:         test
+    source-dirs:         src
     ghc-options:
     - -threaded
     - -rtsopts
@@ -85,3 +98,5 @@ tests:
     - QuickCheck
     - hspec
     - time
+    build-tools:
+    - hspec-discover == 2.*
