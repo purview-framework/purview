@@ -34,15 +34,16 @@ instance ToJSON a => ToJSON (Change a) where
   toEncoding = genericToEncoding defaultOptions
 
 diff
-  :: Location
+  :: Maybe Location
+  -> Location
   -> Purview parentAction action m
   -> Purview parentAction action m
   -> [Change (Purview parentAction action m)]
-diff location oldGraph newGraph = case (oldGraph, newGraph) of
+diff target location oldGraph newGraph = case (oldGraph, newGraph) of
 
   (Html kind children, Html kind' children') ->
     concatMap
-      (\(index, oldChild, newChild) -> diff (index:location) oldChild newChild)
+      (\(index, oldChild, newChild) -> diff target (index:location) oldChild newChild)
       (zip3 [0..] children children')
 
   (Text str, Text str') ->
@@ -60,7 +61,12 @@ diff location oldGraph newGraph = case (oldGraph, newGraph) of
         [Update location newGraph | state' /= newState && loc == loc']
         -- TODO: this is weak, instead of walking the whole tree it should be targetted
         --       to specific effect handlers
-        <> diff (0:location) (unsafeCoerce cont state) (unsafeCoerce newCont newState)
+
+        -- if we hit the target, we're already saying update the whole tree
+        <> if Just location == target
+           then []
+           else diff target (0:location) (unsafeCoerce cont state) (unsafeCoerce newCont newState)
+
       -- different kinds of state
       Nothing ->
         [Update location newGraph]
