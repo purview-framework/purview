@@ -75,15 +75,61 @@ instance Show (Purview parentAction action m) where
 instance Eq (Purview parentAction action m) where
   a == b = show a == show b
 
+simpleHandler
+  :: ( FromJSON action
+     , FromJSON state
+     , ToJSON action
+     , ToJSON parentAction
+     , ToJSON state
+     , Typeable state
+     , Eq state
+     , Applicative m
+     )
+  => state
+  -> (action -> state -> state)
+  -> (state -> Purview action any m)
+  -> Purview parentAction any m
 simpleHandler state handler =
   effectHandler state (\action state -> pure (const $ handler action state, []))
 
+messageHandler
+  :: ( FromJSON action
+     , FromJSON state
+     , ToJSON action
+     , ToJSON parentAction
+     , ToJSON state
+     , Typeable state
+     , Eq state
+     , Applicative m
+     )
+  => state
+  -> (action -> state -> (state -> state, [DirectedEvent parentAction action]))
+  -> (state -> Purview action any m)
+  -> Purview parentAction any m
 messageHandler state handler =
   effectHandler state (\action state -> pure (handler action state))
 
+effectHandler
+  :: ( FromJSON action
+     , FromJSON state
+     , ToJSON action
+     , ToJSON parentAction
+     , ToJSON state
+     , Typeable state
+     , Eq state
+     )
+  => state
+  -> (action -> state -> m (state -> state, [DirectedEvent parentAction action]))
+  -> (state -> Purview action any m)
+  -> Purview parentAction any m
 effectHandler state handler =
   Hide . EffectHandler Nothing Nothing state handler
 
+once
+  :: ToJSON action
+  => ((action -> FromEvent) -> FromEvent)
+  -> Purview parentAction action m
+  -> Purview parentAction action m
 once sendAction = Once sendAction False
 
 {-
