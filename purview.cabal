@@ -7,8 +7,41 @@ cabal-version: 1.12
 name:           purview
 version:        0.1.0.0
 synopsis:       Build server rendered, interactive websites
-description:    Please see the README on GitHub at https://github.com/pureview-framework/purview
-category:       Web
+description:    A framework for building server rendered, interactive websites.
+                .
+                @
+                module Main where
+                .
+                import Prelude hiding (div)
+                import Data.Aeson
+                import Data.Aeson.TH
+                .
+                import Purview
+                .
+                data Direction = Up | Down
+                .
+                $(deriveJSON defaultOptions ''Direction)
+                .
+                upButton = onClick Up $ div [ text "up" ]
+                downButton = onClick Down $ div [ text "down" ]
+                .
+                handler = messageHandler (0 :: Int) reducer
+                  where
+                    reducer Up   state = (state + 1, [])
+                    reducer Down state = (state - 1, [])
+                .
+                counter state = div
+                  [ upButton
+                  , text $ "count: " <> show state
+                  , downButton
+                  ]
+                .
+                view = handler counter
+                .
+                main = Purview.run defaultConfiguration { component=view }
+                @
+                .
+category:       Library, Web
 homepage:       https://github.com/purview-framework/purview#readme
 bug-reports:    https://github.com/purview-framework/purview/issues
 author:         Ian Davidson
