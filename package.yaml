@@ -12,12 +12,28 @@ extra-source-files:
 
 # Metadata used when publishing your package
 synopsis:            Build server rendered, interactive websites
-category:            Web
+category:            Library, Web
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at https://github.com/pureview-framework/purview
+description: |
+  A framework for building server rendered, interactive websites.
+
+  It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
+
+  The main points:
+
+  * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
+
+  * State can be broken up into small components.
+
+  * The approach is to provide useful atoms, with the user building up a kind of AST.
+
+  * Attributes flow down to concrete HTML, events bubble up to state handlers.
+
+  For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
+
 
 dependencies:
 - base >= 4.7 && < 5
@@ -40,12 +56,6 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
-    - Component
-    - Diffing
-    - EventHandling
-    - PrepareTree
-    - Rendering
-    - Events
   ghc-options:
     - -Wincomplete-patterns
   when:

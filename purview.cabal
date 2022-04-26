@@ -7,8 +7,22 @@ cabal-version: 1.12
 name:           purview
 version:        0.1.0.0
 synopsis:       Build server rendered, interactive websites
-description:    Please see the README on GitHub at https://github.com/pureview-framework/purview
-category:       Web
+description:    A framework for building server rendered, interactive websites.
+                .
+                It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
+                .
+                The main points:
+                .
+                * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
+                .
+                * State can be broken up into small components.
+                .
+                * The approach is to provide useful atoms, with the user building up a kind of AST.
+                .
+                * Attributes flow down to concrete HTML, events bubble up to state handlers.
+                .
+                For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
+category:       Library, Web
 homepage:       https://github.com/purview-framework/purview#readme
 bug-reports:    https://github.com/purview-framework/purview/issues
 author:         Ian Davidson
@@ -28,14 +42,14 @@ source-repository head
 library
   exposed-modules:
       Purview
+  other-modules:
       Component
       Diffing
       EventHandling
+      EventLoop
+      Events
       PrepareTree
       Rendering
-      Events
-  other-modules:
-      EventLoop
       Wrapper
       Paths_purview
   hs-source-dirs:
