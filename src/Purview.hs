@@ -52,7 +52,8 @@ using ghcid so you can do:
 
 Which will automatically restart the server on code changes.  It's fast!
 
-For more in depth reading check out the readme and the examples folder.
+For more in depth reading check out the [readme](https://github.com/purview-framework/purview/blob/main/README.md) and
+the [examples](https://github.com/purview-framework/purview/tree/main/examples) folder.
 
 -}
 
