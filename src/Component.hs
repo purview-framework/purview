@@ -128,9 +128,9 @@ simpleHandler
   -- ^ The initial state
   -> (action -> state -> state)
   -- ^ The reducer, or how the state should change for an action
-  -> (state -> Purview action any m)
+  -> (state -> Purview action any1 m)
   -- ^ The continuation / component to connect to
-  -> Purview parentAction any m
+  -> Purview parentAction any2 m
 simpleHandler state handler =
   effectHandler state (\action state -> pure (const $ handler action state, []))
 
@@ -156,9 +156,9 @@ messageHandler
   -- ^ initial state
   -> (action -> state -> (state -> state, [DirectedEvent parentAction action]))
   -- ^ reducer
-  -> (state -> Purview action any m)
+  -> (state -> Purview action any1 m)
   -- ^ continuation
-  -> Purview parentAction any m
+  -> Purview parentAction any2 m
 messageHandler state handler =
   effectHandler state (\action state -> pure (handler action state))
 
@@ -192,9 +192,9 @@ effectHandler
   -- ^ initial state
   -> (action -> state -> m (state -> state, [DirectedEvent parentAction action]))
   -- ^ reducer (note the m!)
-  -> (state -> Purview action any m)
+  -> (state -> Purview action any1 m)
   -- ^ continuation
-  -> Purview parentAction any m
+  -> Purview parentAction any2 m
 effectHandler state handler =
   Hide . EffectHandler Nothing Nothing state handler
 

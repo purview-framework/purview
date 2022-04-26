@@ -14,7 +14,6 @@ import Purview
 -- Helpers --
 -------------
 
-input = Html "input"
 ul = Html "ul"
 li = Html "li"
 
@@ -99,6 +98,5 @@ view todos = container
   [ div $ fmap todoItem (zip [0..] todos)
   , formHandler $ const addNewTodoForm
   ]
-
 
 main = Purview.run (defaultConfiguration { component=handler view, devMode=True })
