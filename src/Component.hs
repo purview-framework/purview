@@ -166,8 +166,8 @@ messageHandler state handler =
 
 This handler gives you access to whichever monad you're running Purview with.
 
-If you wanted to print something on the server every time someone clicked, in
-the IO monad:
+If you wanted to print something on the server every time someone clicked
+a button:
 
 > view direction = onClick "sayHello" $ button [ text "Say hello on the server" ]
 >
@@ -250,6 +250,14 @@ input = Html "input"
 text :: String -> Purview parentAction action m
 text = Text
 
+{-|
+
+For adding styles
+
+> blue = style "color: \"blue\";"
+> blueButton = blue $ button [ text "I'm blue" ]
+
+-}
 style :: String -> Purview parentAction action m -> Purview parentAction action m
 style = Attribute . Style
 
