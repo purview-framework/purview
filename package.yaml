@@ -22,6 +22,16 @@ description: |
 
   It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
 
+  The main points:
+
+  * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
+
+  * State can be broken up into small components.
+
+  * The approach is to provide useful atoms, with the user building up a kind of AST.
+
+  * Attributes flow down to concrete HTML, events bubble up to state handlers.
+
   For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
 
 
