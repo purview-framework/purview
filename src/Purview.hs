@@ -3,13 +3,21 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Purview
-  ( Attributes (..)
-  , Purview (..)
+  (
+  -- ** Server
+    run
   , Configuration (..)
   , defaultConfiguration
+
+  -- ** Handlers
+  -- | These are how you can catch events send from, for example, 'onClick' and
+  -- change state, or in the case of 'effectHandler', make API requests or call
+  -- functions from your project.
   , simpleHandler
-  , effectHandler
   , messageHandler
+  , effectHandler
+
+  -- ** HTML helpers
   , div
   , span
   , p
@@ -17,25 +25,29 @@ module Purview
   , h2
   , h3
   , h4
+  , text
   , button
   , form
   , input
+  , style
+
+  -- ** Action producers
   , onClick
   , onSubmit
-  , style
-  , text
-  , run
-  -- for testing
+
+  -- ** For Testing
   , render
-  -- for experiment
-  , FromEvent (..)
+
+  -- ** AST
+  , Attributes (..)
   , DirectedEvent (..)
+  , Purview (..)
   )
 where
 
 import Prelude hiding (div, log, span)
 import qualified Web.Scotty as Sc
-import           Data.Text (pack, Text)
+import           Data.Text (pack, Text, all)
 import qualified Data.Text.Lazy as LazyText
 import qualified Network.Wai.Middleware.Gzip as Sc
 import qualified Network.Wai.Handler.WebSockets as WaiWebSocket
@@ -59,11 +71,22 @@ type Log m = String -> m ()
 
 data Configuration parentAction action m = Configuration
   { component         :: Purview parentAction action m
+  -- ^ The top level component to put on the page.
   , interpreter       :: m [FromEvent] -> IO [FromEvent]
+  -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
+  -- ^ Specify what to do with logs
   , htmlEventHandlers :: [HtmlEventHandler]
+  -- ^ For extending the handled events.  Have a look at 'defaultConfiguration' to see
+  -- how to make your own.
   , htmlHead          :: Text
+  -- ^ This is placed directly into the \<head\>, so that you can link to external
+  -- CSS etc
   , devMode           :: Bool
+  -- ^ When enabled, Purview will send the whole tree on websocket reconnection.
+  -- This enables you to use
+  -- "ghcid --command 'stack ghci examples/Main.hs' --test :main`"
+  -- to restart the server on file change, and get a kind of live reloading
   }
 
 defaultConfiguration :: Configuration parentAction action IO
@@ -73,10 +96,20 @@ defaultConfiguration = Configuration
   , logger            = print
   , htmlEventHandlers = [clickEventHandler, submitEventHandler]
   , htmlHead          = ""
-  -- on websocket reconnect, send the whole page
   , devMode           = False
   }
 
+{-|
+
+This starts up the server.  As a tiny example, to display some text saying "hello":
+
+> import Purview
+>
+> view = p [ text "hello" ]
+>
+> main = run defaultConfiguration { component=view }
+
+-}
 run :: Monad m => Configuration () () m -> IO ()
 run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001

@@ -40,12 +40,6 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
-    - Component
-    - Diffing
-    - EventHandling
-    - PrepareTree
-    - Rendering
-    - Events
   ghc-options:
     - -Wincomplete-patterns
   when:

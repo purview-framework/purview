@@ -27,6 +27,12 @@ instance FromJSON FromEvent where
 instance ToJSON m => ToJSON (Event m) where
   toEncoding = genericToEncoding defaultOptions
 
+{-|
+
+This is for creating events that should go to a parent handler,
+or sent back in to the same handler.
+
+-}
 data DirectedEvent a b = Parent a | Self b
   deriving (Generic, Show, Eq)
 

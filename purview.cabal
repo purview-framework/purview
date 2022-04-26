@@ -28,14 +28,14 @@ source-repository head
 library
   exposed-modules:
       Purview
+  other-modules:
       Component
       Diffing
       EventHandling
+      EventLoop
+      Events
       PrepareTree
       Rendering
-      Events
-  other-modules:
-      EventLoop
       Wrapper
       Paths_purview
   hs-source-dirs:
