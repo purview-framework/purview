@@ -106,7 +106,7 @@ tests:
     dependencies:
     - purview
     - QuickCheck                    >= 2.14.2 && < 2.15
-    - hspec                         >= 2.9.7 && < 2.10
-    - time                          >= 1.11.1 && < 1.12
+    - hspec                         >= 2.8.5 && < 2.10
+    - time                          >= 1.9.3 && < 1.12
     build-tools:
     - hspec-discover == 2.*
