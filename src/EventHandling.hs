@@ -5,6 +5,7 @@ module EventHandling where
 
 import           Control.Concurrent.STM.TChan
 import           Data.Aeson
+import           Data.Typeable
 
 import           Events
 import           Component
@@ -16,18 +17,20 @@ This is a special case event to assign state to message handlers
 
 -}
 
-applyNewState :: FromEvent -> Purview parentAction action m -> Purview parentAction action m
-applyNewState fromEvent@FromEvent { message, location } component = case component of
-  EffectHandler ploc loc state handler cont -> case fromJSON message of
-    Success newState -> do
-      if loc == location
-        then EffectHandler ploc loc newState handler cont
-        else
-          let cont' = fmap (applyNewState fromEvent) cont
-          in EffectHandler ploc loc state handler cont'
-    Error _ ->
-      let cont' = fmap (applyNewState fromEvent) cont
-      in EffectHandler ploc loc state handler cont'
+applyNewState :: StateChangeEvent -> Purview parentAction action m -> Purview parentAction action m
+applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
+  EffectHandler ploc loc state handler cont -> case cast newStateFn of
+      Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
+--    case fromJSON message of
+--    Success newState -> do
+--      if loc == location
+--        then EffectHandler ploc loc newState handler cont
+--        else
+--          let cont' = fmap (applyNewState fromEvent) cont
+--          in EffectHandler ploc loc state handler cont'
+--    Error _ ->
+--      let cont' = fmap (applyNewState fromEvent) cont
+--      in EffectHandler ploc loc state handler cont'
 
   Hide x ->
     let
@@ -49,8 +52,9 @@ applyNewState fromEvent@FromEvent { message, location } component = case compone
   Value x -> Value x
 
 
-runEvent :: Monad m => FromEvent -> Purview parentAction action m -> m [FromEvent]
-runEvent fromEvent@FromEvent { message, location } component = case component of
+runEvent :: Monad m => Either FromEvent StateChangeEvent -> Purview parentAction action m -> m [Either FromEvent StateChangeEvent]
+runEvent (Right (StateChangeEvent _ _)) _ = pure []
+runEvent fromEvent@(Left (FromEvent { message, location })) component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       -- if locations match, we actually run what is in the handler
@@ -61,20 +65,22 @@ runEvent fromEvent@FromEvent { message, location } component = case component of
 
       -- although it doesn't break anything, only send this when the
       -- locations match (cuts down on noise)
+      let test = StateChangeEvent newStateFn Nothing
+
       let newStateEvent =
             if loc == location then
               [
-                FromEvent
-                { event = "newState"
-                -- TODO: this should be happening in the event loop
-                , message = toJSON (newStateFn state)
-                , location = loc
-                }
+                Right $ StateChangeEvent newStateFn loc
+--                { event = "newState"
+--                -- TODO: this should be happening in the event loop
+--                , message = toJSON (newStateFn state)
+--                , location = loc
+--                }
               ]
             else
               []
 
-      let createMessage directedEvent = case directedEvent of
+      let createMessage directedEvent = Left $ case directedEvent of
             (Parent event) -> FromEvent
               { event = "internal"
               , message = toJSON event

@@ -32,14 +32,16 @@ type Log m = String -> m ()
 eventLoop
   :: Monad m
   => Bool
-  -> (m [FromEvent] -> IO [FromEvent])
+  -> (m [Either FromEvent StateChangeEvent] -> IO [Either FromEvent StateChangeEvent ])
   -> Log IO
-  -> TChan FromEvent
+  -> TChan (Either FromEvent StateChangeEvent)
   -> WebSockets.Connection
   -> Purview parentAction action m
   -> IO ()
 eventLoop devMode runner log eventBus connection component = do
-  message@FromEvent { event, location } <- atomically $ readTChan eventBus
+  message <- atomically $ readTChan eventBus
+  -- message@FromEvent { event, location } <- atomically $ readTChan eventBus
+
   log $ "received> " <> show message
 
   let
@@ -49,20 +51,27 @@ eventLoop devMode runner log eventBus connection component = do
     (newTree, actions) = prepareTree component
 
   -- if it's special newState event, the state is replaced in the tree
-  let newTree' = case event of
-        "newState" -> applyNewState message newTree
-        _          -> newTree
+--  let newTree' = case event of
+--        "newState" -> applyNewState message newTree
+--        _          -> newTree
+  let newTree' = case message of
+        Left fromEvent -> newTree
+        Right stateChangeEvent -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
   void . forkIO $ do
+    -- newEvents <- runEvent message newTree'
     newEvents <- runner $ runEvent message newTree'
     mapM_ (atomically . writeTChan eventBus) newEvents
 
-  mapM_ (atomically . writeTChan eventBus) actions
+  mapM_ (atomically . writeTChan eventBus . Left) actions
 
   let
     -- collect diffs
+    location = case message of
+      Left (FromEvent { location }) -> location
+
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
     -- the html beneath the handler.  I imagine it could be more exact, with
@@ -75,9 +84,11 @@ eventLoop devMode runner log eventBus connection component = do
     connection
     (encode $ Event { event = "setHtml", message = renderedDiffs })
 
-  when (devMode && event == "init") $
-    WebSockets.sendTextData
-      connection
-      (encode $ Event { event = "setHtml", message = [ Update [] (render newTree') ] })
+  case message of
+    Left (FromEvent { event }) ->
+      when (devMode && event == "init") $
+        WebSockets.sendTextData
+          connection
+          (encode $ Event { event = "setHtml", message = [ Update [] (render newTree') ] })
 
   eventLoop devMode runner log eventBus connection newTree'

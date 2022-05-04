@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -5,6 +7,7 @@
 module Events where
 
 import           Data.Text (Text)
+import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
 
@@ -26,6 +29,22 @@ instance FromJSON FromEvent where
 
 instance ToJSON m => ToJSON (Event m) where
   toEncoding = genericToEncoding defaultOptions
+
+data StateChangeEvent where
+  StateChangeEvent
+    :: ( Eq state
+       , Typeable state
+       , ToJSON state
+       , FromJSON state)
+    => (state -> state) -> Maybe [Int] -> StateChangeEvent
+
+instance Show StateChangeEvent where
+  show (StateChangeEvent fn location) = "StateChangeEvent " <> show location
+
+-- data StateChangeEvent = StateChangeEvent
+--   { event :: (state -> state)
+--   , location :: Maybe [Int]
+--   }
 
 {-|
 
