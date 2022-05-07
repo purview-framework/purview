@@ -32,7 +32,7 @@ type Log m = String -> m ()
 eventLoop
   :: Monad m
   => Bool
-  -> (m [Either FromEvent StateChangeEvent] -> IO [Either FromEvent StateChangeEvent ])
+  -> (m [Either FromEvent StateChangeEvent] -> IO [Either FromEvent StateChangeEvent])
   -> Log IO
   -> TChan (Either FromEvent StateChangeEvent)
   -> WebSockets.Connection
@@ -71,6 +71,7 @@ eventLoop devMode runner log eventBus connection component = do
     -- collect diffs
     location = case message of
       Left (FromEvent { location }) -> location
+      Right (StateChangeEvent _ location) -> location
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
@@ -82,13 +83,14 @@ eventLoop devMode runner log eventBus connection component = do
 
   WebSockets.sendTextData
     connection
-    (encode $ Event { event = "setHtml", message = renderedDiffs })
+    (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
   case message of
     Left (FromEvent { event }) ->
       when (devMode && event == "init") $
         WebSockets.sendTextData
           connection
-          (encode $ Event { event = "setHtml", message = [ Update [] (render newTree') ] })
+          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
+    Right _ -> pure ()
 
   eventLoop devMode runner log eventBus connection newTree'

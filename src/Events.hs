@@ -11,10 +11,13 @@ import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
 
-data Event m = Event
+data ForFrontEndEvent m = ForFrontEndEvent
   { event :: Text
   , message :: m
   } deriving (Generic, Show)
+
+instance ToJSON m => ToJSON (ForFrontEndEvent m) where
+  toEncoding = genericToEncoding defaultOptions
 
 data FromEvent = FromEvent
   { event :: Text
@@ -26,9 +29,6 @@ instance FromJSON FromEvent where
   parseJSON (Object o) =
       FromEvent <$> o .: "event" <*> (o .: "message") <*> o .: "location"
   parseJSON _ = error "fail"
-
-instance ToJSON m => ToJSON (Event m) where
-  toEncoding = genericToEncoding defaultOptions
 
 data StateChangeEvent where
   StateChangeEvent
