@@ -42,7 +42,7 @@ eventLoop devMode runner log eventBus connection component = do
   message <- atomically $ readTChan eventBus
   -- message@FromEvent { event, location } <- atomically $ readTChan eventBus
 
-  log $ "received> " <> show message
+  when devMode $ log $ "received> " <> show message
 
   let
     -- this collects any actions that should run once and sets them
@@ -79,7 +79,7 @@ eventLoop devMode runner log eventBus connection component = do
     -- Delete / Create events.
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
-  log $ "sending> " <> show renderedDiffs
+  when devMode $ log $ "sending> " <> show renderedDiffs
 
   WebSockets.sendTextData
     connection

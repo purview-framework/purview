@@ -121,6 +121,7 @@ import           Events
 import           PrepareTree
 import           Rendering
 import           Wrapper
+import Network.Wai.Middleware.RequestLogger (mkRequestLogger)
 
 type Log m = String -> m ()
 
@@ -180,8 +181,6 @@ requestHandler :: Purview parentAction action m -> Text -> [HtmlEventHandler] ->
 requestHandler routes htmlHead htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
-
-    -- Sc.middleware S.logStdoutDev
 
     Sc.get "/"
       $ Sc.html

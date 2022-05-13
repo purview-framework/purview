@@ -39,7 +39,6 @@ in a non-forked fashioned.  If you try void . forkIO you end up back in m a -> I
 hell.
 
 -}
-
 apply :: MonadIO m => TChan Event -> Event -> Purview parentAction action m -> m (Purview parentAction action m)
 apply eventBus newStateEvent@StateChangeEvent {} component =
   pure $ applyNewState newStateEvent component
