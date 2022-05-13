@@ -32,15 +32,16 @@ type Log m = String -> m ()
 eventLoop
   :: Monad m
   => Bool
-  -> (m [FromEvent] -> IO [FromEvent])
+  -> (m [Event] -> IO [Event])
   -> Log IO
-  -> TChan FromEvent
+  -> TChan Event
   -> WebSockets.Connection
   -> Purview parentAction action m
   -> IO ()
 eventLoop devMode runner log eventBus connection component = do
-  message@FromEvent { event, location } <- atomically $ readTChan eventBus
-  log $ "received> " <> show message
+  message <- atomically $ readTChan eventBus
+
+  when devMode $ log $ "received> " <> show message
 
   let
     -- this collects any actions that should run once and sets them
@@ -49,9 +50,9 @@ eventLoop devMode runner log eventBus connection component = do
     (newTree, actions) = prepareTree component
 
   -- if it's special newState event, the state is replaced in the tree
-  let newTree' = case event of
-        "newState" -> applyNewState message newTree
-        _          -> newTree
+  let newTree' = case message of
+        Event {} -> newTree
+        stateChangeEvent -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
@@ -63,21 +64,28 @@ eventLoop devMode runner log eventBus connection component = do
 
   let
     -- collect diffs
+    location = case message of
+      (Event { location }) -> location
+      (StateChangeEvent _ location) -> location
+
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
     -- the html beneath the handler.  I imagine it could be more exact, with
     -- Delete / Create events.
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
-  log $ "sending> " <> show renderedDiffs
+  when devMode $ log $ "sending> " <> show renderedDiffs
 
   WebSockets.sendTextData
     connection
-    (encode $ Event { event = "setHtml", message = renderedDiffs })
+    (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
-  when (devMode && event == "init") $
-    WebSockets.sendTextData
-      connection
-      (encode $ Event { event = "setHtml", message = [ Update [] (render newTree') ] })
+  case message of
+    (Event { event }) ->
+      when (devMode && event == "init") $
+        WebSockets.sendTextData
+          connection
+          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
+    _ -> pure ()
 
   eventLoop devMode runner log eventBus connection newTree'

@@ -17,12 +17,16 @@ It also assigns a location to message and effect handlers.
 
 -}
 
-prepareTree :: Purview parentAction action m -> (Purview parentAction action m, [FromEvent])
+prepareTree :: Purview parentAction action m -> (Purview parentAction action m, [Event])
 prepareTree = prepareTree' [] []
 
 type Location = [Int]
 
-prepareTree' :: Location -> Location -> Purview parentAction action m -> (Purview parentAction action m, [FromEvent])
+prepareTree'
+  :: Location
+  -> Location
+  -> Purview parentAction action m
+  -> (Purview parentAction action m, [Event])
 prepareTree' parentLocation location component = case component of
   Attribute attrs cont ->
     let result = prepareTree' parentLocation location cont
@@ -42,7 +46,7 @@ prepareTree' parentLocation location component = case component of
 
   Once effect hasRun cont ->
     let send message =
-          FromEvent
+          Event
             { event = "once"
             , message = toJSON message
             , location = Just location

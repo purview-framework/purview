@@ -39,9 +39,10 @@ in a non-forked fashioned.  If you try void . forkIO you end up back in m a -> I
 hell.
 
 -}
-
-apply :: MonadIO m => TChan FromEvent -> FromEvent -> Purview parentAction action m -> m (Purview parentAction action m)
-apply eventBus fromEvent@FromEvent {event=eventKind} component =
+apply :: MonadIO m => TChan Event -> Event -> Purview parentAction action m -> m (Purview parentAction action m)
+apply eventBus newStateEvent@StateChangeEvent {} component =
+  pure $ applyNewState newStateEvent component
+apply eventBus fromEvent@Event {event=eventKind} component =
   case eventKind of
     "newState" -> pure $ applyNewState fromEvent component
     _          -> do
@@ -71,15 +72,13 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      let event' = FromEvent { event="click", message="up", location=Nothing }
+      let event' = Event { event="click", message="up", location=Nothing }
 
       appliedHandler <- apply chan event' handler
 
       stateEvent <- atomically $ readTChan chan
 
-      stateEvent
-        `shouldBe`
-        FromEvent { event="newState", message=Number 1, location=Nothing }
+      show stateEvent `shouldBe` show (StateChangeEvent (id :: Int -> Int) Nothing)
 
       afterState <- apply chan stateEvent appliedHandler
 
@@ -89,7 +88,7 @@ spec = parallel $ do
 
     it "works for clicks across many different trees" $
       property $ \x -> do
-        let event = FromEvent { event="click", message="up", location=Nothing }
+        let event = Event { event="click", message="up", location=Nothing }
         chan <- newTChanIO
 
         component <- apply chan event (x :: Purview String String IO)
@@ -97,7 +96,7 @@ spec = parallel $ do
 
     it "works for setting state across many different trees" $
       property $ \x -> do
-        let event = FromEvent { event="newState", message="up", location=Just [] }
+        let event = Event { event="newState", message="up", location=Just [] }
         chan <- newTChanIO
 
         component <- apply chan event (x :: Purview String String IO)
@@ -124,7 +123,7 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      let event' = FromEvent { event="click", message=toJSON Up, location=Nothing }
+      let event' = Event { event="click", message=toJSON Up, location=Nothing }
 
       appliedHandler <- apply chan event' handler
 
@@ -149,14 +148,14 @@ spec = parallel $ do
 
       chan <- newTChanIO
 
-      let event0 = FromEvent { event="init", message="init", location=Nothing }
+      let event0 = Event { event="init", message="init", location=Nothing }
 
       appliedHandler0 <- apply chan event0 handler
       render appliedHandler0
         `shouldBe`
         "<div handler=\"null\">0</div>"
 
-      let event1 = FromEvent { event="init", message=toJSON Up, location=Nothing }
+      let event1 = Event { event="init", message=toJSON Up, location=Nothing }
 
       appliedHandler1 <- apply chan event1 appliedHandler0
 
@@ -196,15 +195,15 @@ spec = parallel $ do
 
       let
         locatedGraph = fst $ prepareTree component
-        event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+        event1 = Event { event="click", message=toJSON Up, location=Just [1, 0] }
 
       afterEvent1 <- apply chan event1 locatedGraph
 
       receivedEvent1 <- atomically $ readTChan chan
-      receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+      show receivedEvent1 `shouldBe` show (StateChangeEvent (id :: Int -> Int) (Just [1, 0]))
 
       receivedEvent2 <- atomically $ readTChan chan
-      receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just []}
+      receivedEvent2 `shouldBe` Event {event = "internal", message = String "hello", location = Just []}
 
     describe "sending events" $ do
 
@@ -235,16 +234,16 @@ spec = parallel $ do
 
         render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
 
-        let event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+        let event1 = Event { event="click", message=toJSON Up, location=Just [1, 0] }
 
         afterEvent1 <- apply chan event1 locatedGraph
 
         receivedEvent1 <- atomically $ readTChan chan
-        receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+        show receivedEvent1 `shouldBe` show (StateChangeEvent (id :: Int -> Int) (Just [1, 0]))
 
         receivedEvent2 <- atomically $ readTChan chan
         -- correctly targeted to the parent
-        receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "hello", location = Just []}
+        receivedEvent2 `shouldBe` Event {event = "internal", message = String "hello", location = Just []}
 
 
       it "can send an event to self" $ do
@@ -274,16 +273,16 @@ spec = parallel $ do
 
         render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
 
-        let event1 = FromEvent { event="click", message=toJSON Up, location=Just [1, 0] }
+        let event1 = Event { event="click", message=toJSON Up, location=Just [1, 0] }
 
         afterEvent1 <- apply chan event1 locatedGraph
 
         receivedEvent1 <- atomically $ readTChan chan
-        receivedEvent1 `shouldBe` FromEvent {event = "newState", message = Number 1.0, location = Just [1,0]}
+        show receivedEvent1 `shouldBe` show (StateChangeEvent (id :: Int -> Int) (Just [1, 0]))
 
         receivedEvent2 <- atomically $ readTChan chan
         -- correctly targeted to self
-        receivedEvent2 `shouldBe` FromEvent {event = "internal", message = String "Down", location = Just [1,0]}
+        receivedEvent2 `shouldBe` Event {event = "internal", message = String "Down", location = Just [1,0]}
 
 
 main :: IO ()

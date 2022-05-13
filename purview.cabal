@@ -74,6 +74,7 @@ executable purview-exe
   main-is: Counter.hs
   other-modules:
       AlgebraicEffects
+      EventOrderingCheck
       ExpandingList
       GettingInput
       ServerTime

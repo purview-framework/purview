@@ -111,6 +111,7 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import           Data.Aeson
 
+import           Control.Monad (when)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Concurrent
@@ -121,13 +122,14 @@ import           Events
 import           PrepareTree
 import           Rendering
 import           Wrapper
+import Network.Wai.Middleware.RequestLogger (mkRequestLogger)
 
 type Log m = String -> m ()
 
 data Configuration parentAction action m = Configuration
   { component         :: Purview parentAction action m
   -- ^ The top level component to put on the page.
-  , interpreter       :: m [FromEvent] -> IO [FromEvent]
+  , interpreter       :: m [Event] -> IO [Event]
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
   -- ^ Specify what to do with logs
@@ -181,8 +183,6 @@ requestHandler routes htmlHead htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
 
-    -- Sc.middleware S.logStdoutDev
-
     Sc.get "/"
       $ Sc.html
       $ LazyText.fromStrict
@@ -191,7 +191,7 @@ requestHandler routes htmlHead htmlEventHandlers =
       $ render . fst
       $ prepareTree routes
 
-webSocketMessageHandler :: TChan FromEvent -> WebSocket.Connection -> IO ()
+webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
   message' <- WebSocket.receiveData websocketConnection
 
@@ -204,17 +204,17 @@ webSocketMessageHandler eventBus websocketConnection = do
 webSocketHandler
   :: Monad m
   => Bool
-  -> (m [FromEvent] -> IO [FromEvent])
+  -> (m [Event] -> IO [Event])
   -> Log IO
   -> Purview parentAction action m
   -> WebSocket.ServerApp
 webSocketHandler devMode runner log component pending = do
-  putStrLn "ws connected"
+  when devMode $ putStrLn "ws connected"
   conn <- WebSocket.acceptRequest pending
 
   eventBus <- newTChanIO
 
-  atomically $ writeTChan eventBus $ FromEvent { event = "init", message = "init", location = Nothing }
+  atomically $ writeTChan eventBus $ Event { event = "init", message = "init", location = Nothing }
 
   WebSocket.withPingThread conn 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus conn
