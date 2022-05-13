@@ -40,7 +40,6 @@ eventLoop
   -> IO ()
 eventLoop devMode runner log eventBus connection component = do
   message <- atomically $ readTChan eventBus
-  -- message@FromEvent { event, location } <- atomically $ readTChan eventBus
 
   when devMode $ log $ "received> " <> show message
 
@@ -51,17 +50,13 @@ eventLoop devMode runner log eventBus connection component = do
     (newTree, actions) = prepareTree component
 
   -- if it's special newState event, the state is replaced in the tree
---  let newTree' = case event of
---        "newState" -> applyNewState message newTree
---        _          -> newTree
   let newTree' = case message of
-        (Event _ _ _) -> newTree
+        Event {} -> newTree
         stateChangeEvent -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
   void . forkIO $ do
-    -- newEvents <- runEvent message newTree'
     newEvents <- runner $ runEvent message newTree'
     mapM_ (atomically . writeTChan eventBus) newEvents
 
