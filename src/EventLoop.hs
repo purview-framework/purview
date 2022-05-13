@@ -32,9 +32,9 @@ type Log m = String -> m ()
 eventLoop
   :: Monad m
   => Bool
-  -> (m [Either FromEvent StateChangeEvent] -> IO [Either FromEvent StateChangeEvent])
+  -> (m [Event] -> IO [Event])
   -> Log IO
-  -> TChan (Either FromEvent StateChangeEvent)
+  -> TChan Event
   -> WebSockets.Connection
   -> Purview parentAction action m
   -> IO ()
@@ -55,8 +55,8 @@ eventLoop devMode runner log eventBus connection component = do
 --        "newState" -> applyNewState message newTree
 --        _          -> newTree
   let newTree' = case message of
-        Left fromEvent -> newTree
-        Right stateChangeEvent -> applyNewState stateChangeEvent newTree
+        (Event _ _ _) -> newTree
+        stateChangeEvent -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
@@ -65,13 +65,13 @@ eventLoop devMode runner log eventBus connection component = do
     newEvents <- runner $ runEvent message newTree'
     mapM_ (atomically . writeTChan eventBus) newEvents
 
-  mapM_ (atomically . writeTChan eventBus . Left) actions
+  mapM_ (atomically . writeTChan eventBus) actions
 
   let
     -- collect diffs
     location = case message of
-      Left (FromEvent { location }) -> location
-      Right (StateChangeEvent _ location) -> location
+      (Event { location }) -> location
+      (StateChangeEvent _ location) -> location
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
@@ -86,11 +86,11 @@ eventLoop devMode runner log eventBus connection component = do
     (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
   case message of
-    Left (FromEvent { event }) ->
+    (Event { event }) ->
       when (devMode && event == "init") $
         WebSockets.sendTextData
           connection
           (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
-    Right _ -> pure ()
+    _ -> pure ()
 
   eventLoop devMode runner log eventBus connection newTree'

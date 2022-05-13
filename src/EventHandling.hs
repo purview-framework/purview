@@ -13,14 +13,19 @@ import           Component
 
 {-|
 
-This is a special case event to assign state to message handlers
+This is a special case event to assign new state to handlers
 
 -}
-
-applyNewState :: StateChangeEvent -> Purview parentAction action m -> Purview parentAction action m
+applyNewState
+  :: Event
+  -> Purview parentAction action m
+  -> Purview parentAction action m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
   EffectHandler ploc loc state handler cont -> case cast newStateFn of
-      Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
+    Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
+    -- TODO: This needs to continue down the tree
+    Nothing -> EffectHandler ploc loc state handler cont
+
 --    case fromJSON message of
 --    Success newState -> do
 --      if loc == location
@@ -50,11 +55,12 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
   Text x -> Text x
 
   Value x -> Value x
+applyNewState (Event {}) component = component
 
 
-runEvent :: Monad m => Either FromEvent StateChangeEvent -> Purview parentAction action m -> m [Either FromEvent StateChangeEvent]
-runEvent (Right (StateChangeEvent _ _)) _ = pure []
-runEvent fromEvent@(Left (FromEvent { message, location })) component = case component of
+runEvent :: Monad m => Event -> Purview parentAction action m -> m [Event]
+runEvent (StateChangeEvent _ _) _ = pure []
+runEvent fromEvent@(Event { message, location }) component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
     Success parsedAction -> do
       -- if locations match, we actually run what is in the handler
@@ -65,28 +71,16 @@ runEvent fromEvent@(Left (FromEvent { message, location })) component = case com
 
       -- although it doesn't break anything, only send this when the
       -- locations match (cuts down on noise)
-      let test = StateChangeEvent newStateFn Nothing
+      let newStateEvent = [StateChangeEvent newStateFn loc | loc == location]
 
-      let newStateEvent =
-            if loc == location then
-              [
-                Right $ StateChangeEvent newStateFn loc
---                { event = "newState"
---                -- TODO: this should be happening in the event loop
---                , message = toJSON (newStateFn state)
---                , location = loc
---                }
-              ]
-            else
-              []
-
-      let createMessage directedEvent = Left $ case directedEvent of
-            (Parent event) -> FromEvent
+      let createMessage directedEvent = case directedEvent of
+            (Parent event) -> Event
+              -- TODO: this should probably be a new kind of event
               { event = "internal"
               , message = toJSON event
               , location = parentLocation
               }
-            (Self event) -> FromEvent
+            (Self event) -> Event
               { event = "internal"
               , message = toJSON event
               , location = loc

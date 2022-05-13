@@ -73,7 +73,7 @@ data Purview parentAction action m where
 
   Once
     :: (ToJSON action)
-    => ((action -> FromEvent) -> FromEvent)
+    => ((action -> Event) -> Event)
     -> Bool  -- has run
     -> Purview parentAction action m
     -> Purview parentAction action m
@@ -206,7 +206,7 @@ to send an event up to it, and it will only be sent once.
 -}
 once
   :: ToJSON action
-  => ((action -> FromEvent) -> FromEvent)
+  => ((action -> Event) -> Event)
   -> Purview parentAction action m
   -> Purview parentAction action m
 once sendAction = Once sendAction False

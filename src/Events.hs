@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -11,6 +12,11 @@ import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
 
+{-|
+
+This for events intended for the front end
+
+-}
 data ForFrontEndEvent m = ForFrontEndEvent
   { event :: Text
   , message :: m
@@ -19,32 +25,49 @@ data ForFrontEndEvent m = ForFrontEndEvent
 instance ToJSON m => ToJSON (ForFrontEndEvent m) where
   toEncoding = genericToEncoding defaultOptions
 
-data FromEvent = FromEvent
-  { event :: Text
-  , message :: Value
-  , location :: Maybe [Int]
-  } deriving (Show, Eq, Generic)
+{-|
 
-instance FromJSON FromEvent where
-  parseJSON (Object o) =
-      FromEvent <$> o .: "event" <*> (o .: "message") <*> o .: "location"
-  parseJSON _ = error "fail"
+These encapsulate events that come from the front end in addition to events
+that are internal.  For example, state changes or messages being sent to
+handlers higher up in the tree.
 
-data StateChangeEvent where
+-}
+data Event where
+  Event ::
+    { event :: Text
+    , message :: Value
+    , location :: Maybe [Int]
+    } -> Event
+
   StateChangeEvent
     :: ( Eq state
        , Typeable state
        , ToJSON state
        , FromJSON state)
-    => (state -> state) -> Maybe [Int] -> StateChangeEvent
+    => (state -> state) -> Maybe [Int] -> Event
 
-instance Show StateChangeEvent where
-  show (StateChangeEvent fn location) = "StateChangeEvent " <> show location
+instance Show Event where
+  show (Event event message location) =
+    show $ "{ event: "
+      <> show event
+      <> ", message: "
+      <> show message
+      <> ", location: "
+      <> show location <> " }"
+  show (StateChangeEvent _ location) =
+    "{ event: \"newState\", location: " <> show location <> " }"
 
--- data StateChangeEvent = StateChangeEvent
---   { event :: (state -> state)
---   , location :: Maybe [Int]
---   }
+instance Eq Event where
+  (Event { message=messageA, event=eventA, location=locationA })
+    == (Event { message=messageB, event=eventB, location=locationB }) =
+    eventA == eventB && messageA == messageB && locationA == locationB
+  (Event {}) == _ = False
+  (StateChangeEvent _ _) == _ = False
+
+instance FromJSON Event where
+  parseJSON (Object o) =
+      Event <$> o .: "event" <*> (o .: "message") <*> o .: "location"
+  parseJSON _ = error "fail"
 
 {-|
 
