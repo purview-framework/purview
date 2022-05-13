@@ -111,6 +111,7 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import           Data.Aeson
 
+import           Control.Monad (when)
 import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Concurrent
@@ -208,7 +209,7 @@ webSocketHandler
   -> Purview parentAction action m
   -> WebSocket.ServerApp
 webSocketHandler devMode runner log component pending = do
-  putStrLn "ws connected"
+  when devMode $ putStrLn "ws connected"
   conn <- WebSocket.acceptRequest pending
 
   eventBus <- newTChanIO

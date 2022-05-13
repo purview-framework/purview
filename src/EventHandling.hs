@@ -23,19 +23,9 @@ applyNewState
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
   EffectHandler ploc loc state handler cont -> case cast newStateFn of
     Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
-    -- TODO: This needs to continue down the tree
-    Nothing -> EffectHandler ploc loc state handler cont
-
---    case fromJSON message of
---    Success newState -> do
---      if loc == location
---        then EffectHandler ploc loc newState handler cont
---        else
---          let cont' = fmap (applyNewState fromEvent) cont
---          in EffectHandler ploc loc state handler cont'
---    Error _ ->
---      let cont' = fmap (applyNewState fromEvent) cont
---      in EffectHandler ploc loc state handler cont'
+    Nothing ->
+      let children = fmap (applyNewState fromEvent) cont
+      in EffectHandler ploc loc state handler children
 
   Hide x ->
     let
