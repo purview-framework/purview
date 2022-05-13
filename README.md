@@ -133,43 +133,21 @@ Some things to note:
 * `onClick` can wrap anything -- like other attributes it flows down to concrete HTML.
 * The reducer is run in its own thread when an event is received, so you don't have to worry about slow operations locking the page.
 
-### Overview
+### Overview of how it works
 
 Using the above example of getting the time, here's how events flow when the user clicks "check time"
 
-```
-     +------------------------------------+                                                                          
-     | Browser                            |                                                                          
-+--->|                                    |                                                                          
-|    | +------------------------+         |                                                                          
-|    | |User clicks "check time"|         |                                                                          
-|    | +------------------------+         |                                                                          
-|    +----|-------------------------------+                                                                          
-|         |                                                                                                          
-|         | { "event": "click", "location": "[0]", message: "checkTime" }                                            
-|         |                                                                                                          
-|         |                                                                                                          
-|         |                                                                                                          
-|         |                                                                                                          
-|         |                                   { "event": "newState", "location": "[0]", message: "Just 2:29pm" }     
-|         |        +---------------------------------------------------------+                                       
-|         v        v                                                         |                                       
-|    +-------------------------------------+                                 |                                       
-|    | Event Loop                          |                                 |                                       
-|    |                                     |            +-----------------------------------------+                   
-|    | +---------------------------------+ |            | Green Thread                            |                   
-|    | |Handler is identified by location|------------->|                                         |                   
-|    | +---------------------------------+ |            | Handler is run and creates state change |                   
-|    |                                     |            +-----------------------------------------+                   
-|    | +--------------------------+        |                                                                         
-|    | |State change produces diff|        |                                                                         
-|    | +--------------------------+        |                                                                         
-|    +---|---------------------------------+                                                                         
-|        |                                                                                                           
-+--------+                                                                                                           
-     { "event": "setHtml", "message": [{ location: [0], html: "<p>Just 2:20pm</p>" }] }                              
+1. The event is sent from the browser in a form like `{ event: click, message: "checkTime", location: [0] }`
+2. The event is put onto the channel for the event loop to process
+3. By going down the tree it applies the event to the matched handler
 
-```
+   a. Any HTML changes are sent to the browser, completing the loop
+5. The handler does its work in a green thread, creating a new event that looks like
+   
+   ```{ event: stateChange, fn: state -> state, location: [0] }```
+7. The state change event is put onto the channel for the event loop to process
+8. By going down the tree it applies the state change fn to the latest state in the tree, returning a new tree
+9. Any HTML changes are sent to the browser, completing the loop
 
 ### Contributing
 
