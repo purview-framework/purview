@@ -9,8 +9,6 @@ version:        0.1.0.0
 synopsis:       Build server rendered, interactive websites
 description:    A framework for building server rendered, interactive websites.
                 .
-                It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
-                .
                 The main points:
                 .
                 * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
@@ -20,6 +18,8 @@ description:    A framework for building server rendered, interactive websites.
                 * The approach is to provide useful atoms, with the user building up a kind of AST.
                 .
                 * Attributes flow down to concrete HTML, events bubble up to state handlers.
+                .
+                It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
                 .
                 For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
 category:       Library, Web
@@ -68,64 +68,6 @@ library
     , wai-websockets >=3.0.1 && <3.1
     , warp >=3.3.20 && <3.4
     , websockets >=0.12.7 && <0.13
-  default-language: Haskell2010
-
-executable purview-exe
-  main-is: Counter.hs
-  other-modules:
-      AlgebraicEffects
-      EventOrderingCheck
-      ExpandingList
-      GettingInput
-      ServerTime
-      Shop
-      TodoList
-      Paths_purview
-  hs-source-dirs:
-      examples
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      aeson >=2.0.3 && <2.1
-    , base >=4.7 && <5
-    , bytestring >=0.10.12.1 && <0.12
-    , freer-simple >=1.2.1 && <1.3
-    , purview
-    , raw-strings-qq ==1.1.*
-    , scotty ==0.12.*
-    , stm >=2.5.0 && <2.6
-    , text >=1.2.5 && <1.3
-    , time >=1.11.1 && <1.12
-    , wai >=3.2.3 && <3.3
-    , wai-extra >=3.1.8 && <3.2
-    , wai-websockets >=3.0.1 && <3.1
-    , warp >=3.3.20 && <3.4
-    , websockets >=0.12.7 && <0.13
-  buildable: False
-  default-language: Haskell2010
-
-executable purview-perf-test
-  main-is: Criterion.hs
-  other-modules:
-      Paths_purview
-  hs-source-dirs:
-      performance
-  ghc-options: -main-is Criterion
-  build-depends:
-      aeson >=2.0.3 && <2.1
-    , base >=4.7 && <5
-    , bytestring >=0.10.12.1 && <0.12
-    , criterion >=1.5.13 && <1.6
-    , purview
-    , raw-strings-qq ==1.1.*
-    , scotty ==0.12.*
-    , stm >=2.5.0 && <2.6
-    , text >=1.2.5 && <1.3
-    , wai >=3.2.3 && <3.3
-    , wai-extra >=3.1.8 && <3.2
-    , wai-websockets >=3.0.1 && <3.1
-    , warp >=3.3.20 && <3.4
-    , websockets >=0.12.7 && <0.13
-  buildable: False
   default-language: Haskell2010
 
 test-suite purview-test

@@ -137,7 +137,9 @@ Some things to note:
 
 Using the above example of getting the time, here's how events flow when the user clicks "check time"
 
-1. The event is sent from the browser in a form like `{ event: click, message: "checkTime", location: [0] }`
+1. The event is sent from the browser in a form like `
+
+   ```{ event: click, message: "checkTime", location: [0] }```
 2. The event is put onto the channel for the event loop to process
 3. By going down the tree it applies the event to the matched handler
 
@@ -162,7 +164,6 @@ The roadmap is, loosely, determined by adding things required to build real webs
 1. Install [stack](https://docs.haskellstack.org/en/stable/README/)
 2. `stack build`
 3. `stack exec purview-exe` for just running the example above
-4. `stack exec purview` for the ~ experimental ~ and not-currently working repl
 
 ### Running Tests
 
