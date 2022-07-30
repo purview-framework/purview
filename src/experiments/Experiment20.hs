@@ -37,7 +37,7 @@ test =
       , component = Html
       }
     handler incoming =
-      Handler incoming "" (\action state -> (state, [Left ""]))
+      Handler incoming "" (\action state -> (state, [Right ""]))
   in
     handler startingNode startingNode
 --              ^ sadly the following error is here instead of on the handler
