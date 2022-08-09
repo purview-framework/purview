@@ -23,22 +23,23 @@ There has to be a way
 
 This is for a sort of web framework I've been working on.
 
-Handlers can send events to themself, or to a parent handler.
+Handlers can send events to themselves, or to a parent handler.
 
 Senders (triggered by events in the HTML) can only send events to the
 handler above them in the graph.
 
-There will be few handlers / senders, and a lot of Html. Having to
-type out the parentEvent for Sender / Html gets weird, since they
-don't have to know about it, so I'd like to hide parentEvent from
-the user in some way (any way).  It does need to be kept track of,
-somehow, since new Handlers can be nested in the graph layers beneath
-the parent handler.
+There will be few handlers / senders, and a lot of Html. Having the
+parentEvent on Senders and Html doesn't fit the model, since it's
+not needed.  Is there a better way to model this that would remove
+parentEvent, but still keep track of it?  New Handlers can be anywhere
+in the tree and need to know what events it can send to the parent.
+
+If there was some way for the Handler to "know" that the "action" type
+of the Sender / Html it's embedded in was its "parentEvent" type, that'd
+be pretty cool but might not be possible?
 
 I've been wondering if this could be solved with implicit params or
-something monadic, but I'm not sure.  Maybe there's an easier way?
-Or the data model should be changed?  Any advice appreciated as
-I've been stuck on this for awhile and my brain has calcified.
+something monadic, but I'm not sure.
 
 -}
 
@@ -65,12 +66,25 @@ data Graph parentEvent event where
 data Vertical = North | South
 data Horizontal = East | West
 
-type Graph' a = forall parentEvent. Graph parentEvent a
+data RegistrationFormEvent = UserInfoSubmitted { email :: Maybe String, username :: Maybe String }
 
--- here you can see where having to state the parentEvent type makes less sense
--- and could be annoying to people using the library
-westSender :: Graph' Horizontal
-westSender = Sender West []
+registrationForm = Sender UserInfoSubmitted
+  [ Html "form"
+      [ -- email input
+        -- username input
+        -- submit button
+      ]
+  ]
+
+registrationHandler = Handler handle
+  where handle UserInfoSubmitted { name, username } = do
+          -- check the name is valid
+          -- check the username is valid
+          --
+
+-- here you can see where having the parentEvent type makes less sense
+westSender :: Graph parentEvent Horizontal
+westSender = Sender West [ Html "button" [] ]
 
 child :: Graph Vertical Horizontal
 child = Handler (\event -> [ Parent North, Self East ]) [ westSender ]
@@ -80,3 +94,11 @@ parent = Handler (\event -> [ Self North ])
 
 graph :: Graph () Vertical
 graph = parent [ child ]
+
+-- I see I can do something like this:
+type Sender event = forall parentEvent. Graph parentEvent event
+
+-- to hide having to type out the parentEvent, but it's still not
+-- exactly matching with how it really works
+eastSender :: Sender Horizontal
+eastSender = Sender East []
