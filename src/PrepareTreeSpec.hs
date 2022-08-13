@@ -16,7 +16,7 @@ spec = parallel $ do
   describe "prepareTree" $ do
 
     it "works across a variety of trees" $ do
-      property $ \x -> show (fst (prepareTree (x :: Purview String String IO))) `shouldContain` "always present"
+      property $ \x -> show (fst (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
 
     it "sets hasRun to True" $ do
       let

@@ -23,7 +23,7 @@ spec = parallel $ do
   describe "render" $ do
 
     it "can render an assortment of different trees" $
-      property $ \x -> render (x :: Purview String String IO) `shouldContain` "always present"
+      property $ \x -> render (x :: Purview String IO) `shouldContain` "always present"
 
     it "can create a div" $ do
       let element = Html "div" [Text "hello world"]

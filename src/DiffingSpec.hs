@@ -47,7 +47,7 @@ spec = parallel $ do
 
       it "diffs handler children if the state is different" $ do
         let
-          handler1 :: (String -> Purview String action IO) -> Purview String action IO
+          handler1 :: (String -> Purview String IO) -> Purview String IO
           handler1 = messageHandler "initial state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
           handler2 = messageHandler "different state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
           oldTree = div [ handler1 (const (text "the original")) ]
@@ -70,7 +70,7 @@ spec = parallel $ do
 
       it "diffs handler children if the state is different" $ do
         let
-          handler1 :: (String -> Purview String action IO) -> Purview String action IO
+          handler1 :: (String -> Purview String IO) -> Purview String IO
           handler1 = effectHandler "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           handler2 = effectHandler "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           oldTree = div [ handler1 (const (text "the original")) ]
@@ -83,7 +83,7 @@ spec = parallel $ do
 
       it "continues going down the tree even if the state is the same at the top" $ do
         let
-          handler1 :: (String -> Purview String action IO) -> Purview String action IO
+          handler1 :: (String -> Purview String IO) -> Purview String IO
           handler1 = effectHandler "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           handler2 = effectHandler "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           oldTree = fst . prepareTree $ div [ handler1 . const $ handler1 (const (text "the original")) ]

@@ -27,9 +27,10 @@ reducer "slow" state = do
 
 handler = effectHandler (0 :: Int) reducer
 
-checkButtonSlow :: Purview parentAction String m
+checkButtonSlow :: Purview String m
 checkButtonSlow = onClick ("slow" :: String) $ div [ text "slow" ]
 
+checkButtonFast :: Purview String m
 checkButtonFast = onClick ("fast" :: String) $ div [ text "fast" ]
 
 combined = handler $ \state -> div

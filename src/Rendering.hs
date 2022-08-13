@@ -46,10 +46,10 @@ they reach a real HTML tag.
 
 -}
 
-render :: Purview parentAction action m -> String
+render :: Purview action m -> String
 render = render' []
 
-render' :: [Attributes action] -> Purview parentAction action m -> String
+render' :: [Attributes action] -> Purview action m -> String
 render' attrs tree = case tree of
   Html kind rest ->
     "<" <> kind <> renderAttributes attrs <> ">"

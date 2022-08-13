@@ -79,10 +79,17 @@ parent = Handler (\event -> [ Self North ])
 
 graph = parent [ child ]
 
-data Temp where
-  Temp :: { value :: a, value2 :: a } -> Temp
+-- data Temp where
+--   Temp :: { value :: a, value2 :: a } -> Temp
 
-test = Temp () ""
+-- test = Temp () ""
+
+type Temp simonSays a = Maybe a
+
+a = Just 1 :: Temp Integer Integer
+b = Nothing :: Temp String String
+
+c = [a, b]
 
 {- Checks
 

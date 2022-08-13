@@ -39,7 +39,7 @@ in a non-forked fashioned.  If you try void . forkIO you end up back in m a -> I
 hell.
 
 -}
-apply :: MonadIO m => TChan Event -> Event -> Purview parentAction action m -> m (Purview parentAction action m)
+apply :: MonadIO m => TChan Event -> Event -> Purview event m -> m (Purview event m)
 apply eventBus newStateEvent@StateChangeEvent {} component =
   pure $ applyNewState newStateEvent component
 apply eventBus fromEvent@Event {event=eventKind} component =
@@ -60,7 +60,7 @@ spec = parallel $ do
         actionHandler "up" _ = 1
         actionHandler _    _ = 0
 
-        handler :: Purview () a IO
+        handler :: Purview () IO
         handler =
           simpleHandler (0 :: Int)
             actionHandler
@@ -91,7 +91,7 @@ spec = parallel $ do
         let event = Event { event="click", message="up", location=Nothing }
         chan <- newTChanIO
 
-        component <- apply chan event (x :: Purview String String IO)
+        component <- apply chan event (x :: Purview String IO)
         render component `shouldContain` "always present"
 
     it "works for setting state across many different trees" $
@@ -99,7 +99,7 @@ spec = parallel $ do
         let event = Event { event="newState", message="up", location=Just [] }
         chan <- newTChanIO
 
-        component <- apply chan event (x :: Purview String String IO)
+        component <- apply chan event (x :: Purview String IO)
         -- this tests 2 things
         -- 1. that it fully goes down the tree
         -- 2. the component remains the same, since the event doesn't
