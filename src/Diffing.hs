@@ -10,7 +10,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 {-
 
-Since actions target specific locations, we can't stop going the tree early
+Since events target specific locations, we can't stop going the tree early
 because changes may have happened beneath the top level.  kind of the
 downside not having a single, passed down, state.
 
@@ -36,9 +36,9 @@ instance ToJSON a => ToJSON (Change a) where
 diff
   :: Maybe Location
   -> Location
-  -> Purview parentAction action m
-  -> Purview parentAction action m
-  -> [Change (Purview parentAction action m)]
+  -> Purview event m
+  -> Purview event m
+  -> [Change (Purview event m)]
 diff target location oldGraph newGraph = case (oldGraph, newGraph) of
 
   (Html kind children, Html kind' children') ->
@@ -55,7 +55,7 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
   (unknown, Html kind children) ->
     [Update location newGraph]
 
-  (Hide (EffectHandler _ loc state _ cont), Hide (EffectHandler _ loc' newState _ newCont)) ->
+  (EffectHandler _ loc state _ cont, EffectHandler _ loc' newState _ newCont) ->
     case cast state of
       Just state' ->
         [Update location newGraph | state' /= newState && loc == loc']
@@ -71,13 +71,13 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
       Nothing ->
         [Update location newGraph]
 
-  ((Attribute attr a), (Attribute attr' b)) ->
+  (Attribute attr a, Attribute attr' b) ->
     [Update location newGraph | attr /= attr']
 
-  ((Value _), _) ->
+  (Value _, _) ->
     [Update location newGraph]
 
-  ((EffectHandler _ _ _ _ _), _) ->
+  (EffectHandler _ _ _ _ _, _) ->
     [Update location newGraph]
 
   (_, _) -> [Update location newGraph]

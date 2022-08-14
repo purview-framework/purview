@@ -36,7 +36,7 @@ eventLoop
   -> Log IO
   -> TChan Event
   -> WebSockets.Connection
-  -> Purview parentAction action m
+  -> Purview event m
   -> IO ()
 eventLoop devMode runner log eventBus connection component = do
   message <- atomically $ readTChan eventBus

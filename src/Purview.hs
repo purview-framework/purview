@@ -126,8 +126,8 @@ import Network.Wai.Middleware.RequestLogger (mkRequestLogger)
 
 type Log m = String -> m ()
 
-data Configuration parentAction action m = Configuration
-  { component         :: Purview parentAction action m
+data Configuration event m = Configuration
+  { component         :: Purview event m
   -- ^ The top level component to put on the page.
   , interpreter       :: m [Event] -> IO [Event]
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
@@ -146,7 +146,7 @@ data Configuration parentAction action m = Configuration
   -- to restart the server on file change, and get a kind of live reloading
   }
 
-defaultConfiguration :: Configuration parentAction action IO
+defaultConfiguration :: Configuration action IO
 defaultConfiguration = Configuration
   { component         = div []
   , interpreter       = id
@@ -167,7 +167,7 @@ This starts up the Scotty server.  As a tiny example, to display some text sayin
 > main = run defaultConfiguration { component=view }
 
 -}
-run :: Monad m => Configuration () any m -> IO ()
+run :: Monad m => Configuration () m -> IO ()
 run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
@@ -178,7 +178,7 @@ run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, 
         (webSocketHandler devMode interpreter logger component)
         requestHandler'
 
-requestHandler :: Purview parentAction action m -> Text -> [HtmlEventHandler] -> IO Wai.Application
+requestHandler :: Purview action m -> Text -> [HtmlEventHandler] -> IO Wai.Application
 requestHandler routes htmlHead htmlEventHandlers =
   Sc.scottyApp $ do
     Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
@@ -206,7 +206,7 @@ webSocketHandler
   => Bool
   -> (m [Event] -> IO [Event])
   -> Log IO
-  -> Purview parentAction action m
+  -> Purview action m
   -> WebSocket.ServerApp
 webSocketHandler devMode runner log component pending = do
   when devMode $ putStrLn "ws connected"

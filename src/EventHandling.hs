@@ -18,20 +18,14 @@ This is a special case event to assign new state to handlers
 -}
 applyNewState
   :: Event
-  -> Purview parentAction action m
-  -> Purview parentAction action m
+  -> Purview event m
+  -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
   EffectHandler ploc loc state handler cont -> case cast newStateFn of
     Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
     Nothing ->
       let children = fmap (applyNewState fromEvent) cont
       in EffectHandler ploc loc state handler children
-
-  Hide x ->
-    let
-      children = applyNewState fromEvent x
-    in
-      Hide children
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
@@ -48,7 +42,7 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
 applyNewState (Event {}) component = component
 
 
-runEvent :: Monad m => Event -> Purview parentAction action m -> m [Event]
+runEvent :: Monad m => Event -> Purview event m -> m [Event]
 runEvent (StateChangeEvent _ _) _ = pure []
 runEvent fromEvent@(Event { message, location }) component = case component of
   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
@@ -96,8 +90,6 @@ runEvent fromEvent@(Event { message, location }) component = case component of
     pure $ concat childEvents'
 
   Attribute n cont -> runEvent fromEvent cont
-
-  Hide x -> runEvent fromEvent x
 
   Once _ _ cont -> runEvent fromEvent cont
 
