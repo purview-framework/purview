@@ -90,7 +90,7 @@ spec = parallel $ do
           newTree = fst . prepareTree $ div [ handler1 . const $ handler2 (const (text "this is different")) ]
 
         diff (Just [0, 0]) [] oldTree newTree `shouldBe`
-          [ Update [0, 0] (Hide $ EffectHandler
+          [ Update [0, 0] (EffectHandler
                             (Just [0])
                             (Just [0, 0])
                             "different state"

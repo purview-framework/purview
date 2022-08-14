@@ -27,12 +27,6 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
       let children = fmap (applyNewState fromEvent) cont
       in EffectHandler ploc loc state handler children
 
-  Hide x ->
-    let
-      children = applyNewState fromEvent x
-    in
-      Hide children
-
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
 
@@ -96,8 +90,6 @@ runEvent fromEvent@(Event { message, location }) component = case component of
     pure $ concat childEvents'
 
   Attribute n cont -> runEvent fromEvent cont
-
-  Hide x -> runEvent fromEvent x
 
   Once _ _ cont -> runEvent fromEvent cont
 

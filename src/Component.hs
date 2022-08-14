@@ -78,8 +78,6 @@ data Purview event m where
     -> Purview event m
     -> Purview event m
 
-  Hide :: Purview newEvent m -> Purview any m
-
 instance Show (Purview event m) where
   show (EffectHandler parentLocation location state _event cont) =
     "EffectHandler "
@@ -93,7 +91,6 @@ instance Show (Purview event m) where
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
-  show (Hide a) = "Hide " <> show a
 
 instance Eq (Purview event m) where
   a == b = show a == show b
@@ -196,7 +193,7 @@ effectHandler
   -- ^ continuation
   -> Purview parentEvent m
 effectHandler state handler =
-  Hide . EffectHandler Nothing Nothing state handler
+  EffectHandler Nothing Nothing state handler
 
 {-|
 

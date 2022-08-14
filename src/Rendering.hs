@@ -70,5 +70,3 @@ render' attrs tree = case tree of
     render' attrs cont
 
   Value a -> show a
-
-  Hide a -> render' attrs (unsafeCoerce a)

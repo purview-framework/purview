@@ -85,12 +85,12 @@ spec = parallel $ do
 
         component = timeHandler (const (Text ""))
 
-      component `shouldBe` Hide (EffectHandler Nothing Nothing Nothing handle (const (Text "")))
+      component `shouldBe` (EffectHandler Nothing Nothing Nothing handle (const (Text "")))
 
       let
         graphWithLocation = fst (prepareTree component)
 
-      graphWithLocation `shouldBe` Hide (EffectHandler (Just []) (Just []) Nothing handle (const (Text "")))
+      graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) Nothing handle (const (Text "")))
 
     it "assigns a different location to child handlers" $ do
       let
@@ -111,7 +111,7 @@ spec = parallel $ do
 
       show graphWithLocation
         `shouldBe`
-        "div [  Hide EffectHandler Just [] Just [0] \"null\" \"\" Hide EffectHandler Just [] Just [1] \"null\" \"\" ] "
+        "div [  EffectHandler Just [] Just [0] \"null\" \"\" EffectHandler Just [] Just [1] \"null\" \"\" ] "
 
     it "assigns a different location to nested handlers" $ do
       let
@@ -129,7 +129,7 @@ spec = parallel $ do
 
         graphWithLocation = fst (prepareTree component)
 
-      show graphWithLocation `shouldBe` "Hide EffectHandler Just [] Just [] \"null\" Hide EffectHandler Just [] Just [0] \"null\" \"\""
+      show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] \"null\" EffectHandler Just [] Just [0] \"null\" \"\""
 
 
 main :: IO ()
