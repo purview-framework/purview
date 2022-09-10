@@ -1,4 +1,11 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -7,6 +14,7 @@
 
 module Events where
 
+import Prelude hiding (print)
 import           Data.Text (Text)
 import           Data.Typeable
 import           Data.Aeson
@@ -75,7 +83,9 @@ This is for creating events that should go to a parent handler,
 or sent back in to the same handler.
 
 -}
-data DirectedEvent a b = Parent a | Self b
+data DirectedEvent a b where
+  Parent :: a -> DirectedEvent a b
+  Self :: b -> DirectedEvent a b
   deriving (Generic, Show, Eq)
 
 instance (ToJSON a, ToJSON b) => ToJSON (DirectedEvent a b) where

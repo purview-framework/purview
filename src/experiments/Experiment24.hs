@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
@@ -242,6 +243,24 @@ data DirectionAction where
 
 -- zing = locka (Just Refl) unambiguous
 
+y = Proxy @(Maybe String)
+x = Proxy @(Maybe ())
+
+type family Has (a :: Bool) (b :: Type) :: Type where
+  Has 'True  b = ()
+  Has 'False b = b
+
+checka :: Maybe a -> Maybe (Has (a == ()) a)
+checka Nothing  = Nothing
+checka (Just x) = undefined
+
+hella :: ToJSON a => a -> String
+hella = show . encode
+
+-- so we want the top level to replace the children?
+
+-- fk = hella lame
+
 -- type family Zogg (a :: Type) (b :: Type) :: Type where
 --   Zogg a b = a
 --   Zogg a a = a
@@ -254,7 +273,7 @@ data DirectionAction where
 
 -- so with this we can shove over a value...
 
-f = encode (locka (Just Refl) lame)
+-- f = encode (locka (Just Refl) unambiguous)
 
 -- and it works!
 
@@ -266,3 +285,28 @@ f = encode (locka (Just Refl) lame)
 z = Proxy :: Proxy String
 
 -- a function that creates a value that has a fromJSON ?
+
+
+data Flumox a m where
+  Flumox :: (ToJSON a, ToJSON b, Applicative m) => { able :: [Either a b], interp :: Proxy m } -> Flumox a m
+
+defaultFlumox = Flumox ([] :: [Either () ()]) (Proxy @IO)
+
+-- instance (a ~ ()) => ToJSON (Either a b) where
+
+-- so......
+
+data WithDefault k (a :: k) where
+  Default :: WithDefault k a
+  Value   :: k -> WithDefault k a
+
+-- exa = Flumox (Right "")
+--
+-- defaultFlumox = undefined
+--
+-- printa Flumox { able } = encode able
+
+ejemplo :: Applicative m => m String
+ejemplo = pure "hello"
+
+okay = ejemplo
