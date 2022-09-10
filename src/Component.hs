@@ -53,7 +53,7 @@ data Purview event m where
   EffectHandler
     :: ( FromJSON newEvent
        , ToJSON newEvent
-       , ToJSON parentEvent
+       , ToJSON event
        , FromJSON state
        , ToJSON state
        , Typeable state
@@ -65,11 +65,11 @@ data Purview event m where
     -- ^ The location of this effect handler (provided by prepareTree)
     -> state
     -- ^ The initial state
-    -> (newEvent-> state -> m (state -> state, [DirectedEvent parentEvent newEvent]))
+    -> (newEvent-> state -> m (state -> state, [DirectedEvent event newEvent]))
     -- ^ Receive an event, change the state, and send messages
     -> (state -> Purview newEvent m)
     -- ^ Continuation
-    -> Purview parentEvent m
+    -> Purview event m
 
   Once
     :: (ToJSON event)
