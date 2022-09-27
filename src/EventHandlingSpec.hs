@@ -56,17 +56,17 @@ spec = parallel $ do
 
     it "changes state" $ do
       let
-        actionHandler :: String -> Int -> Int
-        actionHandler "up" _ = 1
-        actionHandler _    _ = 0
+        actionHandler :: String -> Int -> (Int -> Int, [DirectedEvent () String])
+        actionHandler "up" _ = (const 1, [])
+        actionHandler _    _ = (const 0, [])
 
-        handler :: Purview () IO
-        handler =
-          simpleHandler (0 :: Int)
+        reducer :: Purview () IO
+        reducer =
+          handler (0 :: Int)
             actionHandler
             (Text . show)
 
-      render handler
+      render reducer
         `shouldBe`
         "<div handler=\"null\">0</div>"
 
@@ -74,7 +74,7 @@ spec = parallel $ do
 
       let event' = Event { event="click", message="up", location=Nothing }
 
-      appliedHandler <- apply chan event' handler
+      appliedHandler <- apply chan event' reducer
 
       stateEvent <- atomically $ readTChan chan
 
@@ -112,12 +112,12 @@ spec = parallel $ do
         actionHandler Up   _ = (const 1, [])
         actionHandler Down _ = (const 0, [])
 
-        handler =
-          messageHandler (0 :: Int)
+        reducer =
+          handler (0 :: Int)
             actionHandler
             (Text . show)
 
-      render handler
+      render reducer
         `shouldBe`
         "<div handler=\"null\">0</div>"
 
@@ -125,7 +125,7 @@ spec = parallel $ do
 
       let event' = Event { event="click", message=toJSON Up, location=Nothing }
 
-      appliedHandler <- apply chan event' handler
+      appliedHandler <- apply chan event' reducer
 
       stateEvent <- atomically $ readTChan chan
 
@@ -141,8 +141,8 @@ spec = parallel $ do
         actionHandler Up   _ = (const 1, [])
         actionHandler Down _ = (const 0, [])
 
-        handler =
-          messageHandler (0 :: Int)
+        reducer =
+          handler (0 :: Int)
             actionHandler
             (Text . show)
 
@@ -150,7 +150,7 @@ spec = parallel $ do
 
       let event0 = Event { event="init", message="init", location=Nothing }
 
-      appliedHandler0 <- apply chan event0 handler
+      appliedHandler0 <- apply chan event0 reducer
       render appliedHandler0
         `shouldBe`
         "<div handler=\"null\">0</div>"
@@ -179,17 +179,17 @@ spec = parallel $ do
 
         styledContainer = style "font-size: 10px;" . div
 
-        handler =
-          messageHandler ("" :: String) parentHandler
+        reducer =
+          handler ("" :: String) parentHandler
             $ \message ->
                 styledContainer
                 [ text message
-                , messageHandler (0 :: Int)
+                , handler (0 :: Int)
                     childHandler
                     (text . show)
                 ]
 
-        component = handler
+        component = reducer
 
       chan <- newTChanIO
 
@@ -218,19 +218,19 @@ spec = parallel $ do
           parentHandler "bye" _ = (const "hello", [])
           parentHandler str _ = (const str, [])
 
-          handler =
-            messageHandler ("" :: String) parentHandler
+          reducer =
+            handler ("" :: String) parentHandler
               $ \message ->
                   div
                   [ text message
-                  , messageHandler (0 :: Int)
+                  , handler (0 :: Int)
                       childHandler
                       (text . show)
                   ]
 
         chan <- newTChanIO
 
-        let locatedGraph = fst $ prepareTree handler
+        let locatedGraph = fst $ prepareTree reducer
 
         render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
 
@@ -257,19 +257,19 @@ spec = parallel $ do
           parentHandler "bye" _ = (const "hello", [])
           parentHandler str _ = (const str, [])
 
-          handler =
-            messageHandler ("" :: String) parentHandler
+          reducer =
+            handler ("" :: String) parentHandler
               $ \message ->
                   div
                   [ text message
-                  , messageHandler (0 :: Int)
+                  , handler (0 :: Int)
                       childHandler
                       (text . show)
                   ]
 
         chan <- newTChanIO
 
-        let locatedGraph = fst $ prepareTree handler
+        let locatedGraph = fst $ prepareTree reducer
 
         render locatedGraph `shouldBe` "<div handler=\"[]\"><div><div handler=\"[1,0]\">0</div></div></div>"
 

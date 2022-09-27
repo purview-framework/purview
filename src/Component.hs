@@ -105,13 +105,13 @@ For example, let's say you want to make a button that switches between saying
 
 > view direction = onClick "toggle" $ button [ text direction ]
 >
-> handler = simpleHandler "up" reduce
+> handler = handler "up" reduce
 >   where reduce "toggle" state = if state == "up" then "down" else "up"
 >
 > component = handler view
 
 -}
-simpleHandler
+handler
   :: ( FromJSON event
      , FromJSON state
      , ToJSON event
@@ -123,40 +123,12 @@ simpleHandler
      )
   => state
   -- ^ The initial state
-  -> (event -> state -> state)
+  -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
   -- ^ The reducer, or how the state should change for an event
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-simpleHandler state handler =
-  effectHandler state (\event state -> pure (const $ handler event state, []))
-
-{-|
-
-More powerful than the 'simpleHandler', it can send messages to itself or its
-parent.  You will also note that instead of just returning the new state, it
-returns a function to transform the state.  This is because handlers run in
-their own threads.
-
--}
-messageHandler
-  :: ( FromJSON event
-     , FromJSON state
-     , ToJSON event
-     , ToJSON parentEvent
-     , ToJSON state
-     , Typeable state
-     , Eq state
-     , Applicative m
-     )
-  => state
-  -- ^ initial state
-  -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
-  -- ^ reducer
-  -> (state -> Purview event m)
-  -- ^ continuation
-  -> Purview parentEvent m
-messageHandler state handler =
+handler state handler =
   effectHandler state (\event state -> pure (handler event state))
 
 {-|

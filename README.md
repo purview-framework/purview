@@ -31,7 +31,7 @@ $(deriveJSON defaultOptions ''Direction)
 upButton = onClick Up $ div [ text "up" ]
 downButton = onClick Down $ div [ text "down" ]
 
-handler = messageHandler (0 :: Int) reducer
+countHandler = handler (0 :: Int) reducer
   where
     reducer Up   state = (const $ state + 1, [])
     reducer Down state = (const $ state - 1, [])
@@ -42,7 +42,7 @@ counter state = div
   , downButton
   ]
 
-view = handler counter
+view = countHandler counter
 
 main = Purview.run defaultConfiguration { component=view }
 ```
@@ -100,12 +100,11 @@ Now `render view` will produce `<button>click</button>`.  Like all the built in 
 
 ### Events
 
-At the core of Purview are three event handlers, in order of increasing power:
-1. `simpleHandler`: Used for just returning a new state.  No messages or effects.
-2. `messageHandler`: Used when you need to send messages to the component itself or to its parent.
-3. `effectHandler`: Used when you need the above and access to IO / your monad stack / algebraic effects.
+At the core of Purview are event handlers:
+1. `handler`: Used for just returning a new state.  No messages or effects.
+2. `effectHandler`: Used when you need the above and access to IO / your monad stack / algebraic effects.
 
-The first two are just some sugar around `effectHandler`.
+The first one is just some sugar around `effectHandler`.
 
 Handlers take an initial state and a reducer.  The reducer receives actions from anywhere below them in the tree, and returns the new state with a list of actions to send either to itself or up the tree to the parent.  The handler passes down the state to its child.  This is the core idea to make it all interactive.
 
