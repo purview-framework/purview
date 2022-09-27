@@ -11,12 +11,12 @@ upButton = onClick ("up" :: String) $ div [ text "up" ]
 downButton :: Purview String m
 downButton = onClick ("down" :: String) $ div [ text "down" ]
 
-handler :: Applicative m => (Int -> Purview String m) -> Purview String m
-handler = simpleHandler 0 action
+reducer :: Applicative m => (Int -> Purview String m) -> Purview String m
+reducer = handler 0 action
   where
-    action :: String -> Int -> Int
-    action "up" _ = 1
-    action _    _ = 0
+    action :: String -> Int -> (Int -> Int, [DirectedEvent String String])
+    action "up" _ = (const 1, [])
+    action _    _ = (const 0, [])
 
 -- counter :: Show a => a -> Purview parentAction action m
 counter state = div
@@ -26,7 +26,7 @@ counter state = div
   ]
 
 component :: Applicative m => Purview String m
-component = handler counter
+component = reducer counter
 
 event' :: String
 event' = "{\"event\":\"click\",\"message\":\"up\"}"

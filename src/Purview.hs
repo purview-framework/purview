@@ -68,8 +68,7 @@ module Purview
   -- | These are how you can catch events sent from things like 'onClick' and
   -- change state, or in the case of 'effectHandler', make API requests or call
   -- functions from your project.
-  , simpleHandler
-  , messageHandler
+  , handler
   , effectHandler
 
   -- ** HTML helpers
