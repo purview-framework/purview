@@ -7,12 +7,12 @@ import           Data.Text (Text)
 
 
 data HtmlEventHandler = HtmlEventHandler
-  { eventType :: Text -- eg submit or click
-  , functionName :: Text -- called whenever the event happens
-  , handlingFunction :: Text -- receives the event and sends the event over the websocket
+  { eventType :: String -- eg submit or click
+  , functionName :: String -- called whenever the event happens
+  , handlingFunction :: String -- receives the event and sends the event over the websocket
   }
 
-clickEventHandlingFunction :: Text
+clickEventHandlingFunction :: String
 clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
@@ -35,7 +35,7 @@ clickEventHandlingFunction = [r|
 clickEventHandler :: HtmlEventHandler
 clickEventHandler = HtmlEventHandler "click" "handleClickEvents" clickEventHandlingFunction
 
-submitEventHandlingFunction :: Text
+submitEventHandlingFunction :: String
 submitEventHandlingFunction = [r|
   function handleFormEvents(event) {
     event.preventDefault();
@@ -60,15 +60,15 @@ defaultHtmlEventHandlers =
   , submitEventHandler
   ]
 
-mkBinding :: HtmlEventHandler -> Text
+mkBinding :: HtmlEventHandler -> String
 mkBinding (HtmlEventHandler kind functionName _) =
   "item.removeEventListener(\"" <> kind <> "\", " <>  functionName <> ");"
   <> "item.addEventListener(\"" <> kind <> "\", " <>  functionName <> ");"
 
-mkFunction :: HtmlEventHandler -> Text
+mkFunction :: HtmlEventHandler -> String
 mkFunction (HtmlEventHandler _ _ function) = function
 
-bindEvents :: [HtmlEventHandler] -> Text
+bindEvents :: [HtmlEventHandler] -> String
 bindEvents htmlEventHandlers =
   let bindings = foldr (<>) "" $ fmap mkBinding htmlEventHandlers
       functions = foldr (<>) "" $ fmap mkFunction htmlEventHandlers
@@ -80,7 +80,7 @@ bindEvents htmlEventHandlers =
     <> "});"
     <> "};"
 
-websocketScript :: Text
+websocketScript :: String
 websocketScript = [r|
   var timeoutTime = -50;
   function connect() {
@@ -136,7 +136,7 @@ websocketScript = [r|
   }
 |]
 
-wrapHtml :: Text -> [HtmlEventHandler] -> Text -> Text
+wrapHtml :: String -> [HtmlEventHandler] -> String -> String
 wrapHtml htmlHead htmlEventHandlers body =
   "<html>"
   <> "<head>"

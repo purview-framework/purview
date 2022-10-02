@@ -17,11 +17,11 @@ data Direction = Up | Down
 
 $(deriveJSON defaultOptions ''Direction)
 
-upButton = onClick Up $ div [ text "up" ]
-downButton = onClick Down $ div [ text "down" ]
+upButton = onClick Up $ button [ text "up" ]
+downButton = onClick Down $ button [ text "down" ]
 
-handler :: Applicative m => (Int -> Purview Direction m) -> Purview () m
-handler = effectHandler (0 :: Int) reducer
+handler' :: Applicative m => (Int -> Purview Direction m) -> Purview () m
+handler' = effectHandler (0 :: Int) reducer
   where
     reducer Up   state = pure (const $ state + 1, [])
     reducer Down state = pure (const $ state - 1, [])
@@ -32,6 +32,6 @@ counter state = div
   , downButton
   ]
 
-view = handler counter
+view = handler' counter
 --
 main = Purview.run defaultConfiguration { component=view }

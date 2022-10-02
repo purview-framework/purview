@@ -99,8 +99,8 @@ module Purview
   )
 where
 
-import Prelude hiding (div, log, span)
-import qualified Web.Scotty as Sc
+import           Prelude hiding (div, log, span)
+import           Blaze.ByteString.Builder.Char.Utf8
 import           Data.Text (pack, Text, all)
 import qualified Data.Text.Lazy as LazyText
 import qualified Network.Wai.Middleware.Gzip as Sc
@@ -122,6 +122,8 @@ import           PrepareTree
 import           Rendering
 import           Wrapper
 import Network.Wai.Middleware.RequestLogger (mkRequestLogger)
+import Network.Wai
+import Network.HTTP.Types
 
 type Log m = String -> m ()
 
@@ -135,7 +137,7 @@ data Configuration event m = Configuration
   , htmlEventHandlers :: [HtmlEventHandler]
   -- ^ For extending the handled events.  Have a look at 'defaultConfiguration' to see
   -- how to make your own.
-  , htmlHead          :: Text
+  , htmlHead          :: String
   -- ^ This is placed directly into the \<head\>, so that you can link to external
   -- CSS etc
   , devMode           :: Bool
@@ -170,25 +172,20 @@ run :: Monad m => Configuration () m -> IO ()
 run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, htmlHead } = do
   let port = 8001
   let settings = Warp.setPort port Warp.defaultSettings
-  requestHandler' <- requestHandler component htmlHead htmlEventHandlers
   Warp.runSettings settings
     $ WaiWebSocket.websocketsOr
         WebSocket.defaultConnectionOptions
         (webSocketHandler devMode interpreter logger component)
-        requestHandler'
+        (app component htmlHead htmlEventHandlers)
 
-requestHandler :: Purview action m -> Text -> [HtmlEventHandler] -> IO Wai.Application
-requestHandler routes htmlHead htmlEventHandlers =
-  Sc.scottyApp $ do
-    Sc.middleware $ Sc.gzip $ Sc.def { Sc.gzipFiles = Sc.GzipCompress }
-
-    Sc.get "/"
-      $ Sc.html
-      $ LazyText.fromStrict
-      $ wrapHtml htmlHead htmlEventHandlers
-      $ Data.Text.pack
-      $ render . fst
-      $ prepareTree routes
+app :: Purview action m -> String -> [HtmlEventHandler] -> Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+app component htmlHead htmlEventHandlers req respond = respond $
+  case pathInfo req of
+    path ->  responseBuilder status200 [("Content-Type", "text/html")]
+      (fromString
+       $ wrapHtml htmlHead htmlEventHandlers
+       $ render . fst
+       $ prepareTree component)
 
 webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
