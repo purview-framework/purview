@@ -33,4 +33,4 @@ display txt = div
     ]
   ]
 
-main = run defaultConfiguration { component=handler display }
+main = run defaultConfiguration { component=const (handler display) }

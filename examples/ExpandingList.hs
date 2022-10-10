@@ -24,4 +24,4 @@ display items = div
   , onClick RemoveItem (div [ text "remove" ])
   ]
 
-main = run defaultConfiguration { component=handler display }
+main = run defaultConfiguration { component=const (handler display) }

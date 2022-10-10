@@ -63,6 +63,7 @@ module Purview
     run
   , Configuration (..)
   , defaultConfiguration
+  , BrowserInformation (..)
 
   -- ** Handlers
   -- | These are how you can catch events sent from things like 'onClick' and
@@ -131,7 +132,8 @@ type Log m = String -> m ()
 
 data Configuration event m = Configuration
   { component         :: BrowserInformation -> Purview event m
-  -- ^ The top level component to put on the page.
+  -- ^ The top level component to put on the page.  BrowserInformation including
+  -- path is passed in for navigation
   , interpreter       :: m [Event] -> IO [Event]
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
@@ -161,7 +163,8 @@ defaultConfiguration = Configuration
 
 data BrowserInformation = BrowserInformation
   { path :: ByteString
-  } deriving Show
+  -- ^ The requested path
+  } deriving (Show, Eq)
 
 {-|
 

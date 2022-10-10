@@ -28,4 +28,4 @@ timeHandler = effectHandler Nothing handle
       time <- Just <$> getCurrentTime
       pure (const time, [])
 
-main = run defaultConfiguration { component=timeHandler (startClock display) }
+main = run defaultConfiguration { component=const $ timeHandler (startClock display) }

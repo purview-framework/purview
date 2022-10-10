@@ -104,4 +104,4 @@ Putting it all together
 
 -}
 
-main = Purview.run defaultConfiguration { component=view, interpreter=runM . runIOTime }
+main = Purview.run defaultConfiguration { component=const view, interpreter=runM . runIOTime }
