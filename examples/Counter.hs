@@ -33,5 +33,5 @@ counter state = div
   ]
 
 view = handler' counter
---
-main = Purview.run defaultConfiguration { component=view }
+
+main = Purview.run defaultConfiguration { component=const view }

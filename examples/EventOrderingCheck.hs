@@ -39,4 +39,4 @@ combined = handler $ \state -> div
   , checkButtonFast
   ]
 
-main = run defaultConfiguration { component=combined }
+main = run defaultConfiguration { component=const combined }
