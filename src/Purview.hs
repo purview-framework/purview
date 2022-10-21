@@ -60,10 +60,11 @@ the [examples](https://github.com/purview-framework/purview/tree/main/examples) 
 module Purview
   (
   -- ** Server
-    run
-  , Configuration (..)
+  Configuration (..)
   , defaultConfiguration
   , BrowserInformation (..)
+  , renderFullPage
+  , startWebSocketLoop
 
   -- ** Handlers
   -- | These are how you can catch events sent from things like 'onClick' and
@@ -102,13 +103,8 @@ where
 
 import           Prelude hiding (div, log, span)
 import           Blaze.ByteString.Builder.Char.Utf8
-import           Data.Text (pack, Text, all)
-import qualified Data.Text.Lazy as LazyText
-import qualified Network.Wai.Middleware.Gzip as Sc
-import qualified Network.Wai.Handler.WebSockets as WaiWebSocket
+import           Data.ByteString.Builder.Internal
 import qualified Network.WebSockets as WebSocket
-import qualified Network.Wai as Wai
-import qualified Network.Wai.Handler.Warp as Warp
 import           Data.Aeson
 
 import           Control.Monad (when)
@@ -122,8 +118,6 @@ import           Events
 import           PrepareTree
 import           Rendering
 import           Wrapper
-import Network.Wai.Middleware.RequestLogger (mkRequestLogger)
-import Network.Wai
 import Network.HTTP.Types
 import Data.ByteString (ByteString)
 import Network.WebSockets (PendingConnection(pendingRequest))
@@ -131,10 +125,7 @@ import Network.WebSockets (PendingConnection(pendingRequest))
 type Log m = String -> m ()
 
 data Configuration event m = Configuration
-  { component         :: BrowserInformation -> Purview event m
-  -- ^ The top level component to put on the page.  BrowserInformation including
-  -- path is passed in for navigation
-  , interpreter       :: m [Event] -> IO [Event]
+  { interpreter       :: m [Event] -> IO [Event]
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
   -- ^ Specify what to do with logs
@@ -153,8 +144,7 @@ data Configuration event m = Configuration
 
 defaultConfiguration :: Configuration action IO
 defaultConfiguration = Configuration
-  { component         = const $ div []
-  , interpreter       = id
+  { interpreter       = id
   , logger            = print
   , htmlEventHandlers = [clickEventHandler, submitEventHandler]
   , htmlHead          = ""
@@ -177,36 +167,14 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 > main = run defaultConfiguration { component=view }
 
 -}
-run :: Monad m => Configuration () m -> IO ()
-run Configuration { devMode, component, logger, interpreter, htmlEventHandlers, htmlHead } =
-  let
-    port = 8001
-    settings = Warp.setPort port Warp.defaultSettings
-  in
-    Warp.runSettings settings
-      $ WaiWebSocket.websocketsOr
-          WebSocket.defaultConnectionOptions
-          (webSocketHandler devMode interpreter logger component)
-          (httpHandler component htmlHead htmlEventHandlers)
 
-httpHandler
-  :: (BrowserInformation -> Purview action m)
-  -> String
-  -> [HtmlEventHandler]
-  -> Request
-  -> (Response -> IO ResponseReceived)
-  -> IO ResponseReceived
-httpHandler component htmlHead htmlEventHandlers req respond =
-  let
-    requestPath = rawPathInfo req
-    browserInformation = BrowserInformation requestPath
-  in
-    respond
-      $ responseBuilder status200 [("Content-Type", "text/html")]
-        (fromString
-          $ wrapHtml htmlHead htmlEventHandlers
-          $ render . fst
-          $ prepareTree (component browserInformation))
+renderFullPage :: Configuration event m -> Purview action m -> Builder
+renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
+  fromString
+  $ wrapHtml htmlHead htmlEventHandlers
+  $ render . fst
+  $ prepareTree component
+
 
 webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
@@ -218,26 +186,16 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   webSocketMessageHandler eventBus websocketConnection
 
-webSocketHandler
+startWebSocketLoop
   :: Monad m
-  => Bool
-  -> (m [Event] -> IO [Event])
-  -> Log IO
-  -> (BrowserInformation -> Purview action m)
-  -> WebSocket.ServerApp
-webSocketHandler devMode runner log component pending = do
-  when devMode $ log "ws connected"
-
-  conn <- WebSocket.acceptRequest pending
-
+  => Configuration event m
+  -> Purview action m
+  -> WebSocket.Connection
+  -> IO ()
+startWebSocketLoop Configuration { devMode, interpreter, logger } component connection = do
   eventBus <- newTChanIO
-
   atomically $ writeTChan eventBus $ Event { event = "init", message = "init", location = Nothing }
 
-  let
-    requestHead = pendingRequest pending
-    browserInformation = BrowserInformation (WebSocket.requestPath requestHead)
-
-  WebSocket.withPingThread conn 30 (pure ()) $ do
-    _ <- forkIO $ webSocketMessageHandler eventBus conn
-    eventLoop devMode runner log eventBus conn (component browserInformation)
+  WebSocket.withPingThread connection 30 (pure ()) $ do
+    _ <- forkIO $ webSocketMessageHandler eventBus connection
+    eventLoop devMode interpreter logger eventBus connection component
