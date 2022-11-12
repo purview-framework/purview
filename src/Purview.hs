@@ -62,7 +62,6 @@ module Purview
   -- ** Server
   Configuration (..)
   , defaultConfiguration
-  , BrowserInformation (..)
   , renderFullPage
   , startWebSocketLoop
 
@@ -151,11 +150,6 @@ defaultConfiguration = Configuration
   , devMode           = False
   }
 
-data BrowserInformation = BrowserInformation
-  { path :: ByteString
-  -- ^ The requested path
-  } deriving (Show, Eq)
-
 {-|
 
 This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
@@ -167,24 +161,12 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 > main = run defaultConfiguration { component=view }
 
 -}
-
 renderFullPage :: Configuration event m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   fromString
   $ wrapHtml htmlHead htmlEventHandlers
   $ render . fst
   $ prepareTree component
-
-
-webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
-webSocketMessageHandler eventBus websocketConnection = do
-  message' <- WebSocket.receiveData websocketConnection
-
-  case decode message' of
-    Just fromEvent -> atomically $ writeTChan eventBus fromEvent
-    Nothing -> pure ()
-
-  webSocketMessageHandler eventBus websocketConnection
 
 startWebSocketLoop
   :: Monad m
@@ -199,3 +181,13 @@ startWebSocketLoop Configuration { devMode, interpreter, logger } component conn
   WebSocket.withPingThread connection 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus connection
     eventLoop devMode interpreter logger eventBus connection component
+
+webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
+webSocketMessageHandler eventBus websocketConnection = do
+  message' <- WebSocket.receiveData websocketConnection
+
+  case decode message' of
+    Just fromEvent -> atomically $ writeTChan eventBus fromEvent
+    Nothing -> pure ()
+
+  webSocketMessageHandler eventBus websocketConnection
