@@ -53,7 +53,6 @@ data Purview event m where
   EffectHandler
     :: ( FromJSON newEvent
        , ToJSON newEvent
-       , ToJSON event
        , FromJSON state
        , ToJSON state
        , Typeable state
@@ -115,7 +114,6 @@ handler
   :: ( FromJSON event
      , FromJSON state
      , ToJSON event
-     , ToJSON parentEvent
      , ToJSON state
      , Typeable state
      , Eq state
@@ -152,7 +150,6 @@ effectHandler
   :: ( FromJSON event
      , FromJSON state
      , ToJSON event
-     , ToJSON parentEvent
      , ToJSON state
      , Typeable state
      , Eq state

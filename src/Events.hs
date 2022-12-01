@@ -84,9 +84,5 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: a -> DirectedEvent a b
-  Self :: b -> DirectedEvent a b
-  deriving (Generic, Show, Eq)
-
-instance (ToJSON a, ToJSON b) => ToJSON (DirectedEvent a b) where
-  toEncoding = genericToEncoding defaultOptions
+  Parent :: ToJSON a => a -> DirectedEvent a b
+  Self :: ToJSON b => b -> DirectedEvent a b
