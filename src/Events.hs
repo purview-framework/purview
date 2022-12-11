@@ -1,13 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -84,9 +75,5 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: a -> DirectedEvent a b
-  Self :: b -> DirectedEvent a b
-  deriving (Generic, Show, Eq)
-
-instance (ToJSON a, ToJSON b) => ToJSON (DirectedEvent a b) where
-  toEncoding = genericToEncoding defaultOptions
+  Parent :: ToJSON a => a -> DirectedEvent a b
+  Self :: ToJSON b => b -> DirectedEvent a b
