@@ -18,6 +18,20 @@ spec = parallel $ do
     it "works across a variety of trees" $ do
       property $ \x -> show (fst (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
 
+    it "assigns an identifier to On actions" $ do
+      let target = div
+            [ onClick "setTime" $ div []
+            , onClick "clearTime" $ div []
+            ]
+          (preparedTarget, _) = prepareTree target
+
+      preparedTarget
+        `shouldBe`
+        Html "div"
+          [ Attribute (On "click" Nothing "setTime" ) $ Html "div" []
+          , Attribute (On "click" Nothing "clearTime" ) $ Html "div" []
+          ]
+
     it "sets hasRun to True" $ do
       let
         display time = div

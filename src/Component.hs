@@ -16,7 +16,7 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: ToJSON event => String -> event -> Attributes event
+  On :: Eq event => String -> Identifier -> event -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -27,8 +27,9 @@ instance Eq (Attributes event) where
   (Style a) == (Style b) = a == b
   (Style _) == _ = False
 
-  (On kind event) == (On kind' event') = kind == kind' && encode event == encode event'
-  (On _ _) == _ = False
+  (On kind ident event) == (On kind' ident' event') =
+    kind == kind' && event == event'
+  (On _ _ _) == _ = False
 
   (Generic name value) == (Generic name' value') = name == name' && value == value'
   (Generic _ _) == _ = False
@@ -233,8 +234,8 @@ This will send the event to the handler above it whenever "click" is triggered
 on the frontend.  It will be bound to whichever 'HTML' is beneath it.
 
 -}
-onClick :: ToJSON event => event -> Purview event m -> Purview event m
-onClick = Attribute . On "click"
+onClick :: Eq event => event -> Purview event m -> Purview event m
+onClick = Attribute . On "click" Nothing
 
 {-|
 
@@ -242,8 +243,8 @@ This will send the event to the handler above it whenever "submit" is triggered
 on the frontend.
 
 -}
-onSubmit :: ToJSON event => event -> Purview event m -> Purview event m
-onSubmit = Attribute . On "submit"
+onSubmit :: Eq event => event -> Purview event m -> Purview event m
+onSubmit = Attribute . On "submit" Nothing
 
 identifier :: String -> Purview event m -> Purview event m
 identifier = Attribute . Generic "id"
