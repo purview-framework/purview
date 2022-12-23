@@ -166,7 +166,7 @@ renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   fromString
   $ wrapHtml htmlHead htmlEventHandlers
   $ render . fst
-  $ prepareTree component
+  $ addLocations component
 
 startWebSocketLoop
   :: Monad m

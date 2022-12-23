@@ -7,7 +7,7 @@ import           Unsafe.Coerce
 import           Component
 
 isOn :: Attributes a -> Bool
-isOn (On _ _) = True
+isOn (On _ _ _) = True
 isOn _        = False
 
 isGeneric :: Attributes a -> Bool
@@ -31,7 +31,7 @@ renderAttributes attrs =
 
     listeners = filter isOn attrs
     renderedListeners = concatMap
-      (\(On name action) -> " action=" <> (unpack $ encode action))
+      (\(On name ident action) -> " action=" <> (unpack $ encode action))
       listeners
 
     generics = filter isGeneric attrs

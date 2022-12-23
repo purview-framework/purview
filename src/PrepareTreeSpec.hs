@@ -5,7 +5,7 @@ import Test.Hspec
 import Test.QuickCheck
 import Data.Time
 
-import TreeGenerator
+import TreeGenerator ()
 import Events
 import Component
 import PrepareTree
@@ -23,14 +23,16 @@ spec = parallel $ do
             [ onClick "setTime" $ div []
             , onClick "clearTime" $ div []
             ]
-          (preparedTarget, _) = prepareTree target
+          fixedTree = addLocations [] [] target
 
-      preparedTarget
+      fixedTree
         `shouldBe`
         Html "div"
-          [ Attribute (On "click" Nothing "setTime" ) $ Html "div" []
-          , Attribute (On "click" Nothing "clearTime" ) $ Html "div" []
+          [ Attribute (On "click" (Just [0]) "setTime" ) $ Html "div" []
+          , Attribute (On "click" (Just [1]) "clearTime" ) $ Html "div" []
           ]
+
+    -- TODO: Nested On actions
 
     it "sets hasRun to True" $ do
       let
@@ -53,7 +55,7 @@ spec = parallel $ do
 
       show (fst (prepareTree component))
         `shouldBe`
-        "EffectHandler Just [] Just [] \"null\" Once True div [  \"Nothing\" Attr div [  \"check time\" ]  ] "
+        "EffectHandler Just [] Just [] \"null\" Once True div [  \"Nothing\" Attr On \"click\" Just [1,0] div [  \"check time\" ]  ] "
 
       length (snd (prepareTree component))
         `shouldBe`

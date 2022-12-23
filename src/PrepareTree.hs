@@ -22,15 +22,54 @@ prepareTree = prepareTree' [] []
 
 type Location = [Int]
 
+addLocationToAttr :: Location -> (Attributes e) -> (Attributes e)
+addLocationToAttr loc attr = case attr of
+  On str _ event' -> On str (Just loc) event'
+  _ -> attr
+
+addLocations :: Purview event m -> Purview event m
+addLocations = addLocations' [] []
+
+{- This one we'll do full paths to items? -}
+addLocations' :: Location -> Location -> Purview event m -> Purview event m
+addLocations' parentLocation location component = case component of
+  Attribute attr cont ->
+    let
+      child = addLocations' parentLocation (location <> [0]) cont
+    in
+      Attribute (addLocationToAttr location attr) child
+
+  Html kind children ->
+    let
+      indexedChildren = zip [0..] children
+      children' =
+        fmap (\(location', child) -> addLocations' parentLocation (location <> [location']) child) indexedChildren
+    in
+      Html kind children'
+
+  EffectHandler _ploc _loc state handler cont ->
+    let
+      cont' = fmap (\child -> addLocations' location (location <> [0]) child) cont
+    in
+      EffectHandler (Just parentLocation) (Just location) state handler cont'
+
+  Text val -> Text val
+
+  Value val -> Value val
+
+
 prepareTree'
   :: Location
   -> Location
   -> Purview event m
   -> (Purview event m, [Event])
 prepareTree' parentLocation location component = case component of
-  Attribute attrs cont ->
-    let result = prepareTree' parentLocation location cont
-    in (Attribute attrs (fst result), snd result)
+  Attribute attr cont ->
+    let
+      result = prepareTree' parentLocation location cont
+      newAttr = addLocationToAttr location attr
+    in
+      (Attribute newAttr (fst result), snd result)
 
   Html kind children ->
     let result = fmap (\(index, child) -> prepareTree' parentLocation (index:location) child) (zip [0..] children)

@@ -1,3 +1,4 @@
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -28,11 +29,16 @@ instance Eq (Attributes event) where
   (Style _) == _ = False
 
   (On kind ident event) == (On kind' ident' event') =
-    kind == kind' && event == event'
+    kind == kind' && event == event' && ident == ident'
   (On _ _ _) == _ = False
 
   (Generic name value) == (Generic name' value') = name == name' && value == value'
   (Generic _ _) == _ = False
+
+instance Show (Attributes event) where
+  show (On kind ident evt) = "On " <> show kind <> " " <> show ident
+  show (Style str) = "Style " <> show str
+  show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -86,7 +92,7 @@ instance Show (Purview event m) where
     <> show (encode state) <> " "
     <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
-  show (Attribute _attrs cont) = "Attr " <> show cont
+  show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
