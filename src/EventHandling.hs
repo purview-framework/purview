@@ -122,18 +122,18 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
 --       -- locations match (cuts down on noise)
 --       let newStateEvent = [StateChangeEvent newStateFn loc | loc == location]
 --
--- --      let createMessage directedEvent = case directedEvent of
--- --            (Parent event) -> Event
--- --              -- TODO: this should probably be a new kind of event
--- --              { event = "internal"
--- --              , message = toJSON event
--- --              , location = parentLocation
--- --              }
--- --            (Self event) -> Event
--- --              { event = "internal"
--- --              , message = toJSON event
--- --              , location = loc
--- --              }
+--       let createMessage directedEvent = case directedEvent of
+--             (Parent event) -> Event
+--               -- TODO: this should probably be a new kind of event
+--               { event = "internal"
+--               , message = toJSON event
+--               , location = parentLocation
+--               }
+--             (Self event) -> Event
+--               { event = "internal"
+--               , message = toJSON event
+--               , location = loc
+--               }
 --
 --       -- here we handle sending events returned to either this
 --       -- same handler or passing it up the chain

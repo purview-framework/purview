@@ -56,9 +56,9 @@ eventLoop devMode runner log eventBus connection component = do
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
-  void . forkIO $ do
-    newEvents <- runner $ runEvent message newTree'
-    mapM_ (atomically . writeTChan eventBus) newEvents
+--  void . forkIO $ do
+--    newEvents <- runner $ runEvent message newTree'
+--    mapM_ (atomically . writeTChan eventBus) newEvents
 
   -- TODO: restore when changing handlers
   -- mapM_ (atomically . writeTChan eventBus) actions

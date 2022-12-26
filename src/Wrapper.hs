@@ -17,6 +17,8 @@ clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
 
+    console.log(event)
+
     var clickValue;
     try {
       clickLocation = JSON.parse(event.target.getAttribute("location"));
@@ -138,10 +140,14 @@ websocketScript = [r|
 
 wrapHtml :: String -> [HtmlEventHandler] -> String -> String
 wrapHtml htmlHead htmlEventHandlers body =
-  "<html>"
+  "<!DOCTYPE html>"
+  <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "bindEvents();" <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "</script>"
   <> htmlHead
   <> "</head>"
-  <> "<body>"<> body <> "</body>"
+  <> "<body>"
+  <> body
+  <> "<script>bindEvents();</script>"
+  <> "</body>"
   <> "</html>"
