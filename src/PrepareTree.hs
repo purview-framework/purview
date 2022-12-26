@@ -83,23 +83,23 @@ prepareTree' parentLocation location component = case component of
       , snd (rest state)
       )
 
-  Once effect hasRun cont ->
-    let send message =
-          Event
-            { event = "once"
-            , message = toJSON message
-            , location = Just location
-            }
-    in if not hasRun then
-        let
-          rest = prepareTree' parentLocation location cont
-        in
-          (Once effect True (fst rest), [effect send] <> (snd rest))
-       else
-        let
-          rest = prepareTree' parentLocation location cont
-        in
-          (Once effect True (fst rest), snd rest)
+--  Once effect hasRun cont ->
+--    let send message =
+--          Event
+--            { event = "once"
+--            , message = toJSON message
+--            , location = Just location
+--            }
+--    in if not hasRun then
+--        let
+--          rest = prepareTree' parentLocation location cont
+--        in
+--          (Once effect True (fst rest), [effect send] <> (snd rest))
+--       else
+--        let
+--          rest = prepareTree' parentLocation location cont
+--        in
+--          (Once effect True (fst rest), snd rest)
 
   Value x -> (Value x, [])
 

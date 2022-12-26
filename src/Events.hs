@@ -34,7 +34,7 @@ handlers higher up in the tree.
 data Event where
   Event ::
     { event :: Text
-    , message :: Value
+    , message :: Maybe [Int]
     , location :: Maybe [Int]
     } -> Event
 

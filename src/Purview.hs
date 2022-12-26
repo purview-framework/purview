@@ -165,7 +165,7 @@ renderFullPage :: Configuration event m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   fromString
   $ wrapHtml htmlHead htmlEventHandlers
-  $ render . fst
+  $ render
   $ addLocations component
 
 startWebSocketLoop

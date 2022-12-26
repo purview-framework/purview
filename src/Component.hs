@@ -17,7 +17,7 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: Eq event => String -> Identifier -> event -> Attributes event
+  On :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -63,6 +63,7 @@ data Purview event m where
        , FromJSON state
        , ToJSON state
        , Typeable state
+       , Typeable newEvent
        , Eq state
        )
     => ParentIdentifier
@@ -123,6 +124,7 @@ handler
      , ToJSON event
      , ToJSON state
      , Typeable state
+     , Typeable event
      , Eq state
      , Applicative m
      )
@@ -159,6 +161,7 @@ effectHandler
      , ToJSON event
      , ToJSON state
      , Typeable state
+     , Typeable event
      , Eq state
      )
   => state
@@ -240,7 +243,7 @@ This will send the event to the handler above it whenever "click" is triggered
 on the frontend.  It will be bound to whichever 'HTML' is beneath it.
 
 -}
-onClick :: Eq event => event -> Purview event m -> Purview event m
+onClick :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
 onClick = Attribute . On "click" Nothing
 
 {-|
@@ -249,7 +252,7 @@ This will send the event to the handler above it whenever "submit" is triggered
 on the frontend.
 
 -}
-onSubmit :: Eq event => event -> Purview event m -> Purview event m
+onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
 identifier :: String -> Purview event m -> Purview event m
