@@ -59,6 +59,7 @@ data Purview event m where
   -- | All the handlers boil down to this one.
   EffectHandler
     :: ( Typeable newEvent
+       , Typeable state
        , Show state
        , Eq state
        )
@@ -118,6 +119,7 @@ handler
   :: ( Typeable event
      , Show state
      , Eq state
+     , Typeable state
      , Applicative m
      )
   => state
@@ -151,6 +153,7 @@ effectHandler
   :: ( Typeable event
      , Show state
      , Eq state
+     , Typeable state
      )
   => state
   -- ^ initial state

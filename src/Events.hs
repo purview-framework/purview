@@ -39,10 +39,7 @@ data Event where
     } -> Event
 
   StateChangeEvent
-    :: ( Eq state
-       , Typeable state
-       , ToJSON state
-       , FromJSON state)
+    :: ( Eq state, Typeable state )
     => (state -> state) -> Maybe [Int] -> Event
 
 instance Show Event where
