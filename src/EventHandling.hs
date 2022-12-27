@@ -30,6 +30,12 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
       let children = fmap (applyNewState fromEvent) cont
       in EffectHandler ploc loc state handler children
 
+  Handler ploc loc state handler cont -> case cast newStateFn of
+    Just newStateFn' -> Handler ploc loc (newStateFn' state) handler cont
+    Nothing ->
+      let children = fmap (applyNewState fromEvent) cont
+      in Handler ploc loc state handler children
+
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
 
@@ -80,6 +86,9 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
   EffectHandler _ ident state _ cont ->
     findEvent event (cont state)
 
+  Handler _ ident state _ cont ->
+    findEvent event (cont state)
+
   Text _ -> Nothing
 
   Value _ -> Nothing
@@ -96,63 +105,14 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
       (newStateFn, events) <- handler event' state
 
       pure [StateChangeEvent newStateFn handlerId]
+    Nothing -> pure []
+
+  Handler _ ident state handler cont -> case cast event of
+    Just event' ->
+      let (newStateFn, events) = handler event' state
+      in pure [StateChangeEvent newStateFn handlerId]
+    Nothing -> pure []
 
   Text _ -> pure []
 
   Value _ -> pure []
-
-
--- runEvent :: Monad m => Event -> Purview event m -> m [Event]
--- runEvent (StateChangeEvent _ _) _ = pure []
--- runEvent fromEvent@(Event { message, location }) component = case component of
---   EffectHandler parentLocation loc state handler cont -> case fromJSON message of
---     Success parsedAction -> do
---       -- if locations match, we actually run what is in the handler
---       (newStateFn, events) <-
---         if loc == location
---         then handler parsedAction state
---         else pure (const state, [])
---
---       -- although it doesn't break anything, only send this when the
---       -- locations match (cuts down on noise)
---       let newStateEvent = [StateChangeEvent newStateFn loc | loc == location]
---
---       let createMessage directedEvent = case directedEvent of
---             (Parent event) -> Event
---               -- TODO: this should probably be a new kind of event
---               { event = "internal"
---               , message = toJSON event
---               , location = parentLocation
---               }
---             (Self event) -> Event
---               { event = "internal"
---               , message = toJSON event
---               , location = loc
---               }
---
---       -- here we handle sending events returned to either this
---       -- same handler or passing it up the chain
---       -- mapM_ (atomically . writeTChan eventBus . createMessage) events
---       let handlerEvents = fmap createMessage events
---
---       -- ok, right, no where in this function does the tree actually change
---       -- that's handled by the setting state event
---       childEvents <- runEvent fromEvent (cont state)
---
---       -- so we can ignore the results from applyEvent and continue
---       -- pure $ EffectHandler parentLocation loc state handler cont
---       pure $ newStateEvent <> handlerEvents <> childEvents
---
---     Error _err -> runEvent fromEvent (cont state)
---
---   Html kind children -> do
---     childEvents' <- mapM (runEvent fromEvent) children
---     pure $ concat childEvents'
---
---   Attribute n cont -> runEvent fromEvent cont
---
---   Once _ _ cont -> runEvent fromEvent cont
---
---   Text _ -> pure []
---
---   Value _ -> pure []

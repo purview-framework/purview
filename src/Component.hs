@@ -75,6 +75,19 @@ data Purview event m where
     -- ^ Continuation
     -> Purview event m
 
+  Handler
+    :: ( Typeable newEvent
+       , Typeable state
+       , Show state
+       , Eq state
+       )
+    => ParentIdentifier
+    -> Identifier
+    -> state
+    -> (newEvent -> state -> (state -> state, [DirectedEvent event newEvent]))
+    -> (state -> Purview newEvent m)
+    -> Purview event m
+
   Once
     :: (ToJSON event)
     => ((event -> Event) -> Event)
@@ -85,6 +98,12 @@ data Purview event m where
 instance Show (Purview event m) where
   show (EffectHandler parentLocation location state _event cont) =
     "EffectHandler "
+    <> show parentLocation <> " "
+    <> show location <> " "
+    <> show state <> " "
+    <> show (cont state)
+  show (Handler parentLocation location state _event cont) =
+    "Handler "
     <> show parentLocation <> " "
     <> show location <> " "
     <> show state <> " "
@@ -120,7 +139,6 @@ handler
      , Show state
      , Eq state
      , Typeable state
-     , Applicative m
      )
   => state
   -- ^ The initial state
@@ -129,8 +147,7 @@ handler
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler state handler =
-  effectHandler state (\event state -> pure (handler event state))
+handler = Handler Nothing Nothing
 
 {-|
 
@@ -162,8 +179,8 @@ effectHandler
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler state handler =
-  EffectHandler Nothing Nothing state handler
+effectHandler state =
+  EffectHandler Nothing Nothing state
 
 {-|
 

@@ -66,6 +66,11 @@ render' attrs tree = case tree of
       render' attrs (unsafeCoerce cont state) <>
     "</div>"
 
+  Handler parentLocation location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (unsafeCoerce cont state) <>
+    "</div>"
+
   Once _ _hasRun cont ->
     render' attrs cont
 

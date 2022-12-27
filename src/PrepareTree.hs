@@ -53,6 +53,12 @@ addLocations' parentLocation location component = case component of
     in
       EffectHandler (Just parentLocation) (Just location) state handler cont'
 
+  Handler _ploc _loc state handler cont ->
+    let
+      cont' = fmap (\child -> addLocations' location (location <> [0]) child) cont
+    in
+      Handler (Just parentLocation) (Just location) state handler cont'
+
   Text val -> Text val
 
   Value val -> Value val
@@ -80,6 +86,14 @@ prepareTree' parentLocation location component = case component of
       rest = fmap (prepareTree' location (0:location)) cont
     in
       ( EffectHandler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
+      , snd (rest state)
+      )
+
+  Handler _ploc _loc state handler cont ->
+    let
+      rest = fmap (prepareTree' location (0:location)) cont
+    in
+      ( Handler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
       , snd (rest state)
       )
 
