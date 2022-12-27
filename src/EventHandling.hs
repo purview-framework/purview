@@ -46,30 +46,36 @@ applyNewState (Event {}) component = component
 
 
 data AnyEvent where
-  AnyEvent :: (Show evt, Typeable evt, Eq evt) => evt -> AnyEvent
+  AnyEvent ::
+    ( Show event
+    , Typeable event
+    , Eq event
+    ) => { event :: event, childId :: Identifier, handlerId :: Identifier } -> AnyEvent
 
+-- TODO: these instances are incomplete (see now hanving identifiers)
 instance Show AnyEvent where
-  show (AnyEvent evt) = show evt
+  show (AnyEvent evt _ _) = show evt
 
 instance Eq AnyEvent where
-  (AnyEvent evt) == (AnyEvent evt') = case cast evt' of
+  (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
     Just evt'' -> evt == evt''
     Nothing    -> False
 
 findEvent :: Event -> Purview event m -> Maybe AnyEvent
-
+findEvent (StateChangeEvent _ _) _ = Nothing
 findEvent event@Event { message=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
       if ident == childLocation
-      then Just $ AnyEvent evt
+      then Just $ AnyEvent evt childLocation handlerLocation
       else Nothing
     _ -> findEvent event cont
 
   Html _ children ->
     case mapMaybe (findEvent event) children of
       [found] -> Just found
-      [] -> Nothing
+      []      -> Nothing
+      _       -> Nothing
 
   EffectHandler _ ident state _ cont ->
     findEvent event (cont state)
@@ -78,34 +84,23 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
 
   Value _ -> Nothing
 
-{- right, can't do this because my brain isn't big enough -}
--- findInTree ::(Purview event m -> Bool) -> Purview event m -> Maybe (Purview event m)
--- findInTree test tree = case tree of
---   Attribute attr cont ->
---     if test tree
---     then Just tree
---     else findInTree test cont
---
---   Html _ children ->
---     if test tree
---     then Just tree
---     else case mapMaybe (findInTree test) children of
---       [found] -> Just found
---       []      -> Nothing
---
---   EffectHandler _ ident _ _ cont ->
---     let found = fmap (\cont' -> findInTree test cont') cont
---     in undefined
---
---   Text _ -> Nothing
---
---   Value _ -> Nothing
---
--- findParent :: Identifier -> Purview event m -> Purview event m
--- findParent ident tree = undefined
---
--- findChild :: Identifier -> Purview event m -> Maybe event
--- findChild = undefined
+runEvent :: Monad m => AnyEvent -> Purview event m -> m [Event]
+runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
+  Attribute attr cont ->
+    runEvent anyEvent cont
+
+  Html _ children -> concat <$> mapM (runEvent anyEvent) children
+
+  EffectHandler _ ident state handler cont -> case cast event of
+    Just event' -> do
+      (newStateFn, events) <- handler event' state
+
+      pure [StateChangeEvent newStateFn handlerId]
+
+  Text _ -> pure []
+
+  Value _ -> pure []
+
 
 -- runEvent :: Monad m => Event -> Purview event m -> m [Event]
 -- runEvent (StateChangeEvent _ _) _ = pure []

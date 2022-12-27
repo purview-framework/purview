@@ -58,12 +58,8 @@ data Purview event m where
 
   -- | All the handlers boil down to this one.
   EffectHandler
-    :: ( FromJSON newEvent
-       , ToJSON newEvent
-       , FromJSON state
-       , ToJSON state
-       , Typeable state
-       , Typeable newEvent
+    :: ( Typeable newEvent
+       , Show state
        , Eq state
        )
     => ParentIdentifier
@@ -90,7 +86,7 @@ instance Show (Purview event m) where
     "EffectHandler "
     <> show parentLocation <> " "
     <> show location <> " "
-    <> show (encode state) <> " "
+    <> show state <> " "
     <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
@@ -119,12 +115,8 @@ For example, let's say you want to make a button that switches between saying
 
 -}
 handler
-  :: ( FromJSON event
-     , FromJSON state
-     , ToJSON event
-     , ToJSON state
-     , Typeable state
-     , Typeable event
+  :: ( Typeable event
+     , Show state
      , Eq state
      , Applicative m
      )
@@ -156,12 +148,8 @@ a button:
 
 -}
 effectHandler
-  :: ( FromJSON event
-     , FromJSON state
-     , ToJSON event
-     , ToJSON state
-     , Typeable state
-     , Typeable event
+  :: ( Typeable event
+     , Show state
      , Eq state
      )
   => state

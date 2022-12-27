@@ -48,6 +48,9 @@ eventLoop devMode runner log eventBus connection component = do
     -- to "run" in the tree, while assigning locations / identifiers
     -- to the event handlers
     newTree = addLocations component
+    event = findEvent message newTree
+
+  print $ "event: " <> show event
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case message of
@@ -56,9 +59,11 @@ eventLoop devMode runner log eventBus connection component = do
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
---  void . forkIO $ do
---    newEvents <- runner $ runEvent message newTree'
---    mapM_ (atomically . writeTChan eventBus) newEvents
+  void . forkIO $ do
+    newEvents <- case event of
+      Just event' -> runner $ runEvent event' newTree'
+      Nothing     -> pure []
+    mapM_ (atomically . writeTChan eventBus) newEvents
 
   -- TODO: restore when changing handlers
   -- mapM_ (atomically . writeTChan eventBus) actions
