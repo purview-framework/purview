@@ -93,6 +93,7 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
 
   Value _ -> Nothing
 
+-- TODO: continue down the tree
 runEvent :: Monad m => AnyEvent -> Purview event m -> m [Event]
 runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
