@@ -55,6 +55,7 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
   (unknown, Html kind children) ->
     [Update location newGraph]
 
+  -- TODO: add Handler
   (EffectHandler _ loc state _ cont, EffectHandler _ loc' newState _ newCont) ->
     case cast state of
       Just state' ->
