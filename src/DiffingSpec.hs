@@ -46,9 +46,7 @@ spec = parallel $ do
           newTree = div [ handler2 (const (text "this is different")) ]
 
         diff Nothing [] oldTree newTree `shouldBe`
-          [ Update [0] (handler2 (const (text "this is different")))
-          , Update [0, 0] (text "this is different")
-          ]
+          [ Update [0] (handler2 (const (text "this is different"))) ]
 
     describe "effect handlers" $ do
 

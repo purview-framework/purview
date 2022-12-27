@@ -1,3 +1,4 @@
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -16,7 +17,7 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: ToJSON event => String -> event -> Attributes event
+  On :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -27,11 +28,17 @@ instance Eq (Attributes event) where
   (Style a) == (Style b) = a == b
   (Style _) == _ = False
 
-  (On kind event) == (On kind' event') = kind == kind' && encode event == encode event'
-  (On _ _) == _ = False
+  (On kind ident event) == (On kind' ident' event') =
+    kind == kind' && event == event' && ident == ident'
+  (On _ _ _) == _ = False
 
   (Generic name value) == (Generic name' value') = name == name' && value == value'
   (Generic _ _) == _ = False
+
+instance Show (Attributes event) where
+  show (On kind ident evt) = "On " <> show kind <> " " <> show ident
+  show (Style str) = "Style " <> show str
+  show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -51,11 +58,9 @@ data Purview event m where
 
   -- | All the handlers boil down to this one.
   EffectHandler
-    :: ( FromJSON newEvent
-       , ToJSON newEvent
-       , FromJSON state
-       , ToJSON state
+    :: ( Typeable newEvent
        , Typeable state
+       , Show state
        , Eq state
        )
     => ParentIdentifier
@@ -70,6 +75,19 @@ data Purview event m where
     -- ^ Continuation
     -> Purview event m
 
+  Handler
+    :: ( Typeable newEvent
+       , Typeable state
+       , Show state
+       , Eq state
+       )
+    => ParentIdentifier
+    -> Identifier
+    -> state
+    -> (newEvent -> state -> (state -> state, [DirectedEvent event newEvent]))
+    -> (state -> Purview newEvent m)
+    -> Purview event m
+
   Once
     :: (ToJSON event)
     => ((event -> Event) -> Event)
@@ -82,10 +100,16 @@ instance Show (Purview event m) where
     "EffectHandler "
     <> show parentLocation <> " "
     <> show location <> " "
-    <> show (encode state) <> " "
+    <> show state <> " "
+    <> show (cont state)
+  show (Handler parentLocation location state _event cont) =
+    "Handler "
+    <> show parentLocation <> " "
+    <> show location <> " "
+    <> show state <> " "
     <> show (cont state)
   show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
-  show (Attribute _attrs cont) = "Attr " <> show cont
+  show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
     kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
@@ -111,13 +135,10 @@ For example, let's say you want to make a button that switches between saying
 
 -}
 handler
-  :: ( FromJSON event
-     , FromJSON state
-     , ToJSON event
-     , ToJSON state
-     , Typeable state
+  :: ( Typeable event
+     , Show state
      , Eq state
-     , Applicative m
+     , Typeable state
      )
   => state
   -- ^ The initial state
@@ -126,8 +147,7 @@ handler
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler state handler =
-  effectHandler state (\event state -> pure (handler event state))
+handler = Handler Nothing Nothing
 
 {-|
 
@@ -147,12 +167,10 @@ a button:
 
 -}
 effectHandler
-  :: ( FromJSON event
-     , FromJSON state
-     , ToJSON event
-     , ToJSON state
-     , Typeable state
+  :: ( Typeable event
+     , Show state
      , Eq state
+     , Typeable state
      )
   => state
   -- ^ initial state
@@ -161,8 +179,8 @@ effectHandler
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler state handler =
-  EffectHandler Nothing Nothing state handler
+effectHandler state =
+  EffectHandler Nothing Nothing state
 
 {-|
 
@@ -233,8 +251,8 @@ This will send the event to the handler above it whenever "click" is triggered
 on the frontend.  It will be bound to whichever 'HTML' is beneath it.
 
 -}
-onClick :: ToJSON event => event -> Purview event m -> Purview event m
-onClick = Attribute . On "click"
+onClick :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
+onClick = Attribute . On "click" Nothing
 
 {-|
 
@@ -242,8 +260,8 @@ This will send the event to the handler above it whenever "submit" is triggered
 on the frontend.
 
 -}
-onSubmit :: ToJSON event => event -> Purview event m -> Purview event m
-onSubmit = Attribute . On "submit"
+onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
+onSubmit = Attribute . On "submit" Nothing
 
 identifier :: String -> Purview event m -> Purview event m
 identifier = Attribute . Generic "id"

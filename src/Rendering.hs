@@ -7,7 +7,7 @@ import           Unsafe.Coerce
 import           Component
 
 isOn :: Attributes a -> Bool
-isOn (On _ _) = True
+isOn (On _ _ _) = True
 isOn _        = False
 
 isGeneric :: Attributes a -> Bool
@@ -31,7 +31,7 @@ renderAttributes attrs =
 
     listeners = filter isOn attrs
     renderedListeners = concatMap
-      (\(On name action) -> " action=" <> (unpack $ encode action))
+      (\(On name ident action) -> " location=" <> (unpack $ encode ident))
       listeners
 
     generics = filter isGeneric attrs
@@ -62,6 +62,11 @@ render' attrs tree = case tree of
     render' (attr:attrs) rest
 
   EffectHandler parentLocation location state _ cont ->
+    "<div handler=" <> (show . encode) location <> ">" <>
+      render' attrs (unsafeCoerce cont state) <>
+    "</div>"
+
+  Handler parentLocation location state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
       render' attrs (unsafeCoerce cont state) <>
     "</div>"

@@ -165,8 +165,8 @@ renderFullPage :: Configuration event m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   fromString
   $ wrapHtml htmlHead htmlEventHandlers
-  $ render . fst
-  $ prepareTree component
+  $ render
+  $ addLocations component
 
 startWebSocketLoop
   :: Monad m
@@ -176,7 +176,7 @@ startWebSocketLoop
   -> IO ()
 startWebSocketLoop Configuration { devMode, interpreter, logger } component connection = do
   eventBus <- newTChanIO
-  atomically $ writeTChan eventBus $ Event { event = "init", message = "init", location = Nothing }
+  -- atomically $ writeTChan eventBus $ Event { event = "init", message = "init", location = Nothing }
 
   WebSocket.withPingThread connection 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus connection
@@ -185,6 +185,8 @@ startWebSocketLoop Configuration { devMode, interpreter, logger } component conn
 webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
   message' <- WebSocket.receiveData websocketConnection
+
+  print (show message')
 
   case decode message' of
     Just fromEvent -> atomically $ writeTChan eventBus fromEvent

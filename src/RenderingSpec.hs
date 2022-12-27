@@ -13,6 +13,7 @@ import Events
 import Rendering
 
 data SingleConstructor = SingleConstructor
+  deriving (Show, Eq)
 
 $(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
@@ -32,11 +33,11 @@ spec = parallel $ do
 
     it "can add an onclick" $ do
       let element =
-            Attribute (On "click" (1 :: Integer))
+            Attribute (On "click" Nothing (1 :: Integer))
             $ Html "div" [Text "hello world"]
 
       render element `shouldBe`
-        "<div action=1>hello world</div>"
+        "<div location=null>hello world</div>"
 
     it "can add an id" $ do
       let element = identifier "hello" $ div [text "it's a hello div"]
@@ -68,14 +69,14 @@ spec = parallel $ do
 
       render component
         `shouldBe`
-        "<form action=\"initialValue\"><input name=\"name\"></input></form>"
+        "<form location=null><input name=\"name\"></input></form>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
 
       render element
         `shouldBe`
-        "<div action=\"SingleConstructor\">click</div>"
+        "<div location=null>click</div>"
 
     it "can render a style" $ do
       let element = style "color: blue;" $ div [ text "blue" ]

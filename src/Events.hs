@@ -34,15 +34,12 @@ handlers higher up in the tree.
 data Event where
   Event ::
     { event :: Text
-    , message :: Value
+    , message :: Maybe [Int]
     , location :: Maybe [Int]
     } -> Event
 
   StateChangeEvent
-    :: ( Eq state
-       , Typeable state
-       , ToJSON state
-       , FromJSON state)
+    :: ( Eq state, Typeable state )
     => (state -> state) -> Maybe [Int] -> Event
 
 instance Show Event where

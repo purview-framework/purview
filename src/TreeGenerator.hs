@@ -23,8 +23,6 @@ testHandler = effectHandler ("" :: String) reducer
     reducer :: String -> String -> IO (String -> String, [DirectedEvent String String])
     reducer action state = pure (const "", [])
 
-testOnce = once (\send -> send "")
-
 sizedArbExpr :: Int -> Gen (Purview String IO)
 sizedArbExpr 0 = do pure $ text "always present"
 sizedArbExpr n = do
@@ -33,7 +31,6 @@ sizedArbExpr n = do
     [ div es
     , style "" $ div es
     , testHandler (const $ div es)
-    , testOnce (div es)
     ]
 
 instance Arbitrary (Purview String IO) where

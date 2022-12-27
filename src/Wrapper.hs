@@ -17,17 +17,19 @@ clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
 
+    console.log(event)
+
     var clickValue;
     try {
-      clickValue = JSON.parse(event.target.getAttribute("action"));
+      clickLocation = JSON.parse(event.target.getAttribute("location"));
     } catch (error) {
       // if the action is just a string, parsing it as JSON would fail
-      clickValue = event.target.getAttribute("action");
+      clickLocation = event.target.getAttribute("location");
     }
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
-    if (clickValue) {
-      window.ws.send(JSON.stringify({ "event": "click", "message": clickValue, "location": location }));
+    if (clickLocation) {
+      window.ws.send(JSON.stringify({ "event": "click", "message": clickLocation, "location": location }));
     }
   }
 |]
@@ -138,10 +140,14 @@ websocketScript = [r|
 
 wrapHtml :: String -> [HtmlEventHandler] -> String -> String
 wrapHtml htmlHead htmlEventHandlers body =
-  "<html>"
+  "<!DOCTYPE html>"
+  <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "bindEvents();" <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "</script>"
   <> htmlHead
   <> "</head>"
-  <> "<body>"<> body <> "</body>"
+  <> "<body>"
+  <> body
+  <> "<script>bindEvents();</script>"
+  <> "</body>"
   <> "</html>"
