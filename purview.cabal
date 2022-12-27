@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -56,17 +56,14 @@ library
       src
   ghc-options: -Wincomplete-patterns
   build-depends:
-      QuickCheck
-    , aeson >=2.0.3 && <2.1
+      aeson >=2.0.3 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.1 && <0.12
-    , hspec
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
     , text >=1.2.5 && <1.3
-    , time
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
 
@@ -121,19 +118,16 @@ benchmark purview-perf-test
       performance
   ghc-options: -main-is Criterion
   build-depends:
-      QuickCheck
-    , aeson >=2.0.3 && <2.1
+      aeson >=2.0.3 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.1 && <0.12
     , criterion >=1.5.13 && <1.6
-    , hspec
     , http-types >=0.12.3 && <0.13
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
     , text >=1.2.5 && <1.3
-    , time
     , websockets >=0.12.7 && <0.13
   buildable: False
   default-language: Haskell2010
