@@ -30,11 +30,11 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
       let children = fmap (applyNewState fromEvent) cont
       in EffectHandler ploc loc state handler children
 
-  Handler ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> Handler ploc loc (newStateFn' state) handler cont
+  Handler ploc loc initEvents state handler cont -> case cast newStateFn of
+    Just newStateFn' -> Handler ploc loc initEvents (newStateFn' state) handler cont
     Nothing ->
       let children = fmap (applyNewState fromEvent) cont
-      in Handler ploc loc state handler children
+      in Handler ploc loc initEvents state handler children
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
@@ -83,7 +83,7 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
   EffectHandler _ ident state _ cont ->
     findEvent event (cont state)
 
-  Handler _ ident state _ cont ->
+  Handler _ ident initEvents state _ cont ->
     findEvent event (cont state)
 
   Text _ -> Nothing
@@ -105,7 +105,7 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
       pure [StateChangeEvent newStateFn handlerId]
     Nothing -> pure []
 
-  Handler _ ident state handler cont -> case cast event of
+  Handler _ ident initEvents state handler cont -> case cast event of
     Just event' ->
       let (newStateFn, events) = handler event' state
       in pure [StateChangeEvent newStateFn handlerId]

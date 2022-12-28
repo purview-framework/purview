@@ -5,7 +5,6 @@
 {-# LANGUAGE GADTs #-}
 module Component where
 
-import           Data.Aeson
 import           Data.Typeable
 
 import           Events
@@ -17,8 +16,7 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On
-    :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
+  On :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -77,16 +75,20 @@ data Purview event m where
     -> Purview event m
 
   Handler
-    :: ( Typeable newEvent
-       , Typeable state
-       , Show state
+    :: ( Show state
        , Eq state
+       , Typeable state
+       , Typeable newEvent
        )
-    => ParentIdentifier
-    -> Identifier
-    -> state
-    -> (newEvent -> state -> (state -> state, [DirectedEvent event newEvent]))
-    -> (state -> Purview newEvent m)
+    => { parentIdentifier :: ParentIdentifier
+       , identifier       :: Identifier
+       , initialEvents    :: [DirectedEvent event newEvent]
+       , state            :: state
+       , reducer          :: newEvent
+                          -> state
+                          -> (state -> state, [DirectedEvent event newEvent])
+       , continuation     :: state -> Purview newEvent m
+       }
     -> Purview event m
 
 instance Show (Purview event m) where
@@ -96,7 +98,7 @@ instance Show (Purview event m) where
     <> show location <> " "
     <> show state <> " "
     <> show (cont state)
-  show (Handler parentLocation location state _event cont) =
+  show (Handler parentLocation location initialEvents state _event cont) =
     "Handler "
     <> show parentLocation <> " "
     <> show location <> " "
@@ -133,7 +135,8 @@ handler
      , Eq state
      , Typeable state
      )
-  => state
+  => [DirectedEvent parentEvent event]
+  -> state
   -- ^ The initial state
   -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
   -- ^ The reducer, or how the state should change for an event
@@ -243,8 +246,8 @@ on the frontend.
 onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
-identifier :: String -> Purview event m -> Purview event m
-identifier = Attribute . Generic "id"
+--identifier :: String -> Purview event m -> Purview event m
+--identifier = Attribute . Generic "id"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs
