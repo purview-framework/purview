@@ -17,7 +17,8 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
+  On
+    :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -88,13 +89,6 @@ data Purview event m where
     -> (state -> Purview newEvent m)
     -> Purview event m
 
-  Once
-    :: (ToJSON event)
-    => ((event -> Event) -> Event)
-    -> Bool  -- has run
-    -> Purview event m
-    -> Purview event m
-
 instance Show (Purview event m) where
   show (EffectHandler parentLocation location state _event cont) =
     "EffectHandler "
@@ -108,7 +102,6 @@ instance Show (Purview event m) where
     <> show location <> " "
     <> show state <> " "
     <> show (cont state)
-  show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
@@ -181,19 +174,6 @@ effectHandler
   -> Purview parentEvent m
 effectHandler state =
   EffectHandler Nothing Nothing state
-
-{-|
-
-This is for kicking off loading events.  Put it beneath one of your handlers
-to send an event up to it, and it will only be sent once.
-
--}
-once
-  :: ToJSON event
-  => ((event -> Event) -> Event)
-  -> Purview event m
-  -> Purview event m
-once sendEvent = Once sendEvent False
 
 {-
 

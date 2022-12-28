@@ -71,7 +71,4 @@ render' attrs tree = case tree of
       render' attrs (unsafeCoerce cont state) <>
     "</div>"
 
-  Once _ _hasRun cont ->
-    render' attrs cont
-
   Value a -> show a

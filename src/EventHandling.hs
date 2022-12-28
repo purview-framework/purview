@@ -42,9 +42,6 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
   Attribute n cont ->
     Attribute n (applyNewState fromEvent cont)
 
-  Once fn run cont ->
-    Once fn run $ applyNewState fromEvent cont
-
   Text x -> Text x
 
   Value x -> Value x
