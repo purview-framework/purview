@@ -94,16 +94,16 @@ data Purview event m where
 instance Show (Purview event m) where
   show (EffectHandler parentLocation location state _event cont) =
     "EffectHandler "
-    <> show parentLocation <> " "
-    <> show location <> " "
-    <> show state <> " "
-    <> show (cont state)
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show state <> " "
+      <> show (cont state)
   show (Handler parentLocation location initialEvents state _event cont) =
     "Handler "
-    <> show parentLocation <> " "
-    <> show location <> " "
-    <> show state <> " "
-    <> show (cont state)
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show state <> " "
+      <> show (cont state)
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
@@ -136,6 +136,7 @@ handler
      , Typeable state
      )
   => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
   -> state
   -- ^ The initial state
   -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
