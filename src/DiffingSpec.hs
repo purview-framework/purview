@@ -40,8 +40,8 @@ spec = parallel $ do
       it "diffs handler children if the state is different" $ do
         let
           handler1 :: (String -> Purview String IO) -> Purview String IO
-          handler1 = handler "initial state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
-          handler2 = handler "different state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
+          handler1 = handler [] "initial state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
+          handler2 = handler [] "different state" (\action state -> (const $ state <> action, [] :: [DefaultAction]))
           oldTree = div [ handler1 (const (text "the original")) ]
           newTree = div [ handler2 (const (text "this is different")) ]
 

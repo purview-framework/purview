@@ -68,7 +68,7 @@ data Purview event m where
     -- ^ The location of this effect handler (provided by prepareTree)
     -> state
     -- ^ The initial state
-    -> (newEvent-> state -> m (state -> state, [DirectedEvent event newEvent]))
+    -> (newEvent -> state -> m (state -> state, [DirectedEvent event newEvent]))
     -- ^ Receive an event, change the state, and send messages
     -> (state -> Purview newEvent m)
     -- ^ Continuation
@@ -247,8 +247,8 @@ on the frontend.
 onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
---identifier :: String -> Purview event m -> Purview event m
---identifier = Attribute . Generic "id"
+ident :: String -> Purview event m -> Purview event m
+ident = Attribute . Generic "id"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs

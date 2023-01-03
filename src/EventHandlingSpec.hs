@@ -288,7 +288,7 @@ spec = parallel $ do
     it "works" $ do
       let
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler (0 :: Int) reducer
+        clickHandler = handler [] (0 :: Int) reducer
 
         reducer :: String -> Int -> (Int -> Int, [DirectedEvent () String])
         reducer "up" st = (const 0, [])
