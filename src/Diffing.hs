@@ -56,7 +56,7 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
     [Update location newGraph]
 
   -- TODO: add Handler
-  (EffectHandler _ loc state _ cont, EffectHandler _ loc' newState _ newCont) ->
+  (EffectHandler _ loc initEvents state _ cont, EffectHandler _ loc' initEvents' newState _ newCont) ->
     case cast state of
       Just state' ->
         [Update location newGraph | state' /= newState && loc == loc']
@@ -78,7 +78,7 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
   (Value _, _) ->
     [Update location newGraph]
 
-  (EffectHandler _ _ _ _ _, _) ->
+  (EffectHandler _ _ _ _ _ _, _) ->
     [Update location newGraph]
 
   (_, _) -> [Update location newGraph]

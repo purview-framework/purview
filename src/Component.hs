@@ -1,4 +1,3 @@
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -55,23 +54,25 @@ data Purview event m where
   Html :: String -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
 
-  -- | All the handlers boil down to this one.
   EffectHandler
-    :: ( Typeable newEvent
-       , Typeable state
-       , Show state
+    :: ( Show state
        , Eq state
+       , Typeable state
+       , Typeable newEvent
        )
-    => ParentIdentifier
-    -- ^ The location of the parent effect handler (provided by prepareTree)
-    -> Identifier
-    -- ^ The location of this effect handler (provided by prepareTree)
-    -> state
-    -- ^ The initial state
-    -> (newEvent -> state -> m (state -> state, [DirectedEvent event newEvent]))
-    -- ^ Receive an event, change the state, and send messages
-    -> (state -> Purview newEvent m)
-    -- ^ Continuation
+    => { parentIdentifier :: ParentIdentifier
+       -- ^ The location of the parent effect handler (provided by prepareTree)
+       , identifier       :: Identifier
+       -- ^ The location of this effect handler (provided by prepareTree)
+       , initialEvents    :: [DirectedEvent event newEvent]
+       , state            :: state
+       -- ^ The initial state
+       , effectReducer    :: newEvent
+                          -> state
+                          -> m (state -> state, [DirectedEvent event newEvent])
+       -- ^ Receive an event, change the state, and send messages
+       , continuation     :: state -> Purview newEvent m
+       }
     -> Purview event m
 
   Handler
@@ -92,7 +93,7 @@ data Purview event m where
     -> Purview event m
 
 instance Show (Purview event m) where
-  show (EffectHandler parentLocation location state _event cont) =
+  show (EffectHandler parentLocation location initialEvents state _event cont) =
     "EffectHandler "
       <> show parentLocation <> " "
       <> show location <> " "
@@ -169,15 +170,16 @@ effectHandler
      , Eq state
      , Typeable state
      )
-  => state
+  => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
+  -> state
   -- ^ initial state
   -> (event -> state -> m (state -> state, [DirectedEvent parentEvent event]))
   -- ^ reducer (note the m!)
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler state =
-  EffectHandler Nothing Nothing state
+effectHandler = EffectHandler Nothing Nothing
 
 {-
 

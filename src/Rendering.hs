@@ -62,7 +62,7 @@ render' attrs tree = case tree of
   Attribute attr rest ->
     render' (attr:attrs) rest
 
-  EffectHandler parentLocation location state _ cont ->
+  EffectHandler parentLocation location initEvents state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
       render' attrs (unsafeCoerce cont state) <>
     "</div>"

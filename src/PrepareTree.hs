@@ -45,11 +45,11 @@ addLocations' parentLocation location component = case component of
     in
       Html kind children'
 
-  EffectHandler _ploc _loc state handler cont ->
+  EffectHandler _ploc _loc initEvents state handler cont ->
     let
       cont' = fmap (\child -> addLocations' location (location <> [0]) child) cont
     in
-      EffectHandler (Just parentLocation) (Just location) state handler cont'
+      EffectHandler (Just parentLocation) (Just location) initEvents state handler cont'
 
   Handler _ploc _loc initEvents state handler cont ->
     let
@@ -79,11 +79,11 @@ prepareTree' parentLocation location component = case component of
     let result = fmap (\(index, child) -> prepareTree' parentLocation (index:location) child) (zip [0..] children)
     in (Html kind (fmap fst result), concatMap snd result)
 
-  EffectHandler _ploc _loc state handler cont ->
+  EffectHandler _ploc _loc initEvents state handler cont ->
     let
       rest = fmap (prepareTree' location (0:location)) cont
     in
-      ( EffectHandler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
+      ( EffectHandler (Just parentLocation) (Just location) initEvents state handler (\state' -> fst (rest state'))
       , snd (rest state)
       )
 

@@ -53,8 +53,8 @@ spec = parallel $ do
       it "diffs handler children if the state is different" $ do
         let
           handler1 :: (String -> Purview String IO) -> Purview String IO
-          handler1 = effectHandler "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
-          handler2 = effectHandler "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
+          handler1 = effectHandler [] "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
+          handler2 = effectHandler [] "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           oldTree = div [ handler1 (const (text "the original")) ]
           newTree = div [ handler2 (const (text "this is different")) ]
 
@@ -66,8 +66,8 @@ spec = parallel $ do
       it "continues going down the tree even if the state is the same at the top" $ do
         let
           handler1 :: (String -> Purview String IO) -> Purview String IO
-          handler1 = effectHandler "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
-          handler2 = effectHandler "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
+          handler1 = effectHandler [] "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
+          handler2 = effectHandler [] "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           oldTree = fst . prepareTree $ div [ handler1 . const $ handler1 (const (text "the original")) ]
           newTree = fst . prepareTree $ div [ handler1 . const $ handler2 (const (text "this is different")) ]
 
@@ -75,6 +75,7 @@ spec = parallel $ do
           [ Update [0, 0] (EffectHandler
                             (Just [0])
                             (Just [0, 0])
+                            []
                             "different state"
                             (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
                             (const (text "this is different")))

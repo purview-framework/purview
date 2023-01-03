@@ -91,7 +91,7 @@ spec = parallel $ do
 
     it "assigns a location to handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -101,16 +101,16 @@ spec = parallel $ do
 
         component = timeHandler (const (Text ""))
 
-      component `shouldBe` (EffectHandler Nothing Nothing Nothing handle (const (Text "")))
+      component `shouldBe` (EffectHandler Nothing Nothing [] Nothing handle (const (Text "")))
 
       let
         graphWithLocation = fst (prepareTree component)
 
-      graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) Nothing handle (const (Text "")))
+      graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) [] Nothing handle (const (Text "")))
 
     it "assigns a different location to child handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -131,7 +131,7 @@ spec = parallel $ do
 
     it "assigns a different location to nested handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do

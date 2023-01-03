@@ -24,11 +24,11 @@ applyNewState
   -> Purview event m
   -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
-  EffectHandler ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> EffectHandler ploc loc (newStateFn' state) handler cont
+  EffectHandler ploc loc initEvents state handler cont -> case cast newStateFn of
+    Just newStateFn' -> EffectHandler ploc loc initEvents (newStateFn' state) handler cont
     Nothing ->
       let children = fmap (applyNewState fromEvent) cont
-      in EffectHandler ploc loc state handler children
+      in EffectHandler ploc loc initEvents state handler children
 
   Handler ploc loc initEvents state handler cont -> case cast newStateFn of
     Just newStateFn' -> Handler ploc loc initEvents (newStateFn' state) handler cont
@@ -80,7 +80,7 @@ findEvent event@Event { message=childLocation, location=handlerLocation } tree =
       []      -> Nothing
       _       -> Nothing
 
-  EffectHandler _ ident state _ cont ->
+  EffectHandler _ ident initEvents state _ cont ->
     findEvent event (cont state)
 
   Handler _ ident initEvents state _ cont ->
@@ -98,7 +98,7 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
 
   Html _ children -> concat <$> mapM (runEvent anyEvent) children
 
-  EffectHandler _ ident state handler cont -> case cast event of
+  EffectHandler _ ident initEvents state handler cont -> case cast event of
     Just event' -> do
       (newStateFn, events) <- handler event' state
 
