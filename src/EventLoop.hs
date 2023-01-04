@@ -47,8 +47,11 @@ eventLoop devMode runner log eventBus connection component = do
     -- this collects any actions that should run once and sets them
     -- to "run" in the tree, while assigning locations / identifiers
     -- to the event handlers
-    newTree = addLocations component
+    (_, newTree) = prepareTree component
     event = findEvent message newTree
+
+  -- TODO: restore when changing handlers
+  -- mapM_ (atomically . writeTChan eventBus) actions
 
   print $ "event: " <> show event
 
@@ -64,9 +67,6 @@ eventLoop devMode runner log eventBus connection component = do
       Just event' -> runner $ runEvent event' newTree'
       Nothing     -> pure []
     mapM_ (atomically . writeTChan eventBus) newEvents
-
-  -- TODO: restore when changing handlers
-  -- mapM_ (atomically . writeTChan eventBus) actions
 
   let
     -- collect diffs

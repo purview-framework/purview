@@ -38,9 +38,6 @@ instance Show (Attributes event) where
   show (Style str) = "Style " <> show str
   show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
-type Identifier = Maybe [Int]
-type ParentIdentifier = Identifier
-
 {-|
 
 This is what you end up building using the various helpers.  It's hopefully rare

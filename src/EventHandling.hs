@@ -48,22 +48,6 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
 applyNewState (Event {}) component = component
 
 
-data AnyEvent where
-  AnyEvent ::
-    ( Show event
-    , Typeable event
-    , Eq event
-    ) => { event :: event, childId :: Identifier, handlerId :: Identifier } -> AnyEvent
-
--- TODO: these instances are incomplete (see now hanving identifiers)
-instance Show AnyEvent where
-  show (AnyEvent evt _ _) = show evt
-
-instance Eq AnyEvent where
-  (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
-    Just evt'' -> evt == evt''
-    Nothing    -> False
-
 findEvent :: Event -> Purview event m -> Maybe AnyEvent
 findEvent (StateChangeEvent _ _) _ = Nothing
 findEvent event@Event { message=childLocation, location=handlerLocation } tree = case tree of

@@ -11,6 +11,9 @@ import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
 
+type Identifier = Maybe [Int]
+type ParentIdentifier = Identifier
+
 {-|
 
 This for events intended for the front end
@@ -72,5 +75,25 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: ToJSON a => a -> DirectedEvent a b
-  Self :: ToJSON b => b -> DirectedEvent a b
+  Parent :: (ToJSON a, Show a, Typeable a, Eq a) => a -> DirectedEvent a b
+  Self :: (ToJSON b, Show b, Typeable b, Eq b) => b -> DirectedEvent a b
+
+data AnyEvent where
+  AnyEvent
+    :: ( Show event
+       , Typeable event
+       , Eq event
+       )
+    => { event :: event
+       , childId :: Identifier
+       , handlerId :: Identifier
+       } -> AnyEvent
+
+-- TODO: these instances are incomplete (see now having identifiers)
+instance Show AnyEvent where
+  show (AnyEvent evt _ _) = show evt
+
+instance Eq AnyEvent where
+  (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
+    Just evt'' -> evt == evt''
+    Nothing    -> False
