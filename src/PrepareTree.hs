@@ -14,7 +14,7 @@ else to actually send the actions.
 It also assigns a location to message and effect handlers.
 
 -}
-prepareTree :: Purview event m -> ([AnyEvent], Purview event m)
+prepareTree :: Purview event m -> ([Event], Purview event m)
 prepareTree = prepareTree' [] []
 
 type Location = [Int]
@@ -24,12 +24,12 @@ addLocationToAttr loc attr = case attr of
   On str _ event' -> On str (Just loc) event'
   _               -> attr
 
-directedEventToAnyEvent :: Location -> Location -> DirectedEvent a b -> AnyEvent
+directedEventToAnyEvent :: Location -> Location -> DirectedEvent a b -> Event
 directedEventToAnyEvent parentLocation location directedEvent = case directedEvent of
   Parent event -> AnyEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
   Self event   -> AnyEvent { event=event, childId=Nothing, handlerId=Just location }
 
-prepareTree' :: Location -> Location -> Purview event m -> ([AnyEvent], Purview event m)
+prepareTree' :: Location -> Location -> Purview event m -> ([Event], Purview event m)
 prepareTree' parentLocation location component = case component of
   Attribute attr cont ->
     let

@@ -52,7 +52,7 @@ eventLoop devMode runner log eventBus connection component = do
     event = findEvent message newTree
 
   -- TODO: restore when changing handlers
-  -- mapM_ (atomically . writeTChan eventBus) initialEvents
+  mapM_ (atomically . writeTChan eventBus) initialEvents
 
   print $ "event: " <> show event
 
@@ -74,6 +74,7 @@ eventLoop devMode runner log eventBus connection component = do
     location = case message of
       (Event { location }) -> location
       (StateChangeEvent _ location) -> location
+      (AnyEvent { handlerId }) -> handlerId
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
@@ -88,8 +89,8 @@ eventLoop devMode runner log eventBus connection component = do
     (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
   case message of
-    (Event { event }) ->
-      when (devMode && event == "init") $
+    (Event { kind }) ->
+      when (devMode && kind == "init") $
         WebSockets.sendTextData
           connection
           (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })

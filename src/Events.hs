@@ -35,16 +35,28 @@ handlers higher up in the tree.
 
 -}
 data Event where
-  Event ::
-    { event :: Text
-    -- ^ for example, "click" or "blur"
-    , childLocation :: Maybe [Int]
-    , location :: Maybe [Int]
-    } -> Event
+  Event
+    :: { kind :: Text
+       -- ^ for example, "click" or "blur"
+       , childLocation :: Identifier
+       , location :: Identifier
+       }
+    -> Event
+
+  AnyEvent
+    :: ( Show event
+       , Eq event
+       , Typeable event
+       )
+    => { event :: event
+       , childId :: Identifier
+       , handlerId :: Identifier
+       }
+    -> Event
 
   StateChangeEvent
     :: ( Eq state, Typeable state )
-    => (state -> state) -> Maybe [Int] -> Event
+    => (state -> state) -> Identifier -> Event
 
 instance Show Event where
   show (Event event message location) =
@@ -58,8 +70,8 @@ instance Show Event where
     "{ event: \"newState\", location: " <> show location <> " }"
 
 instance Eq Event where
-  (Event { childLocation=messageA, event=eventA, location=locationA })
-    == (Event { childLocation=messageB, event=eventB, location=locationB }) =
+  (Event { childLocation=messageA, kind=eventA, location=locationA })
+    == (Event { childLocation=messageB, kind=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
   (Event {}) == _ = False
   (StateChangeEvent _ _) == _ = False
@@ -79,22 +91,22 @@ data DirectedEvent a b where
   Parent :: (Show a, Typeable a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Typeable b, Eq b) => b -> DirectedEvent a b
 
-data AnyEvent where
-  AnyEvent
-    :: ( Show event
-       , Typeable event
-       , Eq event
-       )
-    => { event :: event
-       , childId :: Identifier
-       , handlerId :: Identifier
-       } -> AnyEvent
+-- data AnyEvent where
+--   AnyEvent
+--     :: ( Show event
+--        , Typeable event
+--        , Eq event
+--        )
+--     => { event :: event
+--        , childId :: Identifier
+--        , handlerId :: Identifier
+--        } -> AnyEvent
 
 -- TODO: these instances are incomplete (see now having identifiers)
-instance Show AnyEvent where
-  show (AnyEvent evt _ _) = show evt
-
-instance Eq AnyEvent where
-  (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
-    Just evt'' -> evt == evt''
-    Nothing    -> False
+-- instance Show AnyEvent where
+--   show (AnyEvent evt _ _) = show evt
+--
+-- instance Eq AnyEvent where
+--   (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
+--     Just evt'' -> evt == evt''
+--     Nothing    -> False

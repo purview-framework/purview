@@ -48,7 +48,7 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
 applyNewState (Event {}) component = component
 
 
-findEvent :: Event -> Purview event m -> Maybe AnyEvent
+findEvent :: Event -> Purview event m -> Maybe Event
 findEvent (StateChangeEvent _ _) _ = Nothing
 findEvent event@Event { childLocation=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
@@ -75,7 +75,7 @@ findEvent event@Event { childLocation=childLocation, location=handlerLocation } 
   Value _ -> Nothing
 
 -- TODO: continue down the tree
-runEvent :: Monad m => AnyEvent -> Purview event m -> m [Event]
+runEvent :: Monad m => Event -> Purview event m -> m [Event]
 runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
     runEvent anyEvent cont
@@ -85,7 +85,6 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
   EffectHandler _ ident initEvents state handler cont -> case cast event of
     Just event' -> do
       (newStateFn, events) <- handler event' state
-
       pure [StateChangeEvent newStateFn handlerId]
     Nothing -> pure []
 
