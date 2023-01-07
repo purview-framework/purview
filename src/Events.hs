@@ -37,7 +37,8 @@ handlers higher up in the tree.
 data Event where
   Event ::
     { event :: Text
-    , message :: Maybe [Int]
+    -- ^ for example, "click" or "blur"
+    , childLocation :: Maybe [Int]
     , location :: Maybe [Int]
     } -> Event
 
@@ -49,7 +50,7 @@ instance Show Event where
   show (Event event message location) =
     show $ "{ event: "
       <> show event
-      <> ", message: "
+      <> ", childLocation: "
       <> show message
       <> ", location: "
       <> show location <> " }"
@@ -57,15 +58,15 @@ instance Show Event where
     "{ event: \"newState\", location: " <> show location <> " }"
 
 instance Eq Event where
-  (Event { message=messageA, event=eventA, location=locationA })
-    == (Event { message=messageB, event=eventB, location=locationB }) =
+  (Event { childLocation=messageA, event=eventA, location=locationA })
+    == (Event { childLocation=messageB, event=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
   (Event {}) == _ = False
   (StateChangeEvent _ _) == _ = False
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      Event <$> o .: "event" <*> (o .: "message") <*> o .: "location"
+      Event <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
   parseJSON _ = error "fail"
 
 {-|

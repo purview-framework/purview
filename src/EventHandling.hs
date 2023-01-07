@@ -50,7 +50,7 @@ applyNewState (Event {}) component = component
 
 findEvent :: Event -> Purview event m -> Maybe AnyEvent
 findEvent (StateChangeEvent _ _) _ = Nothing
-findEvent event@Event { message=childLocation, location=handlerLocation } tree = case tree of
+findEvent event@Event { childLocation=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
       if ident == childLocation

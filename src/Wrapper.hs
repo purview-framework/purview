@@ -29,7 +29,7 @@ clickEventHandlingFunction = [r|
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (clickLocation) {
-      window.ws.send(JSON.stringify({ "event": "click", "message": clickLocation, "location": location }));
+      window.ws.send(JSON.stringify({ "event": "click", "childLocation": clickLocation, "location": location }));
     }
   }
 |]
