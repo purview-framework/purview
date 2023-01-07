@@ -75,8 +75,8 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: (ToJSON a, Show a, Typeable a, Eq a) => a -> DirectedEvent a b
-  Self :: (ToJSON b, Show b, Typeable b, Eq b) => b -> DirectedEvent a b
+  Parent :: (Show a, Typeable a, Eq a) => a -> DirectedEvent a b
+  Self :: (Show b, Typeable b, Eq b) => b -> DirectedEvent a b
 
 data AnyEvent where
   AnyEvent
