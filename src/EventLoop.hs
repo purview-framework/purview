@@ -19,6 +19,7 @@ import           EventHandling
 import           Events
 import           PrepareTree
 import           Rendering
+import Component (Purview(initialEvents))
 
 type Log m = String -> m ()
 
@@ -47,11 +48,11 @@ eventLoop devMode runner log eventBus connection component = do
     -- this collects any actions that should run once and sets them
     -- to "run" in the tree, while assigning locations / identifiers
     -- to the event handlers
-    (_, newTree) = prepareTree component
+    (initialEvents, newTree) = prepareTree component
     event = findEvent message newTree
 
   -- TODO: restore when changing handlers
-  -- mapM_ (atomically . writeTChan eventBus) actions
+  -- mapM_ (atomically . writeTChan eventBus) initialEvents
 
   print $ "event: " <> show event
 

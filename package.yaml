@@ -46,9 +46,9 @@ dependencies:
 - blaze-builder                 >= 0.4.2 && < 0.5
 - http-types                    >= 0.12.3 && < 0.13
 
-# - hspec #
-# - QuickCheck #
-# - time #
+- hspec #
+- QuickCheck #
+- time #
 
 library:
   source-dirs: src
