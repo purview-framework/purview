@@ -66,15 +66,30 @@ instance Show Event where
       <> show message
       <> ", location: "
       <> show location <> " }"
+
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
+
+  show (AnyEvent event childId handlerId)
+    =  "{ event: " <> show event
+    <> ", childId: " <> show childId
+    <> ", handlerId: " <> show handlerId
+    <> " }"
 
 instance Eq Event where
   (Event { childLocation=messageA, kind=eventA, location=locationA })
     == (Event { childLocation=messageB, kind=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
   (Event {}) == _ = False
+
   (StateChangeEvent _ _) == _ = False
+
+  (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
+    case cast event' of
+      Just event'' -> childId == childId' && handlerId == handlerId' && event == event''
+      Nothing -> False
+  (AnyEvent {}) == _ = False
+
 
 instance FromJSON Event where
   parseJSON (Object o) =

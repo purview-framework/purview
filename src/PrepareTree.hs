@@ -52,7 +52,7 @@ prepareTree' parentLocation location component = case component of
       cont' = fmap (prepareTree' location (location <> [0])) cont
     in
       ( fmap (directedEventToAnyEvent parentLocation location) initEvents
-      , EffectHandler (Just parentLocation) (Just location) initEvents state handler (snd . cont')
+      , EffectHandler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
   Handler _ploc _loc initEvents state handler cont ->
@@ -60,7 +60,7 @@ prepareTree' parentLocation location component = case component of
       cont' = fmap (prepareTree' location (location <> [0])) cont
     in
       ( fmap (directedEventToAnyEvent parentLocation location) initEvents
-      , Handler (Just parentLocation) (Just location) initEvents state handler (snd . cont')
+      , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
   Text val -> ([], Text val)
