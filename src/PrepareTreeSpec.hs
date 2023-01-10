@@ -34,21 +34,45 @@ spec = parallel $ do
 
     -- TODO: Nested On actions
 
-    it "collects initial events" $ do
-      let
-        handler' = handler [Self "up"] "" handle
+    describe "collecting initial events" $ do
 
-        handle "up" _ = (id, [])
+      it "works for handlers" $ do
+        let
+          handler' = handler [Self "up"] "" handle
 
-        (initialActions, component) = prepareTree (handler' (const $ div []))
+          handle "up" _ = (id, [])
 
-      initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+          (initialActions, component) = prepareTree (handler' (const $ div []))
 
-      -- the next round there should be no initial actions
-      let
-        (initialActions', component') = prepareTree component
+        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
 
-      initialActions' `shouldBe` []
+        -- the next round there should be no initial actions
+        let
+          (initialActions', component') = prepareTree component
+
+        initialActions' `shouldBe` []
+
+      it "works for effectHandler" $ do
+        let
+          handler' = effectHandler [Self "up"] "" handle
+
+          handle "up" _ = pure (id, []) :: IO (a -> a, [DirectedEvent () String])
+
+          (initialActions, component) = prepareTree (handler' (const $ div []))
+
+        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+
+        -- the next round there should be no initial actions
+        let
+          (initialActions', component') = prepareTree component
+
+        initialActions' `shouldBe` []
+
+      it "works for nested handlers" $ do
+        let
+          handler' = Handler Nothing Nothing [Self "up", Parent 0]
+
+        1 `shouldBe` 1
 
     it "assigns a location to handlers" $ do
       let

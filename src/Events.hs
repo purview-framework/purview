@@ -55,7 +55,7 @@ data Event where
     -> Event
 
   StateChangeEvent
-    :: ( Eq state, Typeable state )
+    :: ( Eq state, Show state )
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where

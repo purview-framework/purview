@@ -57,20 +57,15 @@ diff target location oldGraph newGraph = case (oldGraph, newGraph) of
 
   -- TODO: add Handler
   (EffectHandler _ loc initEvents state _ cont, EffectHandler _ loc' initEvents' newState _ newCont) ->
-    case cast state of
-      Just state' ->
-        [Update location newGraph | state' /= newState && loc == loc']
-        -- TODO: this is weak, instead of walking the whole tree it should be targetted
-        --       to specific effect handlers
+    [Update location newGraph | unsafeCoerce state /= newState && loc == loc']
+      -- TODO: this is weak, instead of walking the whole tree it should be targetted
+      --       to specific effect handlers
 
-        -- if we hit the target, we're already saying update the whole tree
-        <> if Just location == target
-           then []
-           else diff target (0:location) (unsafeCoerce cont state) (unsafeCoerce newCont newState)
+      -- if we hit the target, we're already saying update the whole tree
+      <> if Just location == target
+         then []
+         else diff target (0:location) (unsafeCoerce cont state) (unsafeCoerce newCont newState)
 
-      -- different kinds of state
-      Nothing ->
-        [Update location newGraph]
 
   (Attribute attr a, Attribute attr' b) ->
     [Update location newGraph | attr /= attr']

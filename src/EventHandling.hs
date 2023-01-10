@@ -8,33 +8,28 @@ import           Control.Concurrent.STM.TChan
 import           Data.Aeson
 import           Data.Typeable
 import           Data.Maybe
+import           Unsafe.Coerce
 
 import           Events
 import           Component
 
-import Debug.Trace
 
 {-|
 
 This is a special case event to assign new state to handlers
 
 -}
+-- TODO: this doesn't go down the tree or match based on handler ID
 applyNewState
   :: Event
   -> Purview event m
   -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
-  EffectHandler ploc loc initEvents state handler cont -> case cast newStateFn of
-    Just newStateFn' -> EffectHandler ploc loc initEvents (newStateFn' state) handler cont
-    Nothing ->
-      let children = fmap (applyNewState fromEvent) cont
-      in EffectHandler ploc loc initEvents state handler children
+  EffectHandler ploc loc initEvents state handler cont ->
+    EffectHandler ploc loc initEvents (unsafeCoerce newStateFn state) handler cont
 
-  Handler ploc loc initEvents state handler cont -> case cast newStateFn of
-    Just newStateFn' -> Handler ploc loc initEvents (newStateFn' state) handler cont
-    Nothing ->
-      let children = fmap (applyNewState fromEvent) cont
-      in Handler ploc loc initEvents state handler children
+  Handler ploc loc initEvents state handler cont ->
+    Handler ploc loc initEvents (unsafeCoerce newStateFn state) handler cont
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
@@ -82,17 +77,13 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
 
   Html _ children -> concat <$> mapM (runEvent anyEvent) children
 
-  EffectHandler _ ident initEvents state handler cont -> case cast event of
-    Just event' -> do
-      (newStateFn, events) <- handler event' state
-      pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
+  EffectHandler _ ident initEvents state handler cont -> do
+    (newStateFn, events) <- handler (unsafeCoerce event) state
+    pure [StateChangeEvent newStateFn handlerId]
 
-  Handler _ ident initEvents state handler cont -> case cast event of
-    Just event' ->
-      let (newStateFn, events) = handler event' state
-      in pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
+  Handler _ ident initEvents state handler cont ->
+    let (newStateFn, events) = handler (unsafeCoerce event) state
+    in pure [StateChangeEvent newStateFn handlerId]
 
   Text _ -> pure []
 

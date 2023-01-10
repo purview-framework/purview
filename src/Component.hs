@@ -54,8 +54,6 @@ data Purview event m where
   EffectHandler
     :: ( Show state
        , Eq state
-       , Typeable state
-       , Typeable newEvent
        )
     => { parentIdentifier :: ParentIdentifier
        -- ^ The location of the parent effect handler (provided by prepareTree)
@@ -75,8 +73,6 @@ data Purview event m where
   Handler
     :: ( Show state
        , Eq state
-       , Typeable state
-       , Typeable newEvent
        )
     => { parentIdentifier :: ParentIdentifier
        , identifier       :: Identifier
@@ -142,7 +138,7 @@ handler
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler = Handler Nothing Nothing
+handler initEvents state = Handler Nothing Nothing initEvents state
 
 {-|
 
