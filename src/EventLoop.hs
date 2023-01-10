@@ -53,28 +53,31 @@ eventLoop devMode runner log eventBus connection component = do
 
   -- TODO: restore when changing handlers
   mapM_ (atomically . writeTChan eventBus) initialEvents
+  print initialEvents
 
   print $ "event: " <> show event
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case message of
-        Event {} -> newTree
-        stateChangeEvent -> applyNewState stateChangeEvent newTree
+        Event {}                             -> newTree
+        AnyEvent {}                          -> newTree
+        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
   void . forkIO $ do
-    newEvents <- case event of
-      Just event' -> runner $ runEvent event' newTree'
-      Nothing     -> pure []
+    newEvents <- case (event, message) of
+      (_, event@AnyEvent {}) -> runner $ runEvent event newTree'
+      (Just event', _)       -> runner $ runEvent event' newTree'
+      (Nothing,     _)       -> pure []
     mapM_ (atomically . writeTChan eventBus) newEvents
 
   let
     -- collect diffs
     location = case message of
-      (Event { location }) -> location
+      (Event { location })          -> location
       (StateChangeEvent _ location) -> location
-      (AnyEvent { handlerId }) -> handlerId
+      (AnyEvent { handlerId })      -> handlerId
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing

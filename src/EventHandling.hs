@@ -41,10 +41,12 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
 
   Value x -> Value x
 applyNewState (Event {}) component = component
+applyNewState (AnyEvent {}) component = component
 
 
 findEvent :: Event -> Purview event m -> Maybe Event
-findEvent (StateChangeEvent _ _) _ = Nothing
+findEvent (StateChangeEvent {}) _ = Nothing
+findEvent (AnyEvent {}) _ = Nothing
 findEvent event@Event { childLocation=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
