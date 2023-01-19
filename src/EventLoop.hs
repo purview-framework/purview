@@ -10,6 +10,7 @@ import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
 import           Control.Concurrent
+import           Data.Typeable
 import           Data.Aeson (encode)
 import qualified Network.WebSockets as WebSockets
 
@@ -31,7 +32,7 @@ type Log m = String -> m ()
 -- the html with the new.
 --
 eventLoop
-  :: Monad m
+  :: (Monad m, Typeable event)
   => Bool
   -> (m [Event] -> IO [Event])
   -> Log IO

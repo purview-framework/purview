@@ -47,6 +47,7 @@ data Event where
   AnyEvent
     :: ( Show event
        , Eq event
+       , Typeable event
        )
     => { event :: event
        , childId :: Identifier
@@ -55,7 +56,7 @@ data Event where
     -> Event
 
   StateChangeEvent
-    :: ( Eq state, Show state )
+    :: ( Eq state, Show state, Typeable state )
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where

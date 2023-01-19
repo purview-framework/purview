@@ -70,6 +70,7 @@ module Purview
   -- change state, or in the case of 'effectHandler', make API requests or call
   -- functions from your project.
   , handler
+  , defaultHandler
   , effectHandler
 
   -- ** HTML helpers
@@ -104,6 +105,7 @@ import           Prelude hiding (div, log, span)
 import           Blaze.ByteString.Builder.Char.Utf8
 import           Data.ByteString.Builder.Internal
 import qualified Network.WebSockets as WebSocket
+import           Data.Typeable
 import           Data.Aeson
 
 import           Control.Monad (when)
@@ -123,7 +125,7 @@ import Network.WebSockets (PendingConnection(pendingRequest))
 
 type Log m = String -> m ()
 
-data Configuration event m = Configuration
+data Configuration m = Configuration
   { interpreter       :: m [Event] -> IO [Event]
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
@@ -141,7 +143,7 @@ data Configuration event m = Configuration
   -- to restart the server on file change, and get a kind of live reloading
   }
 
-defaultConfiguration :: Configuration action IO
+defaultConfiguration :: Configuration IO
 defaultConfiguration = Configuration
   { interpreter       = id
   , logger            = print
@@ -161,7 +163,7 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 > main = run defaultConfiguration { component=view }
 
 -}
-renderFullPage :: Configuration event m -> Purview action m -> Builder
+renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   fromString
   $ wrapHtml htmlHead htmlEventHandlers
@@ -170,8 +172,8 @@ renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
   $ prepareTree component
 
 startWebSocketLoop
-  :: Monad m
-  => Configuration event m
+  :: (Monad m, Typeable action)
+  => Configuration m
   -> Purview action m
   -> WebSocket.Connection
   -> IO ()

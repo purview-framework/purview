@@ -180,6 +180,14 @@ effectHandler
 effectHandler initEvents state reducer cont =
   EffectHandler Nothing Nothing initEvents state reducer cont
 
+defaultHandler :: (() -> Purview () m) -> Purview () m
+defaultHandler =
+  Handler Nothing Nothing [] () (\event state -> (const (), []))
+
+defaultEffectHandler :: Applicative m => (() -> Purview () m) -> Purview () m
+defaultEffectHandler =
+  EffectHandler Nothing Nothing [] () (\event state -> pure (const (), []))
+
 {-
 
 Helpers

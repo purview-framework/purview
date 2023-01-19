@@ -8,7 +8,6 @@ import           Control.Concurrent.STM.TChan
 import           Data.Aeson
 import           Data.Typeable
 import           Data.Maybe
-import           Unsafe.Coerce
 
 import           Events
 import           Component
@@ -25,11 +24,17 @@ applyNewState
   -> Purview event m
   -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
-  EffectHandler ploc loc initEvents state handler cont ->
-    EffectHandler ploc loc initEvents (unsafeCoerce newStateFn state) handler cont
+  EffectHandler initEvents ploc loc state handler cont -> case cast newStateFn of
+    Just newStateFn' -> EffectHandler initEvents ploc loc (newStateFn' state) handler cont
+    Nothing ->
+      let children = fmap (applyNewState fromEvent) cont
+      in EffectHandler initEvents ploc loc state handler children
 
-  Handler ploc loc initEvents state handler cont ->
-    Handler ploc loc initEvents (unsafeCoerce newStateFn state) handler cont
+  Handler initEvents ploc loc state handler cont -> case cast newStateFn of
+    Just newStateFn' -> Handler initEvents ploc loc (newStateFn' state) handler cont
+    Nothing ->
+      let children = fmap (applyNewState fromEvent) cont
+      in Handler initEvents ploc loc state handler children
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
@@ -79,13 +84,18 @@ runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
 
   Html _ children -> concat <$> mapM (runEvent anyEvent) children
 
-  EffectHandler _ ident initEvents state handler cont -> do
-    (newStateFn, events) <- handler (unsafeCoerce event) state
-    pure [StateChangeEvent newStateFn handlerId]
+  EffectHandler _ _ ident state handler cont -> case cast event of
+    Just event' -> do
+      (newStateFn, events) <- handler event' state
 
-  Handler _ ident initEvents state handler cont ->
-    let (newStateFn, events) = handler (unsafeCoerce event) state
-    in pure [StateChangeEvent newStateFn handlerId]
+      pure [StateChangeEvent newStateFn handlerId]
+    Nothing -> pure []
+
+  Handler _ _ ident state handler cont -> case cast event of
+    Just event' ->
+      let (newStateFn, events) = handler event' state
+      in pure [StateChangeEvent newStateFn handlerId]
+    Nothing -> pure []
 
   Text _ -> pure []
 
