@@ -10,6 +10,7 @@ import           Data.Text (Text)
 import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
+import           Unsafe.Coerce
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -46,7 +47,6 @@ data Event where
   AnyEvent
     :: ( Show event
        , Eq event
-       , Typeable event
        )
     => { event :: event
        , childId :: Identifier
@@ -85,9 +85,7 @@ instance Eq Event where
   (StateChangeEvent _ _) == _ = False
 
   (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
-    case cast event' of
-      Just event'' -> childId == childId' && handlerId == handlerId' && event == event''
-      Nothing -> False
+      childId == childId' && handlerId == handlerId' && event == unsafeCoerce event'
   (AnyEvent {}) == _ = False
 
 
@@ -103,8 +101,8 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: (Show a, Typeable a, Eq a) => a -> DirectedEvent a b
-  Self :: (Show b, Typeable b, Eq b) => b -> DirectedEvent a b
+  Parent :: (Show a, Eq a) => a -> DirectedEvent a b
+  Self :: (Show b, Eq b) => b -> DirectedEvent a b
 
 -- data AnyEvent where
 --   AnyEvent

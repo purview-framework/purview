@@ -295,12 +295,12 @@ spec = parallel $ do
         reducer "down" st = (const 1, [])
 
         tree = clickHandler $ const $ div [ onClick "up" $ div [ text "up" ] ]
-        treeWithLocations = addLocations tree
+        (_, treeWithLocations) = prepareTree tree
 
         -- EffectHandler Just [] Just [] "0" div [  Attr On "click" Just [0,0] div [  "up" ]  ]
-        event = Event { event="click", message=Just [0, 0], location=Just [] }
+        event' = Event { kind="click", childLocation=Just [0, 0], location=Just [] }
 
-      findEvent event treeWithLocations
+      findEvent event' treeWithLocations
         `shouldBe`
         (Just $ AnyEvent ("up" :: String) Nothing Nothing)
 

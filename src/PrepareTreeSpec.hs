@@ -1,3 +1,4 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
 module PrepareTreeSpec where
 
 import Prelude hiding (div)
@@ -70,7 +71,7 @@ spec = parallel $ do
 
       it "works for nested handlers" $ do
         let
-          handler' = Handler Nothing Nothing [Self "up", Parent 0]
+          handler' = Handler
 
         1 `shouldBe` 1
 
