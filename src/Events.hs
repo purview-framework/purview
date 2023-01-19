@@ -10,7 +10,6 @@ import           Data.Text (Text)
 import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
-import           Unsafe.Coerce
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -86,7 +85,9 @@ instance Eq Event where
   (StateChangeEvent _ _) == _ = False
 
   (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
-      childId == childId' && handlerId == handlerId' && event == unsafeCoerce event'
+    case cast event of
+      Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
+      Nothing        -> False
   (AnyEvent {}) == _ = False
 
 
@@ -105,22 +106,3 @@ data DirectedEvent a b where
   Parent :: (Show a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Eq b) => b -> DirectedEvent a b
 
--- data AnyEvent where
---   AnyEvent
---     :: ( Show event
---        , Typeable event
---        , Eq event
---        )
---     => { event :: event
---        , childId :: Identifier
---        , handlerId :: Identifier
---        } -> AnyEvent
-
--- TODO: these instances are incomplete (see now having identifiers)
--- instance Show AnyEvent where
---   show (AnyEvent evt _ _) = show evt
---
--- instance Eq AnyEvent where
---   (AnyEvent evt _ _) == (AnyEvent evt' _ _) = case cast evt' of
---     Just evt'' -> evt == evt''
---     Nothing    -> False
