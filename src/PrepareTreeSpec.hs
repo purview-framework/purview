@@ -1,4 +1,3 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
 module PrepareTreeSpec where
 
 import Prelude hiding (div)
@@ -39,6 +38,7 @@ spec = parallel $ do
 
       it "works for handlers" $ do
         let
+          handler' :: (String -> Purview String IO) -> Purview () IO
           handler' = handler [Self "up"] "" handle
 
           handle "up" _ = (id, [])
@@ -69,11 +69,12 @@ spec = parallel $ do
 
         initialActions' `shouldBe` []
 
-      it "works for nested handlers" $ do
-        let
-          handler' = Handler
-
-        1 `shouldBe` 1
+        -- TODO: this
+--      it "works for nested handlers" $ do
+--        let
+--          handler' = Handler
+--
+--        1 `shouldBe` 1
 
     it "assigns a location to handlers" $ do
       let

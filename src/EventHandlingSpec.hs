@@ -302,7 +302,7 @@ spec = parallel $ do
 
       findEvent event' treeWithLocations
         `shouldBe`
-        (Just $ AnyEvent ("up" :: String) Nothing Nothing)
+        (Just $ AnyEvent ("up" :: String) (Just [0, 0]) (Just []))
 
 main :: IO ()
 main = hspec spec
