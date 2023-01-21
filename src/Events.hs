@@ -11,6 +11,9 @@ import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
 
+type Identifier = Maybe [Int]
+type ParentIdentifier = Identifier
+
 {-|
 
 This for events intended for the front end
@@ -32,37 +35,65 @@ handlers higher up in the tree.
 
 -}
 data Event where
-  Event ::
-    { event :: Text
-    , message :: Maybe [Int]
-    , location :: Maybe [Int]
-    } -> Event
+  Event
+    :: { kind :: Text
+       -- ^ for example, "click" or "blur"
+       , childLocation :: Identifier
+       , location :: Identifier
+       }
+    -> Event
+
+  AnyEvent
+    :: ( Show event
+       , Eq event
+       , Typeable event
+       )
+    => { event :: event
+       , childId :: Identifier
+       , handlerId :: Identifier
+       }
+    -> Event
 
   StateChangeEvent
-    :: ( Eq state, Typeable state )
-    => (state -> state) -> Maybe [Int] -> Event
+    :: ( Eq state, Show state, Typeable state )
+    => (state -> state) -> Identifier -> Event
 
 instance Show Event where
   show (Event event message location) =
     show $ "{ event: "
       <> show event
-      <> ", message: "
+      <> ", childLocation: "
       <> show message
       <> ", location: "
       <> show location <> " }"
+
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
 
+  show (AnyEvent event childId handlerId)
+    =  "{ event: " <> show event
+    <> ", childId: " <> show childId
+    <> ", handlerId: " <> show handlerId
+    <> " }"
+
 instance Eq Event where
-  (Event { message=messageA, event=eventA, location=locationA })
-    == (Event { message=messageB, event=eventB, location=locationB }) =
+  (Event { childLocation=messageA, kind=eventA, location=locationA })
+    == (Event { childLocation=messageB, kind=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
   (Event {}) == _ = False
+
   (StateChangeEvent _ _) == _ = False
+
+  (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
+    case cast event of
+      Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
+      Nothing        -> False
+  (AnyEvent {}) == _ = False
+
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      Event <$> o .: "event" <*> (o .: "message") <*> o .: "location"
+      Event <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
   parseJSON _ = error "fail"
 
 {-|
@@ -72,5 +103,6 @@ or sent back in to the same handler.
 
 -}
 data DirectedEvent a b where
-  Parent :: ToJSON a => a -> DirectedEvent a b
-  Self :: ToJSON b => b -> DirectedEvent a b
+  Parent :: (Show a, Eq a) => a -> DirectedEvent a b
+  Self :: (Show b, Eq b) => b -> DirectedEvent a b
+

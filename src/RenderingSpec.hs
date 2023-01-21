@@ -40,7 +40,7 @@ spec = parallel $ do
         "<div location=null>hello world</div>"
 
     it "can add an id" $ do
-      let element = identifier "hello" $ div [text "it's a hello div"]
+      let element = ident "hello" $ div [text "it's a hello div"]
       render element `shouldBe` "<div id=\"hello\">it's a hello div</div>"
 
     it "can add one class" $ do
@@ -56,7 +56,7 @@ spec = parallel $ do
     it "can render classes and ids at the same time" $ do
       let element =
             classes ["class1", "class2", "class3"]
-            $ identifier "hello"
+            $ ident "hello"
             $ div [text "it's a hello div"]
       render element `shouldBe` "<div id=\"hello\" class=\"class1 class2 class3\">it's a hello div</div>"
 

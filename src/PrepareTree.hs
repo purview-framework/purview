@@ -2,7 +2,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module PrepareTree where
 
-import Data.Aeson
+import Data.Typeable
 
 import Component
 import Events
@@ -16,105 +16,55 @@ else to actually send the actions.
 It also assigns a location to message and effect handlers.
 
 -}
-
-prepareTree :: Purview event m -> (Purview event m, [Event])
+prepareTree :: Typeable event => Purview event m -> ([Event], Purview event m)
 prepareTree = prepareTree' [] []
 
 type Location = [Int]
 
-addLocationToAttr :: Location -> (Attributes e) -> (Attributes e)
+addLocationToAttr :: Location -> Attributes e -> Attributes e
 addLocationToAttr loc attr = case attr of
   On str _ event' -> On str (Just loc) event'
-  _ -> attr
+  _               -> attr
 
-addLocations :: Purview event m -> Purview event m
-addLocations = addLocations' [] []
+directedEventToAnyEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
+directedEventToAnyEvent parentLocation location directedEvent = case directedEvent of
+  Parent event -> AnyEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
+  Self event   -> AnyEvent { event=event, childId=Nothing, handlerId=Just location }
 
-{- This one we'll do full paths to items? -}
-addLocations' :: Location -> Location -> Purview event m -> Purview event m
-addLocations' parentLocation location component = case component of
+prepareTree' :: Typeable event => Location -> Location -> Purview event m -> ([Event], Purview event m)
+prepareTree' parentLocation location component = case component of
   Attribute attr cont ->
     let
-      child = addLocations' parentLocation (location <> [0]) cont
+      (events, child) = prepareTree' parentLocation (location <> [0]) cont
     in
-      Attribute (addLocationToAttr location attr) child
+      (events, Attribute (addLocationToAttr location attr) child)
 
   Html kind children ->
     let
       indexedChildren = zip [0..] children
-      children' =
-        fmap (\(location', child) -> addLocations' parentLocation (location <> [location']) child) indexedChildren
+      eventsAndChildren =
+        fmap (\(location', child) -> prepareTree' parentLocation (location <> [location']) child) indexedChildren
+      events = concatMap fst eventsAndChildren
+      children' = fmap snd eventsAndChildren
     in
-      Html kind children'
+      (events, Html kind children')
 
-  EffectHandler _ploc _loc state handler cont ->
+  EffectHandler _ploc _loc initEvents state handler cont ->
     let
-      cont' = fmap (\child -> addLocations' location (location <> [0]) child) cont
+      cont' = fmap (prepareTree' location (location <> [0])) cont
     in
-      EffectHandler (Just parentLocation) (Just location) state handler cont'
-
-  Handler _ploc _loc state handler cont ->
-    let
-      cont' = fmap (\child -> addLocations' location (location <> [0]) child) cont
-    in
-      Handler (Just parentLocation) (Just location) state handler cont'
-
-  Text val -> Text val
-
-  Value val -> Value val
-
-
-prepareTree'
-  :: Location
-  -> Location
-  -> Purview event m
-  -> (Purview event m, [Event])
-prepareTree' parentLocation location component = case component of
-  Attribute attr cont ->
-    let
-      result = prepareTree' parentLocation location cont
-      newAttr = addLocationToAttr location attr
-    in
-      (Attribute newAttr (fst result), snd result)
-
-  Html kind children ->
-    let result = fmap (\(index, child) -> prepareTree' parentLocation (index:location) child) (zip [0..] children)
-    in (Html kind (fmap fst result), concatMap snd result)
-
-  EffectHandler _ploc _loc state handler cont ->
-    let
-      rest = fmap (prepareTree' location (0:location)) cont
-    in
-      ( EffectHandler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
-      , snd (rest state)
+      ( fmap (directedEventToAnyEvent parentLocation location) initEvents
+      , EffectHandler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
-  Handler _ploc _loc state handler cont ->
+  Handler _ploc _loc initEvents state handler cont ->
     let
-      rest = fmap (prepareTree' location (0:location)) cont
+      cont' = fmap (prepareTree' location (location <> [0])) cont
     in
-      ( Handler (Just parentLocation) (Just location) state handler (\state' -> fst (rest state'))
-      , snd (rest state)
+      ( fmap (directedEventToAnyEvent parentLocation location) initEvents
+      , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
---  Once effect hasRun cont ->
---    let send message =
---          Event
---            { event = "once"
---            , message = toJSON message
---            , location = Just location
---            }
---    in if not hasRun then
---        let
---          rest = prepareTree' parentLocation location cont
---        in
---          (Once effect True (fst rest), [effect send] <> (snd rest))
---       else
---        let
---          rest = prepareTree' parentLocation location cont
---        in
---          (Once effect True (fst rest), snd rest)
+  Text val -> ([], Text val)
 
-  Value x -> (Value x, [])
-
-  Text x -> (Text x, [])
+  Value val -> ([], Value val)

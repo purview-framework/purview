@@ -1,11 +1,9 @@
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 module Component where
 
-import           Data.Aeson
 import           Data.Typeable
 
 import           Events
@@ -40,9 +38,6 @@ instance Show (Attributes event) where
   show (Style str) = "Style " <> show str
   show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
-type Identifier = Maybe [Int]
-type ParentIdentifier = Identifier
-
 {-|
 
 This is what you end up building using the various helpers.  It's hopefully rare
@@ -56,59 +51,57 @@ data Purview event m where
   Html :: String -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
 
-  -- | All the handlers boil down to this one.
   EffectHandler
-    :: ( Typeable newEvent
-       , Typeable state
-       , Show state
+    :: ( Show state
        , Eq state
+       , Typeable state
+       , Typeable newEvent
        )
-    => ParentIdentifier
-    -- ^ The location of the parent effect handler (provided by prepareTree)
-    -> Identifier
-    -- ^ The location of this effect handler (provided by prepareTree)
-    -> state
-    -- ^ The initial state
-    -> (newEvent-> state -> m (state -> state, [DirectedEvent event newEvent]))
-    -- ^ Receive an event, change the state, and send messages
-    -> (state -> Purview newEvent m)
-    -- ^ Continuation
+    => { parentIdentifier :: ParentIdentifier
+       -- ^ The location of the parent effect handler (provided by prepareTree)
+       , identifier       :: Identifier
+       -- ^ The location of this effect handler (provided by prepareTree)
+       , initialEvents    :: [DirectedEvent event newEvent]
+       , state            :: state
+       -- ^ The initial state
+       , effectReducer    :: newEvent
+                          -> state
+                          -> m (state -> state, [DirectedEvent event newEvent])
+       -- ^ Receive an event, change the state, and send messages
+       , continuation     :: state -> Purview newEvent m
+       }
     -> Purview event m
 
   Handler
-    :: ( Typeable newEvent
-       , Typeable state
-       , Show state
+    :: ( Show state
        , Eq state
+       , Typeable state
+       , Typeable newEvent
        )
-    => ParentIdentifier
-    -> Identifier
-    -> state
-    -> (newEvent -> state -> (state -> state, [DirectedEvent event newEvent]))
-    -> (state -> Purview newEvent m)
-    -> Purview event m
-
-  Once
-    :: (ToJSON event)
-    => ((event -> Event) -> Event)
-    -> Bool  -- has run
-    -> Purview event m
+    => { parentIdentifier :: ParentIdentifier
+       , identifier       :: Identifier
+       , initialEvents    :: [DirectedEvent event newEvent]
+       , state            :: state
+       , reducer          :: newEvent
+                          -> state
+                          -> (state -> state, [DirectedEvent event newEvent])
+       , continuation     :: state -> Purview newEvent m
+       }
     -> Purview event m
 
 instance Show (Purview event m) where
-  show (EffectHandler parentLocation location state _event cont) =
+  show (EffectHandler parentLocation location initialEvents state _event cont) =
     "EffectHandler "
-    <> show parentLocation <> " "
-    <> show location <> " "
-    <> show state <> " "
-    <> show (cont state)
-  show (Handler parentLocation location state _event cont) =
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show state <> " "
+      <> show (cont state)
+  show (Handler parentLocation location initialEvents state _event cont) =
     "Handler "
-    <> show parentLocation <> " "
-    <> show location <> " "
-    <> show state <> " "
-    <> show (cont state)
-  show (Once _ hasRun cont) = "Once " <> show hasRun <> " " <> show cont
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show state <> " "
+      <> show (cont state)
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
@@ -140,14 +133,17 @@ handler
      , Eq state
      , Typeable state
      )
-  => state
+  => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
+  -> state
   -- ^ The initial state
   -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
   -- ^ The reducer, or how the state should change for an event
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler = Handler Nothing Nothing
+handler initEvents state reducer cont =
+  Handler Nothing Nothing initEvents state reducer cont
 
 {-|
 
@@ -172,28 +168,25 @@ effectHandler
      , Eq state
      , Typeable state
      )
-  => state
+  => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
+  -> state
   -- ^ initial state
   -> (event -> state -> m (state -> state, [DirectedEvent parentEvent event]))
   -- ^ reducer (note the m!)
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler state =
-  EffectHandler Nothing Nothing state
+effectHandler initEvents state reducer cont =
+  EffectHandler Nothing Nothing initEvents state reducer cont
 
-{-|
+defaultHandler :: (() -> Purview () m) -> Purview () m
+defaultHandler =
+  Handler Nothing Nothing [] () (\event state -> (const (), []))
 
-This is for kicking off loading events.  Put it beneath one of your handlers
-to send an event up to it, and it will only be sent once.
-
--}
-once
-  :: ToJSON event
-  => ((event -> Event) -> Event)
-  -> Purview event m
-  -> Purview event m
-once sendEvent = Once sendEvent False
+defaultEffectHandler :: Applicative m => (() -> Purview () m) -> Purview () m
+defaultEffectHandler =
+  EffectHandler Nothing Nothing [] () (\event state -> pure (const (), []))
 
 {-
 
@@ -263,8 +256,8 @@ on the frontend.
 onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
-identifier :: String -> Purview event m -> Purview event m
-identifier = Attribute . Generic "id"
+ident :: String -> Purview event m -> Purview event m
+ident = Attribute . Generic "id"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs

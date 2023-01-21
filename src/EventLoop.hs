@@ -10,6 +10,7 @@ import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Monad
 import           Control.Concurrent
+import           Data.Typeable
 import           Data.Aeson (encode)
 import qualified Network.WebSockets as WebSockets
 
@@ -19,6 +20,7 @@ import           EventHandling
 import           Events
 import           PrepareTree
 import           Rendering
+import Component (Purview(initialEvents))
 
 type Log m = String -> m ()
 
@@ -30,7 +32,7 @@ type Log m = String -> m ()
 -- the html with the new.
 --
 eventLoop
-  :: Monad m
+  :: (Monad m, Typeable event)
   => Bool
   -> (m [Event] -> IO [Event])
   -> Log IO
@@ -47,32 +49,36 @@ eventLoop devMode runner log eventBus connection component = do
     -- this collects any actions that should run once and sets them
     -- to "run" in the tree, while assigning locations / identifiers
     -- to the event handlers
-    newTree = addLocations component
+    (initialEvents, newTree) = prepareTree component
     event = findEvent message newTree
+
+  -- TODO: restore when changing handlers
+  mapM_ (atomically . writeTChan eventBus) initialEvents
+  print initialEvents
 
   print $ "event: " <> show event
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case message of
-        Event {} -> newTree
-        stateChangeEvent -> applyNewState stateChangeEvent newTree
+        Event {}                             -> newTree
+        AnyEvent {}                          -> newTree
+        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
   void . forkIO $ do
-    newEvents <- case event of
-      Just event' -> runner $ runEvent event' newTree'
-      Nothing     -> pure []
+    newEvents <- case (event, message) of
+      (_, event@AnyEvent {}) -> runner $ runEvent event newTree'
+      (Just event', _)       -> runner $ runEvent event' newTree'
+      (Nothing,     _)       -> pure []
     mapM_ (atomically . writeTChan eventBus) newEvents
-
-  -- TODO: restore when changing handlers
-  -- mapM_ (atomically . writeTChan eventBus) actions
 
   let
     -- collect diffs
     location = case message of
-      (Event { location }) -> location
+      (Event { location })          -> location
       (StateChangeEvent _ location) -> location
+      (AnyEvent { handlerId })      -> handlerId
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
@@ -87,8 +93,8 @@ eventLoop devMode runner log eventBus connection component = do
     (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
   case message of
-    (Event { event }) ->
-      when (devMode && event == "init") $
+    (Event { kind }) ->
+      when (devMode && kind == "init") $
         WebSockets.sendTextData
           connection
           (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })

@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 module Rendering where
 
 import           Data.Aeson
@@ -8,11 +9,11 @@ import           Component
 
 isOn :: Attributes a -> Bool
 isOn (On _ _ _) = True
-isOn _        = False
+isOn _          = False
 
 isGeneric :: Attributes a -> Bool
 isGeneric (Generic _ _) = True
-isGeneric _ = False
+isGeneric _             = False
 
 getStyle :: Attributes a -> String
 getStyle (Style style') = style'
@@ -21,7 +22,7 @@ getStyle _              = ""
 renderGeneric :: Attributes a -> String
 renderGeneric attr = case attr of
   (Generic name value) -> " " <> name <> "=" <> unpack (encode value)
-  _ -> ""
+  _                    -> ""
 
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
@@ -61,17 +62,14 @@ render' attrs tree = case tree of
   Attribute attr rest ->
     render' (attr:attrs) rest
 
-  EffectHandler parentLocation location state _ cont ->
+  EffectHandler parentLocation location initEvents state _ cont ->
     "<div handler=" <> (show . encode) location <> ">" <>
       render' attrs (unsafeCoerce cont state) <>
     "</div>"
 
-  Handler parentLocation location state _ cont ->
-    "<div handler=" <> (show . encode) location <> ">" <>
-      render' attrs (unsafeCoerce cont state) <>
+  Handler { identifier, state, continuation } ->
+    "<div handler=" <> (show . encode) identifier <> ">" <>
+      render' attrs (unsafeCoerce continuation state) <>
     "</div>"
-
-  Once _ _hasRun cont ->
-    render' attrs cont
 
   Value a -> show a

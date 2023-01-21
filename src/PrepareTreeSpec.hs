@@ -16,16 +16,16 @@ spec = parallel $ do
   describe "prepareTree" $ do
 
     it "works across a variety of trees" $ do
-      property $ \x -> show (fst (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
+      property $ \x -> show (snd (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
 
     it "assigns an identifier to On actions" $ do
       let target = div
             [ onClick "setTime" $ div []
             , onClick "clearTime" $ div []
             ]
-          fixedTree = addLocations target
+          fixedTree = prepareTree target
 
-      fixedTree
+      snd fixedTree
         `shouldBe`
         Html "div"
           [ Attribute (On "click" (Just [0]) "setTime" ) $ Html "div" []
@@ -34,64 +34,51 @@ spec = parallel $ do
 
     -- TODO: Nested On actions
 
---    it "sets hasRun to True" $ do
---      let
---        display time = div
---          [ text (show time)
---          , onClick ("setTime" :: String) $ div [ text "check time" ]
---          ]
+    describe "collecting initial events" $ do
+
+      it "works for handlers" $ do
+        let
+          handler' :: (String -> Purview String IO) -> Purview () IO
+          handler' = handler [Self "up"] "" handle
+
+          handle "up" _ = (id, [])
+
+          (initialActions, component) = prepareTree (handler' (const $ div []))
+
+        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+
+        -- the next round there should be no initial actions
+        let
+          (initialActions', component') = prepareTree component
+
+        initialActions' `shouldBe` []
+
+      it "works for effectHandler" $ do
+        let
+          handler' = effectHandler [Self "up"] "" handle
+
+          handle "up" _ = pure (id, []) :: IO (a -> a, [DirectedEvent () String])
+
+          (initialActions, component) = prepareTree (handler' (const $ div []))
+
+        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+
+        -- the next round there should be no initial actions
+        let
+          (initialActions', component') = prepareTree component
+
+        initialActions' `shouldBe` []
+
+        -- TODO: this
+--      it "works for nested handlers" $ do
+--        let
+--          handler' = Handler
 --
---        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
---
---        timeHandler = EffectHandler Nothing Nothing Nothing handle
---
---        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
---        handle "setTime" _     = do
---          time <- getCurrentTime
---          pure (const $ Just time, [])
---        handle _         state = pure (const state, [])
---
---        component = timeHandler (startClock display)
---
---      show (fst (prepareTree component))
---        `shouldBe`
---        "EffectHandler Just [] Just [] \"null\" Once True div [  \"Nothing\" Attr On \"click\" Just [1,0] div [  \"check time\" ]  ] "
---
---      length (snd (prepareTree component))
---        `shouldBe`
---        1
---
---    it "stops collecting the action if it has already run" $ do
---      let
---        display time = div
---          [ text (show time)
---          , onClick ("setTime" :: String) $ div [ text "check time" ]
---          ]
---
---        startClock cont state = Once (\send -> send ("setTime" :: String)) False (cont state)
---
---        timeHandler = EffectHandler Nothing Nothing Nothing handle
---
---        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
---        handle "setTime" _     = do
---          time <- getCurrentTime
---          pure (const $ Just time, [])
---        handle _         state = pure (const state, [])
---
---        component = timeHandler (startClock display)
---
---      let
---        run1 = prepareTree component
---        run2 = prepareTree (fst run1)
---        run3 = prepareTree (fst run2)
---
---      length (snd run1) `shouldBe` 1
---      length (snd run2) `shouldBe` 0
---      length (snd run3) `shouldBe` 0  -- for a bug where it was resetting run
+--        1 `shouldBe` 1
 
     it "assigns a location to handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -101,16 +88,16 @@ spec = parallel $ do
 
         component = timeHandler (const (Text ""))
 
-      component `shouldBe` (EffectHandler Nothing Nothing Nothing handle (const (Text "")))
+      component `shouldBe` (EffectHandler Nothing Nothing [] Nothing handle (const (Text "")))
 
       let
-        graphWithLocation = fst (prepareTree component)
+        graphWithLocation = snd (prepareTree component)
 
-      graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) Nothing handle (const (Text "")))
+      graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) [] Nothing handle (const (Text "")))
 
     it "assigns a different location to child handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -123,7 +110,7 @@ spec = parallel $ do
           , timeHandler (const (Text ""))
           ]
 
-        graphWithLocation = fst (prepareTree component)
+        graphWithLocation = snd (prepareTree component)
 
       show graphWithLocation
         `shouldBe`
@@ -131,7 +118,7 @@ spec = parallel $ do
 
     it "assigns a different location to nested handlers" $ do
       let
-        timeHandler = effectHandler Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -143,7 +130,7 @@ spec = parallel $ do
           timeHandler (const (timeHandler (const (Text ""))))
 
 
-        graphWithLocation = fst (prepareTree component)
+        graphWithLocation = snd (prepareTree component)
 
       show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] Nothing EffectHandler Just [] Just [0] Nothing \"\""
 
