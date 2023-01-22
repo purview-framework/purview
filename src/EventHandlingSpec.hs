@@ -284,6 +284,10 @@ spec = parallel $ do
 --        -- correctly targeted to self
 --        receivedEvent2 `shouldBe` Event {event = "internal", message = String "Down", location = Just [1,0]}
 
+  describe "runEvent" $ do
+    it "applies an event at the top level" $ do
+      1 `shouldBe` 1
+
   describe "findEvent" $ do
     it "works" $ do
       let

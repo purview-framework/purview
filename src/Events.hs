@@ -35,7 +35,7 @@ handlers higher up in the tree.
 
 -}
 data Event where
-  Event
+  FromFrontendEvent
     :: { kind :: Text
        -- ^ for example, "click" or "blur"
        , childLocation :: Identifier
@@ -59,7 +59,7 @@ data Event where
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where
-  show (Event event message location) =
+  show (FromFrontendEvent event message location) =
     show $ "{ event: "
       <> show event
       <> ", childLocation: "
@@ -77,10 +77,10 @@ instance Show Event where
     <> " }"
 
 instance Eq Event where
-  (Event { childLocation=messageA, kind=eventA, location=locationA })
-    == (Event { childLocation=messageB, kind=eventB, location=locationB }) =
+  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA })
+    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
-  (Event {}) == _ = False
+  (FromFrontendEvent {}) == _ = False
 
   (StateChangeEvent _ _) == _ = False
 
@@ -93,7 +93,7 @@ instance Eq Event where
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      Event <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
+      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
   parseJSON _ = error "fail"
 
 {-|

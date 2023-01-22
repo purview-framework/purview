@@ -60,7 +60,7 @@ eventLoop devMode runner log eventBus connection component = do
 
   -- if it's special newState event, the state is replaced in the tree
   let newTree' = case message of
-        Event {}                             -> newTree
+        FromFrontendEvent {}                 -> newTree
         AnyEvent {}                          -> newTree
         stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
 
@@ -76,7 +76,7 @@ eventLoop devMode runner log eventBus connection component = do
   let
     -- collect diffs
     location = case message of
-      (Event { location })          -> location
+      (FromFrontendEvent { location })          -> location
       (StateChangeEvent _ location) -> location
       (AnyEvent { handlerId })      -> handlerId
 
@@ -93,7 +93,7 @@ eventLoop devMode runner log eventBus connection component = do
     (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
   case message of
-    (Event { kind }) ->
+    (FromFrontendEvent { kind }) ->
       when (devMode && kind == "init") $
         WebSockets.sendTextData
           connection
