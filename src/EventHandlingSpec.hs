@@ -302,7 +302,7 @@ spec = parallel $ do
         (_, treeWithLocations) = prepareTree tree
 
         -- EffectHandler Just [] Just [] "0" div [  Attr On "click" Just [0,0] div [  "up" ]  ]
-        event' = Event { kind="click", childLocation=Just [0, 0], location=Just [] }
+        event' = FromFrontendEvent { kind="click", childLocation=Just [0, 0], location=Just [] }
 
       findEvent event' treeWithLocations
         `shouldBe`
