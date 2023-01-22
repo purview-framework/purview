@@ -46,17 +46,17 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
 
   Value x -> Value x
 applyNewState (FromFrontendEvent {}) component = component
-applyNewState (AnyEvent {}) component = component
+applyNewState (InternalEvent {}) component = component
 
 
 findEvent :: Event -> Purview event m -> Maybe Event
 findEvent (StateChangeEvent {}) _ = Nothing
-findEvent (AnyEvent {}) _ = Nothing
+findEvent (InternalEvent {}) _ = Nothing
 findEvent event@FromFrontendEvent { childLocation=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
       if ident == childLocation
-      then Just $ AnyEvent evt childLocation handlerLocation
+      then Just $ InternalEvent evt childLocation handlerLocation
       else Nothing
     _ -> findEvent event cont
 
@@ -78,11 +78,11 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
 
 -- TODO: continue down the tree
 runEvent :: Monad m => Event -> Purview event m -> m [Event]
-runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
+runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
-    runEvent anyEvent cont
+    runEvent internalEvent cont
 
-  Html _ children -> concat <$> mapM (runEvent anyEvent) children
+  Html _ children -> concat <$> mapM (runEvent internalEvent) children
 
   EffectHandler _ _ ident state handler cont -> case cast event of
     Just event' -> do

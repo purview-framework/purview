@@ -26,10 +26,10 @@ addLocationToAttr loc attr = case attr of
   On str _ event' -> On str (Just loc) event'
   _               -> attr
 
-directedEventToAnyEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
-directedEventToAnyEvent parentLocation location directedEvent = case directedEvent of
-  Parent event -> AnyEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
-  Self event   -> AnyEvent { event=event, childId=Nothing, handlerId=Just location }
+directedEventToInternalEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
+directedEventToInternalEvent parentLocation location directedEvent = case directedEvent of
+  Parent event -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
+  Self event   -> InternalEvent { event=event, childId=Nothing, handlerId=Just location }
 
 prepareTree' :: Typeable event => Location -> Location -> Purview event m -> ([Event], Purview event m)
 prepareTree' parentLocation location component = case component of
@@ -53,7 +53,7 @@ prepareTree' parentLocation location component = case component of
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
     in
-      ( fmap (directedEventToAnyEvent parentLocation location) initEvents
+      ( fmap (directedEventToInternalEvent parentLocation location) initEvents
       , EffectHandler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
@@ -61,7 +61,7 @@ prepareTree' parentLocation location component = case component of
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
     in
-      ( fmap (directedEventToAnyEvent parentLocation location) initEvents
+      ( fmap (directedEventToInternalEvent parentLocation location) initEvents
       , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 

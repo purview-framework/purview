@@ -45,7 +45,7 @@ spec = parallel $ do
 
           (initialActions, component) = prepareTree (handler' (const $ div []))
 
-        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+        initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let
@@ -61,7 +61,7 @@ spec = parallel $ do
 
           (initialActions, component) = prepareTree (handler' (const $ div []))
 
-        initialActions `shouldBe` [AnyEvent "up" Nothing (Just [])]
+        initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let

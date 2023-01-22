@@ -43,7 +43,7 @@ data Event where
        }
     -> Event
 
-  AnyEvent
+  InternalEvent
     :: ( Show event
        , Eq event
        , Typeable event
@@ -70,7 +70,7 @@ instance Show Event where
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
 
-  show (AnyEvent event childId handlerId)
+  show (InternalEvent event childId handlerId)
     =  "{ event: " <> show event
     <> ", childId: " <> show childId
     <> ", handlerId: " <> show handlerId
@@ -84,11 +84,11 @@ instance Eq Event where
 
   (StateChangeEvent _ _) == _ = False
 
-  (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
+  (InternalEvent event childId handlerId) == (InternalEvent event' childId' handlerId') =
     case cast event of
       Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
       Nothing        -> False
-  (AnyEvent {}) == _ = False
+  (InternalEvent {}) == _ = False
 
 
 instance FromJSON Event where
