@@ -78,6 +78,8 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
 
 -- TODO: continue down the tree
 runEvent :: Monad m => Event -> Purview event m -> m [Event]
+runEvent (FromFrontendEvent {}) _ = pure []
+runEvent (StateChangeEvent {})  _ = pure []
 runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
     runEvent internalEvent cont
