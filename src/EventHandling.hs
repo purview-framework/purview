@@ -76,7 +76,6 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
 
   Value _ -> Nothing
 
--- TODO: continue down the tree
 runEvent :: Monad m => Event -> Purview event m -> m [Event]
 runEvent (FromFrontendEvent {}) _ = pure []
 runEvent (StateChangeEvent {})  _ = pure []
@@ -86,18 +85,25 @@ runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
 
   Html _ children -> concat <$> mapM (runEvent internalEvent) children
 
-  EffectHandler _ _ ident state handler cont -> case cast event of
-    Just event' -> do
-      (newStateFn, events) <- handler event' state
+  EffectHandler parentIdent ident initEvents state handler cont ->
+    if ident == handlerId then
+      case cast event of
+        Just event' -> do
+          (newStateFn, events) <- handler event' state
+          pure [StateChangeEvent newStateFn handlerId]
+        Nothing -> pure []
+    else
+      runEvent internalEvent (cont state)
 
-      pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
-
-  Handler _ _ ident state handler cont -> case cast event of
-    Just event' ->
-      let (newStateFn, events) = handler event' state
-      in pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
+  Handler parentIdent ident initEvents state handler cont ->
+    if ident == handlerId then
+      case cast event of
+        Just event' ->
+          let (newStateFn, events) = handler event' state
+          in pure [StateChangeEvent newStateFn handlerId]
+        Nothing -> pure []
+    else
+      runEvent internalEvent (cont state)
 
   Text _ -> pure []
 

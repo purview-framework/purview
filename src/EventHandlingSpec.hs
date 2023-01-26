@@ -295,7 +295,7 @@ spec = parallel $ do
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
         clickHandler = handler [] (0 :: Int) reducer
 
-        component = clickHandler $ \state -> div [ text (show state) ]
+        (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
         event = InternalEvent { event = "test" :: String, childId = Nothing, handlerId = Just [] }
 
@@ -307,17 +307,43 @@ spec = parallel $ do
           _        -> fail "state change fn wrong type"
         _ -> fail "didn't return a state change fn"
 
+    it "applies an event to the lower level" $ do
+      let
+        reducerA "test" st = (const 1, [])
+        reducerA _      st = (const 0, [])
+
+        clickHandlerA :: (Int -> Purview String IO) -> Purview () IO
+        clickHandlerA = handler [] (0 :: Int) reducerA
+
+        reducerB "test" st = (const 5, [])
+        reducerB _      st = (const 6, [])
+
+        clickHandlerB :: (Int -> Purview String IO) -> Purview String IO
+        clickHandlerB = handler [] (0 :: Int) reducerB
+
+        (_, component) = prepareTree $ clickHandlerA $ \_ -> clickHandlerB $ \_ -> div []
+
+        event = InternalEvent { event = "test" :: String, childId = Nothing, handlerId = Just [0] }
+
+      [stateChangeEvent] <- runEvent event component
+
+      case stateChangeEvent of
+        StateChangeEvent fn id -> case cast fn of
+          Just fn' -> fn' (0 :: Int) `shouldBe` (5 :: Int)
+          _        -> fail "state change fn wrong type"
+        _ -> fail "didn't return a state change fn"
+
+
   describe "findEvent" $ do
     it "works" $ do
       let
+        reducer "test" st = (const 1, [])
+        reducer _      st = (const 0, [])
+
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
         clickHandler = handler [] (0 :: Int) reducer
 
-        reducer :: String -> Int -> (Int -> Int, [DirectedEvent () String])
-        reducer "up" st = (const 0, [])
-        reducer "down" st = (const 1, [])
-
-        tree = clickHandler $ const $ div [ onClick "up" $ div [ text "up" ] ]
+        tree = clickHandler $ const $ div [ onClick "test" $ div [ text "up" ] ]
         (_, treeWithLocations) = prepareTree tree
 
         -- EffectHandler Just [] Just [] "0" div [  Attr On "click" Just [0,0] div [  "up" ]  ]
@@ -325,7 +351,7 @@ spec = parallel $ do
 
       findEvent event' treeWithLocations
         `shouldBe`
-        (Just $ InternalEvent ("up" :: String) (Just [0, 0]) (Just []))
+        Just (InternalEvent ("test" :: String) (Just [0, 0]) (Just []))
 
 main :: IO ()
 main = hspec spec
