@@ -18,23 +18,32 @@ import           Component
 This is a special case event to assign new state to handlers
 
 -}
--- TODO: this doesn't go down the tree or match based on handler ID
 applyNewState
   :: Event
   -> Purview event m
   -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
-  EffectHandler initEvents ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> EffectHandler initEvents ploc loc (newStateFn' state) handler cont
-    Nothing ->
+  EffectHandler ploc loc initEvents state handler cont ->
+    if loc == location then
+      case cast newStateFn of
+        Just newStateFn' -> EffectHandler ploc loc initEvents (newStateFn' state) handler cont
+        Nothing ->
+          let children = fmap (applyNewState fromEvent) cont
+          in EffectHandler ploc loc initEvents state handler children
+    else
       let children = fmap (applyNewState fromEvent) cont
-      in EffectHandler initEvents ploc loc state handler children
+      in EffectHandler ploc loc initEvents state handler children
 
-  Handler initEvents ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> Handler initEvents ploc loc (newStateFn' state) handler cont
-    Nothing ->
+  Handler ploc loc initEvents state handler cont ->
+    if loc == location then
+      case cast newStateFn of
+        Just newStateFn' -> Handler ploc loc initEvents (newStateFn' state) handler cont
+        Nothing ->
+          let children = fmap (applyNewState fromEvent) cont
+          in Handler ploc loc initEvents state handler children
+    else
       let children = fmap (applyNewState fromEvent) cont
-      in Handler initEvents ploc loc state handler children
+      in Handler ploc loc initEvents state handler children
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
