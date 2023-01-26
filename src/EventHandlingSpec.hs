@@ -21,6 +21,8 @@ import Events
 import PrepareTree
 import Rendering
 
+import Data.Typeable
+
 type Id a = a -> a
 
 data TestAction = Up | Down
@@ -284,25 +286,114 @@ spec = parallel $ do
 --        -- correctly targeted to self
 --        receivedEvent2 `shouldBe` Event {event = "internal", message = String "Down", location = Just [1,0]}
 
-  describe "findEvent" $ do
-    it "works" $ do
+  describe "applyNewState" $ do
+    it "applies new state at the top level" $ do
       let
+        reducer "test" st = (const 1, [])
+        reducer _      st = (const 0, [])
+
+        clickHandler :: (Int -> Purview String IO) -> Purview () IO
+        clickHandler = handler [] 0 reducer
+
+        (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
+
+        event = StateChangeEvent (\state -> state + 1 :: Int) (Just [])
+
+        appliedClickHandler :: (Int -> Purview String IO) -> Purview () IO
+        appliedClickHandler = handler [] 1 reducer
+
+        (_, applied) = prepareTree $ appliedClickHandler $ \state -> div [ text (show state) ]
+
+      -- state should now be 1
+      applyNewState event component `shouldBe` applied
+
+    it "applies new state at a lower level" $ do
+      let
+        reducer "test" st = (const 1, [])
+        reducer _      st = (const 0, [])
+
+        clickHandler :: (Int -> Purview String IO) -> Purview String IO
+        clickHandler = handler [] 0 reducer
+
+        (_, component) = prepareTree $ clickHandler $ \_ -> clickHandler $ \_ -> div []
+
+        event = StateChangeEvent (\state -> state + 1 :: Int) (Just [0])
+
+        appliedClickHandler :: (Int -> Purview String IO) -> Purview String IO
+        appliedClickHandler = handler [] 1 reducer
+
+        (_, applied) = prepareTree $ clickHandler $ \_ -> appliedClickHandler $ \_ -> div []
+
+      -- state should now be 1
+      applyNewState event component `shouldBe` applied
+
+
+  describe "runEvent" $ do
+    it "applies an event at the top level" $ do
+      let
+        reducer "test" st = (const 1, [])
+        reducer _      st = (const 0, [])
+
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
         clickHandler = handler [] (0 :: Int) reducer
 
-        reducer :: String -> Int -> (Int -> Int, [DirectedEvent () String])
-        reducer "up" st = (const 0, [])
-        reducer "down" st = (const 1, [])
+        (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
-        tree = clickHandler $ const $ div [ onClick "up" $ div [ text "up" ] ]
+        event = InternalEvent { event = "test" :: String, childId = Nothing, handlerId = Just [] }
+
+      [stateChangeEvent] <- runEvent event component
+
+      case stateChangeEvent of
+        StateChangeEvent fn id -> case cast fn of
+          Just fn' -> fn' (0 :: Int) `shouldBe` (1 :: Int)
+          _        -> fail "state change fn wrong type"
+        _ -> fail "didn't return a state change fn"
+
+    it "applies an event to the lower level" $ do
+      let
+        reducerA "test" st = (const 1, [])
+        reducerA _      st = (const 0, [])
+
+        clickHandlerA :: (Int -> Purview String IO) -> Purview () IO
+        clickHandlerA = handler [] (0 :: Int) reducerA
+
+        reducerB "test" st = (const 5, [])
+        reducerB _      st = (const 6, [])
+
+        clickHandlerB :: (Int -> Purview String IO) -> Purview String IO
+        clickHandlerB = handler [] (0 :: Int) reducerB
+
+        (_, component) = prepareTree $ clickHandlerA $ \_ -> clickHandlerB $ \_ -> div []
+
+        event = InternalEvent { event = "test" :: String, childId = Nothing, handlerId = Just [0] }
+
+      [stateChangeEvent] <- runEvent event component
+
+      case stateChangeEvent of
+        StateChangeEvent fn id -> case cast fn of
+          Just fn' -> fn' (0 :: Int) `shouldBe` (5 :: Int)
+          _        -> fail "state change fn wrong type"
+        _ -> fail "didn't return a state change fn"
+
+
+  describe "findEvent" $ do
+    it "works" $ do
+      let
+        reducer "test" st = (const 1, [])
+        reducer _      st = (const 0, [])
+
+        clickHandler :: (Int -> Purview String IO) -> Purview () IO
+        clickHandler = handler [] (0 :: Int) reducer
+
+        tree = clickHandler $ const $ div [ onClick "test" $ div [ text "up" ] ]
         (_, treeWithLocations) = prepareTree tree
 
         -- EffectHandler Just [] Just [] "0" div [  Attr On "click" Just [0,0] div [  "up" ]  ]
-        event' = Event { kind="click", childLocation=Just [0, 0], location=Just [] }
+        event' = FromFrontendEvent { kind="click", childLocation=Just [0, 0], location=Just [] }
 
       findEvent event' treeWithLocations
         `shouldBe`
-        (Just $ AnyEvent ("up" :: String) (Just [0, 0]) (Just []))
+        Just (InternalEvent ("test" :: String) (Just [0, 0]) (Just []))
 
 main :: IO ()
 main = hspec spec

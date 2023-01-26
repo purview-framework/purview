@@ -180,7 +180,9 @@ startWebSocketLoop
 startWebSocketLoop Configuration { devMode, interpreter, logger } component connection = do
   eventBus <- newTChanIO
 
-  atomically $ writeTChan eventBus $ Event { kind = "init", childLocation = Nothing, location = Nothing }
+  atomically
+    $ writeTChan eventBus
+    $ FromFrontendEvent { kind = "init", childLocation = Nothing, location = Nothing }
 
   WebSocket.withPingThread connection 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus connection

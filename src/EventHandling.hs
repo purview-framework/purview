@@ -18,23 +18,32 @@ import           Component
 This is a special case event to assign new state to handlers
 
 -}
--- TODO: this doesn't go down the tree or match based on handler ID
 applyNewState
   :: Event
   -> Purview event m
   -> Purview event m
 applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case component of
-  EffectHandler initEvents ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> EffectHandler initEvents ploc loc (newStateFn' state) handler cont
-    Nothing ->
+  EffectHandler ploc loc initEvents state handler cont ->
+    if loc == location then
+      case cast newStateFn of
+        Just newStateFn' -> EffectHandler ploc loc initEvents (newStateFn' state) handler cont
+        Nothing ->
+          let children = fmap (applyNewState fromEvent) cont
+          in EffectHandler ploc loc initEvents state handler children
+    else
       let children = fmap (applyNewState fromEvent) cont
-      in EffectHandler initEvents ploc loc state handler children
+      in EffectHandler ploc loc initEvents state handler children
 
-  Handler initEvents ploc loc state handler cont -> case cast newStateFn of
-    Just newStateFn' -> Handler initEvents ploc loc (newStateFn' state) handler cont
-    Nothing ->
+  Handler ploc loc initEvents state handler cont ->
+    if loc == location then
+      case cast newStateFn of
+        Just newStateFn' -> Handler ploc loc initEvents (newStateFn' state) handler cont
+        Nothing ->
+          let children = fmap (applyNewState fromEvent) cont
+          in Handler ploc loc initEvents state handler children
+    else
       let children = fmap (applyNewState fromEvent) cont
-      in Handler initEvents ploc loc state handler children
+      in Handler ploc loc initEvents state handler children
 
   Html kind children ->
     Html kind $ fmap (applyNewState fromEvent) children
@@ -45,18 +54,18 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
   Text x -> Text x
 
   Value x -> Value x
-applyNewState (Event {}) component = component
-applyNewState (AnyEvent {}) component = component
+applyNewState (FromFrontendEvent {}) component = component
+applyNewState (InternalEvent {}) component = component
 
 
 findEvent :: Event -> Purview event m -> Maybe Event
 findEvent (StateChangeEvent {}) _ = Nothing
-findEvent (AnyEvent {}) _ = Nothing
-findEvent event@Event { childLocation=childLocation, location=handlerLocation } tree = case tree of
+findEvent (InternalEvent {}) _ = Nothing
+findEvent event@FromFrontendEvent { childLocation=childLocation, location=handlerLocation } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
       if ident == childLocation
-      then Just $ AnyEvent evt childLocation handlerLocation
+      then Just $ InternalEvent evt childLocation handlerLocation
       else Nothing
     _ -> findEvent event cont
 
@@ -76,26 +85,34 @@ findEvent event@Event { childLocation=childLocation, location=handlerLocation } 
 
   Value _ -> Nothing
 
--- TODO: continue down the tree
 runEvent :: Monad m => Event -> Purview event m -> m [Event]
-runEvent anyEvent@AnyEvent { event, handlerId } tree = case tree of
+runEvent (FromFrontendEvent {}) _ = pure []
+runEvent (StateChangeEvent {})  _ = pure []
+runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
-    runEvent anyEvent cont
+    runEvent internalEvent cont
 
-  Html _ children -> concat <$> mapM (runEvent anyEvent) children
+  Html _ children -> concat <$> mapM (runEvent internalEvent) children
 
-  EffectHandler _ _ ident state handler cont -> case cast event of
-    Just event' -> do
-      (newStateFn, events) <- handler event' state
+  EffectHandler parentIdent ident initEvents state handler cont ->
+    if ident == handlerId then
+      case cast event of
+        Just event' -> do
+          (newStateFn, events) <- handler event' state
+          pure [StateChangeEvent newStateFn handlerId]
+        Nothing -> pure []
+    else
+      runEvent internalEvent (cont state)
 
-      pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
-
-  Handler _ _ ident state handler cont -> case cast event of
-    Just event' ->
-      let (newStateFn, events) = handler event' state
-      in pure [StateChangeEvent newStateFn handlerId]
-    Nothing -> pure []
+  Handler parentIdent ident initEvents state handler cont ->
+    if ident == handlerId then
+      case cast event of
+        Just event' ->
+          let (newStateFn, events) = handler event' state
+          in pure [StateChangeEvent newStateFn handlerId]
+        Nothing -> pure []
+    else
+      runEvent internalEvent (cont state)
 
   Text _ -> pure []
 

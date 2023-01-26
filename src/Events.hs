@@ -35,7 +35,7 @@ handlers higher up in the tree.
 
 -}
 data Event where
-  Event
+  FromFrontendEvent
     :: { kind :: Text
        -- ^ for example, "click" or "blur"
        , childLocation :: Identifier
@@ -43,7 +43,7 @@ data Event where
        }
     -> Event
 
-  AnyEvent
+  InternalEvent
     :: ( Show event
        , Eq event
        , Typeable event
@@ -59,7 +59,7 @@ data Event where
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where
-  show (Event event message location) =
+  show (FromFrontendEvent event message location) =
     show $ "{ event: "
       <> show event
       <> ", childLocation: "
@@ -70,30 +70,30 @@ instance Show Event where
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
 
-  show (AnyEvent event childId handlerId)
+  show (InternalEvent event childId handlerId)
     =  "{ event: " <> show event
     <> ", childId: " <> show childId
     <> ", handlerId: " <> show handlerId
     <> " }"
 
 instance Eq Event where
-  (Event { childLocation=messageA, kind=eventA, location=locationA })
-    == (Event { childLocation=messageB, kind=eventB, location=locationB }) =
+  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA })
+    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB }) =
     eventA == eventB && messageA == messageB && locationA == locationB
-  (Event {}) == _ = False
+  (FromFrontendEvent {}) == _ = False
 
   (StateChangeEvent _ _) == _ = False
 
-  (AnyEvent event childId handlerId) == (AnyEvent event' childId' handlerId') =
+  (InternalEvent event childId handlerId) == (InternalEvent event' childId' handlerId') =
     case cast event of
       Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
       Nothing        -> False
-  (AnyEvent {}) == _ = False
+  (InternalEvent {}) == _ = False
 
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      Event <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
+      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
   parseJSON _ = error "fail"
 
 {-|
