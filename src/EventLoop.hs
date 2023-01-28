@@ -52,9 +52,7 @@ eventLoop devMode runner log eventBus connection component = do
     (initialEvents, newTree) = prepareTree component
     event = findEvent message newTree
 
-  -- TODO: restore when changing handlers
   mapM_ (atomically . writeTChan eventBus) initialEvents
-  print initialEvents
 
   print $ "event: " <> show event
 
@@ -68,9 +66,9 @@ eventLoop devMode runner log eventBus connection component = do
   -- this loop
   void . forkIO $ do
     newEvents <- case (event, message) of
-      (_, event@InternalEvent {}) -> runner $ runEvent event newTree'
-      (Just event', _)       -> runner $ runEvent event' newTree'
-      (Nothing,     _)       -> pure []
+      (_, event'@InternalEvent {}) -> runner $ runEvent event' newTree'
+      (Just event', _)             -> runner $ runEvent event' newTree'
+      (Nothing,     _)             -> pure []
     mapM_ (atomically . writeTChan eventBus) newEvents
 
   let

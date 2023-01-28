@@ -1,14 +1,20 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module PrepareTreeSpec where
 
 import Prelude hiding (div)
 import Test.Hspec
 import Test.QuickCheck
-import Data.Time
 
 import TreeGenerator ()
 import Events
 import Component
 import PrepareTree
+
+type UTCTime = Integer
+
+getCurrentTime :: IO Integer
+getCurrentTime = pure 10
 
 spec :: SpecWith ()
 spec = parallel $ do
@@ -69,12 +75,22 @@ spec = parallel $ do
 
         initialActions' `shouldBe` []
 
-        -- TODO: this
---      it "works for nested handlers" $ do
---        let
---          handler' = Handler
---
---        1 `shouldBe` 1
+      it "works for nested handlers" $ do
+        let
+          parentHandler = handler [] "" handle
+          childHandler = handler [Self "to child", Parent "to parent"] "" handle
+
+          handle "" _ = (id, [])
+
+          component :: Purview () IO
+          component = parentHandler $ \_ -> childHandler $ \_ -> div []
+
+          (initialActions, _) = prepareTree component
+
+        initialActions
+          `shouldBe` [ InternalEvent "to child" Nothing (Just [0])
+                     , InternalEvent "to parent" Nothing (Just [])
+                     ]
 
     it "assigns a location to handlers" $ do
       let

@@ -13,6 +13,13 @@ import           Events
 import           Component
 
 
+type Location = [Int]
+
+directedEventToInternalEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
+directedEventToInternalEvent parentLocation location directedEvent = case directedEvent of
+  Parent event -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
+  Self event   -> InternalEvent { event=event, childId=Nothing, handlerId=Just location }
+
 {-|
 
 This is a special case event to assign new state to handlers
@@ -85,7 +92,7 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
 
   Value _ -> Nothing
 
-runEvent :: Monad m => Event -> Purview event m -> m [Event]
+runEvent :: (Typeable event, Monad m) => Event -> Purview event m -> m [Event]
 runEvent (FromFrontendEvent {}) _ = pure []
 runEvent (StateChangeEvent {})  _ = pure []
 runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
@@ -94,22 +101,22 @@ runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
 
   Html _ children -> concat <$> mapM (runEvent internalEvent) children
 
-  EffectHandler parentIdent ident initEvents state handler cont ->
-    if ident == handlerId then
+  EffectHandler (Just parentIdent) (Just ident) initEvents state handler cont ->
+    if Just ident == handlerId then
       case cast event of
         Just event' -> do
           (newStateFn, events) <- handler event' state
-          pure [StateChangeEvent newStateFn handlerId]
+          pure $ [StateChangeEvent newStateFn handlerId] <> fmap (directedEventToInternalEvent parentIdent ident) events
         Nothing -> pure []
     else
       runEvent internalEvent (cont state)
 
-  Handler parentIdent ident initEvents state handler cont ->
-    if ident == handlerId then
+  Handler (Just parentIdent) (Just ident) initEvents state handler cont ->
+    if Just ident == handlerId then
       case cast event of
         Just event' ->
           let (newStateFn, events) = handler event' state
-          in pure [StateChangeEvent newStateFn handlerId]
+          in pure $ [StateChangeEvent newStateFn handlerId] <> fmap (directedEventToInternalEvent parentIdent ident) events
         Nothing -> pure []
     else
       runEvent internalEvent (cont state)

@@ -52,16 +52,18 @@ prepareTree' parentLocation location component = case component of
   EffectHandler _ploc _loc initEvents state handler cont ->
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
+      (childEvents, _) = cont' state
     in
-      ( fmap (directedEventToInternalEvent parentLocation location) initEvents
+      ( fmap (directedEventToInternalEvent parentLocation location) initEvents <> childEvents
       , EffectHandler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
   Handler _ploc _loc initEvents state handler cont ->
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
+      (childEvents, _) = cont' state
     in
-      ( fmap (directedEventToInternalEvent parentLocation location) initEvents
+      ( fmap (directedEventToInternalEvent parentLocation location) initEvents <> childEvents
       , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
 
