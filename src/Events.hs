@@ -40,6 +40,7 @@ data Event where
        -- ^ for example, "click" or "blur"
        , childLocation :: Identifier
        , location :: Identifier
+       , value :: Maybe Value
        }
     -> Event
 
@@ -59,7 +60,7 @@ data Event where
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where
-  show (FromFrontendEvent event message location) =
+  show (FromFrontendEvent event message location value) =
     show $ "{ event: "
       <> show event
       <> ", childLocation: "
@@ -93,7 +94,7 @@ instance Eq Event where
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
+      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location" <*> o .: "value"
   parseJSON _ = error "fail"
 
 {-|
