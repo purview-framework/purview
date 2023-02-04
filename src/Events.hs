@@ -40,7 +40,7 @@ data Event where
        -- ^ for example, "click" or "blur"
        , childLocation :: Identifier
        , location :: Identifier
-       , value :: Maybe Value
+       , value :: Maybe String
        }
     -> Event
 

@@ -68,11 +68,11 @@ applyNewState (InternalEvent {}) component = component
 findEvent :: Event -> Purview event m -> Maybe Event
 findEvent (StateChangeEvent {}) _ = Nothing
 findEvent (InternalEvent {}) _ = Nothing
-findEvent event@FromFrontendEvent { childLocation=childLocation, location=handlerLocation } tree = case tree of
+findEvent event@FromFrontendEvent { childLocation=childLocation, location=handlerLocation, value=value } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
       if ident == childLocation
-      then Just $ InternalEvent evt childLocation handlerLocation
+      then Just $ InternalEvent (evt value) childLocation handlerLocation
       else Nothing
     _ -> findEvent event cont
 
@@ -124,3 +124,9 @@ runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
   Text _ -> pure []
 
   Value _ -> pure []
+
+  -- TODO: this should never happen, should refactor so it's clear
+  EffectHandler { identifier = Nothing }       -> undefined
+  EffectHandler { parentIdentifier = Nothing } -> undefined
+  Handler { identifier = Nothing }             -> undefined
+  Handler { parentIdentifier = Nothing }       -> undefined
