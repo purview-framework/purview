@@ -66,7 +66,9 @@ instance Show Event where
       <> ", childLocation: "
       <> show message
       <> ", location: "
-      <> show location <> " }"
+      <> show location
+      <> ", value: "
+      <> show value <> " }"
 
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
@@ -78,9 +80,9 @@ instance Show Event where
     <> " }"
 
 instance Eq Event where
-  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA })
-    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB }) =
-    eventA == eventB && messageA == messageB && locationA == locationB
+  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA, value=valueA })
+    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB, value=valueB }) =
+    eventA == eventB && messageA == messageB && locationA == locationB && valueA == valueB
   (FromFrontendEvent {}) == _ = False
 
   (StateChangeEvent _ _) == _ = False
@@ -94,7 +96,7 @@ instance Eq Event where
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location" <*> o .: "value"
+      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location" <*> o .:? "value"
   parseJSON _ = error "fail"
 
 {-|
