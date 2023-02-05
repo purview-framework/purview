@@ -33,7 +33,7 @@ spec = parallel $ do
 
     it "can add an onclick" $ do
       let element =
-            Attribute (On "click" Nothing (1 :: Integer))
+            Attribute (On "click" Nothing (\_ -> 1 :: Integer))
             $ Html "div" [Text "hello world"]
 
       render element `shouldBe`
@@ -65,7 +65,7 @@ spec = parallel $ do
         named = Attribute . Generic "name"
         input = Html "input"
         form = Html "form"
-        component = onSubmit ("initialValue" :: String) $ form [ named "name" $ input [] ]
+        component = onSubmit (\_ -> "initialValue" :: String) $ form [ named "name" $ input [] ]
 
       render component
         `shouldBe`

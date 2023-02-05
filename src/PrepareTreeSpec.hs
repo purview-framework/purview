@@ -34,8 +34,8 @@ spec = parallel $ do
       snd fixedTree
         `shouldBe`
         Html "div"
-          [ Attribute (On "click" (Just [0]) "setTime" ) $ Html "div" []
-          , Attribute (On "click" (Just [1]) "clearTime" ) $ Html "div" []
+          [ Attribute (On "click" (Just [0]) (const "setTime") ) $ Html "div" []
+          , Attribute (On "click" (Just [1]) (const "clearTime") ) $ Html "div" []
           ]
 
     -- TODO: Nested On actions

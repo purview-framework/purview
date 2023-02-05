@@ -182,7 +182,7 @@ startWebSocketLoop Configuration { devMode, interpreter, logger } component conn
 
   atomically
     $ writeTChan eventBus
-    $ FromFrontendEvent { kind = "init", childLocation = Nothing, location = Nothing }
+    $ FromFrontendEvent { kind = "init", childLocation = Nothing, location = Nothing, value = Nothing }
 
   WebSocket.withPingThread connection 30 (pure ()) $ do
     _ <- forkIO $ webSocketMessageHandler eventBus connection

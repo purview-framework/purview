@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -10,6 +11,7 @@ import           Data.Text (Text)
 import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
+
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -40,6 +42,7 @@ data Event where
        -- ^ for example, "click" or "blur"
        , childLocation :: Identifier
        , location :: Identifier
+       , value :: Maybe String
        }
     -> Event
 
@@ -59,13 +62,15 @@ data Event where
     => (state -> state) -> Identifier -> Event
 
 instance Show Event where
-  show (FromFrontendEvent event message location) =
+  show (FromFrontendEvent event message location value) =
     show $ "{ event: "
       <> show event
       <> ", childLocation: "
       <> show message
       <> ", location: "
-      <> show location <> " }"
+      <> show location
+      <> ", value: "
+      <> show value <> " }"
 
   show (StateChangeEvent _ location) =
     "{ event: \"newState\", location: " <> show location <> " }"
@@ -77,9 +82,9 @@ instance Show Event where
     <> " }"
 
 instance Eq Event where
-  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA })
-    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB }) =
-    eventA == eventB && messageA == messageB && locationA == locationB
+  (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA, value=valueA })
+    == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB, value=valueB }) =
+    eventA == eventB && messageA == messageB && locationA == locationB && valueA == valueB
   (FromFrontendEvent {}) == _ = False
 
   (StateChangeEvent _ _) == _ = False
@@ -93,7 +98,7 @@ instance Eq Event where
 
 instance FromJSON Event where
   parseJSON (Object o) =
-      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location"
+      FromFrontendEvent <$> o .: "event" <*> (o .: "childLocation") <*> o .: "location" <*> o .:? "value"
   parseJSON _ = error "fail"
 
 {-|
@@ -105,4 +110,3 @@ or sent back in to the same handler.
 data DirectedEvent a b where
   Parent :: (Show a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Eq b) => b -> DirectedEvent a b
-

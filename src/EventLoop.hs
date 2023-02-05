@@ -53,7 +53,7 @@ eventLoop devMode runner log eventBus connection component = do
     event = findEvent message newTree
 
   mapM_ (atomically . writeTChan eventBus) initialEvents
-
+  print $ "initialEvents: " <> show initialEvents
   print $ "event: " <> show event
 
   -- if it's special newState event, the state is replaced in the tree

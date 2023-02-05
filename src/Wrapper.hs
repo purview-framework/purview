@@ -48,7 +48,7 @@ submitEventHandlingFunction = [r|
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (entries) {
-      window.ws.send(JSON.stringify({ "event": "submit", "message": entries, "location": location }));
+      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "location": location }));
     }
   }
 |]

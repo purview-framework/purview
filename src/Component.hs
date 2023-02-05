@@ -15,7 +15,14 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: (Eq event, Typeable event, Show event) => String -> Identifier -> event -> Attributes event
+  On :: ( Eq event
+        , Typeable event
+        , Show event
+        )
+     => String
+     -> Identifier
+     -> (Maybe String -> event)  -- the string here is information from the browser
+     -> Attributes event
   -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
   -- ^ inline css
@@ -26,9 +33,9 @@ instance Eq (Attributes event) where
   (Style a) == (Style b) = a == b
   (Style _) == _ = False
 
-  (On kind ident event) == (On kind' ident' event') =
-    kind == kind' && event == event' && ident == ident'
-  (On _ _ _) == _ = False
+  (On kind ident _event) == (On kind' ident' _event') =
+    kind == kind' && ident == ident'
+  (On {}) == _ = False
 
   (Generic name value) == (Generic name' value') = name == name' && value == value'
   (Generic _ _) == _ = False
@@ -245,7 +252,7 @@ on the frontend.  It will be bound to whichever 'HTML' is beneath it.
 
 -}
 onClick :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
-onClick = Attribute . On "click" Nothing
+onClick = Attribute . On "click" Nothing . const
 
 {-|
 
@@ -253,7 +260,7 @@ This will send the event to the handler above it whenever "submit" is triggered
 on the frontend.
 
 -}
-onSubmit :: (Typeable event, Eq event, Show event) => event -> Purview event m -> Purview event m
+onSubmit :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
 ident :: String -> Purview event m -> Purview event m
