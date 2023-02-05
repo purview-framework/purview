@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -10,6 +11,7 @@ import           Data.Text (Text)
 import           Data.Typeable
 import           Data.Aeson
 import           GHC.Generics
+
 
 type Identifier = Maybe [Int]
 type ParentIdentifier = Identifier
@@ -108,4 +110,3 @@ or sent back in to the same handler.
 data DirectedEvent a b where
   Parent :: (Show a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Eq b) => b -> DirectedEvent a b
-

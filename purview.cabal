@@ -79,6 +79,7 @@ test-suite purview-test
       EventHandlingSpec
       EventLoop
       Events
+      EventsSpec
       PrepareTree
       PrepareTreeSpec
       Purview
