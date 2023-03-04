@@ -23,11 +23,11 @@ data Attributes event where
      -> Identifier
      -> (Maybe String -> event)  -- the string here is information from the browser
      -> Attributes event
-  -- ^ part of creating handlers for different events, e.g. On "click"
+        -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
-  -- ^ inline css
+        -- ^ inline css
   Generic :: String -> String -> Attributes event
-  -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
+        -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
 
 instance Eq (Attributes event) where
   (Style a) == (Style b) = a == b

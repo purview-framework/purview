@@ -44,11 +44,11 @@ submitEventHandlingFunction = [r|
     event.stopPropagation();
 
     var form = new FormData(event.target);
-    var entries = Object.fromEntries(form.entries());
+    var entries = JSON.stringify(Object.fromEntries(form.entries()));
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (entries) {
-      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "location": location }));
+      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "childLocation": null, "location": location }));
     }
   }
 |]
