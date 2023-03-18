@@ -56,14 +56,14 @@ library
       src
   ghc-options: -Wincomplete-patterns
   build-depends:
-      aeson >=2.0.3 && <2.1
+      aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
-    , bytestring >=0.10.12.1 && <0.12
+    , bytestring >=0.10.12.0 && <0.12
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , text >=1.2.5 && <1.3
+    , text >=1.2.4.1 && <1.3
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
 
@@ -96,16 +96,16 @@ test-suite purview-test
       hspec-discover:hspec-discover ==2.*
   build-depends:
       QuickCheck >=2.14.2 && <2.15
-    , aeson >=2.0.3 && <2.1
+    , aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
-    , bytestring >=0.10.12.1 && <0.12
-    , hspec >=2.8.5 && <2.10
+    , bytestring >=0.10.12.0 && <0.12
+    , hspec >=2.7.10 && <2.10
     , http-types >=0.12.3 && <0.13
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , text >=1.2.5 && <1.3
+    , text >=1.2.4.1 && <1.3
     , time >=1.9.3 && <1.12
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
@@ -119,16 +119,16 @@ benchmark purview-perf-test
       performance
   ghc-options: -main-is Criterion
   build-depends:
-      aeson >=2.0.3 && <2.1
+      aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
-    , bytestring >=0.10.12.1 && <0.12
+    , bytestring >=0.10.12.0 && <0.12
     , criterion >=1.5.13 && <1.6
     , http-types >=0.12.3 && <0.13
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , text >=1.2.5 && <1.3
+    , text >=1.2.4.1 && <1.3
     , websockets >=0.12.7 && <0.13
   buildable: False
   default-language: Haskell2010
