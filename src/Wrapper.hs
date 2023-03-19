@@ -43,12 +43,24 @@ submitEventHandlingFunction = [r|
     event.preventDefault();
     event.stopPropagation();
 
+    console.log("here");
+    console.log(event.target.getAttribute("location"));
+    console.log(event.currentTarget.getAttribute("location"));
+
+    var clickValue;
+    try {
+      clickLocation = JSON.parse(event.target.getAttribute("location"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      clickLocation = event.target.getAttribute("location");
+    }
+
     var form = new FormData(event.target);
     var entries = JSON.stringify(Object.fromEntries(form.entries()));
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (entries) {
-      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "childLocation": null, "location": location }));
+      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "childLocation": clickLocation, "location": location }));
     }
   }
 |]
