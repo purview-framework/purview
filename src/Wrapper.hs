@@ -94,6 +94,23 @@ bindEvents htmlEventHandlers =
     <> "});"
     <> "};"
 
+-- TODO: revisit this
+bindLocations :: String
+bindLocations = [r|
+  function bindLocations() {
+    const locationAdder = (event) => {
+      if (!event.target.getAttribute("location")) {
+        event.target.setAttribute("location", item.getAttribute("location"))
+      }
+    }
+
+    document.querySelectorAll(\"[location]\").forEach(item => {
+      item.removeEventListener("click", locationAdder)
+      item.addEventListener("click", locationAdder)
+    })
+  }
+|]
+
 websocketScript :: String
 websocketScript = [r|
   var timeoutTime = -50;
@@ -115,6 +132,7 @@ websocketScript = [r|
         // cool enough for now
         event.message.map(command => setHtml(command));
         bindEvents();
+        bindLocations();
       }
     };
 
@@ -155,7 +173,7 @@ wrapHtml htmlHead htmlEventHandlers body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> bindLocations <> "</script>"
   <> htmlHead
   <> "</head>"
   <> "<body>"
