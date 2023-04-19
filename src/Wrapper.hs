@@ -17,8 +17,6 @@ clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
 
-    console.log(event)
-
     var clickValue;
     try {
       clickLocation = JSON.parse(event.target.getAttribute("location"));
@@ -42,10 +40,6 @@ submitEventHandlingFunction = [r|
   function handleFormEvents(event) {
     event.preventDefault();
     event.stopPropagation();
-
-    console.log("here");
-    console.log(event.target.getAttribute("location"));
-    console.log(event.currentTarget.getAttribute("location"));
 
     var clickValue;
     try {
@@ -126,9 +120,8 @@ websocketScript = [r|
 
     ws.onmessage = evt => {
       var m = evt.data;
-      console.log( m );
-      console.log(JSON.parse( m ));
       var event = JSON.parse(evt.data);
+
       if (event.event === "setHtml") {
         // cool enough for now
         event.message.map(command => setHtml(command));
