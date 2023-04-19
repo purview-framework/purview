@@ -18,9 +18,14 @@ spec = parallel $ do
         Just (FromFrontendEvent { kind="click", childLocation=Nothing, location=Nothing, value=Nothing })
 
     it "parses a FrontEndEvent with a string value" $ do
-      decode "{ \"event\": \"click\", \"childLocation\": null, \"location\": null, \"value\": \"hello\" }"
+      decode "{ \"event\": \"submit\", \"childLocation\": null, \"location\": null, \"value\": \"hello\" }"
         `shouldBe`
-        Just (FromFrontendEvent { kind="click", childLocation=Nothing, location=Nothing, value=Just "hello" })
+        Just (FromFrontendEvent { kind="submit", childLocation=Nothing, location=Nothing, value=Just "hello" })
+
+    it "parses a FrontEndEvent with a dictionary value" $ do
+      decode "{ \"event\": \"submit\", \"childLocation\": null, \"location\": null, \"value\": \"{}\" }"
+        `shouldBe`
+        Just (FromFrontendEvent { kind="submit", childLocation=Nothing, location=Nothing, value=Just "{}" })
 
 
 main :: IO ()

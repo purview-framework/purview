@@ -23,11 +23,11 @@ data Attributes event where
      -> Identifier
      -> (Maybe String -> event)  -- the string here is information from the browser
      -> Attributes event
-  -- ^ part of creating handlers for different events, e.g. On "click"
+        -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: String -> Attributes event
-  -- ^ inline css
+        -- ^ inline css
   Generic :: String -> String -> Attributes event
-  -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
+        -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
 
 instance Eq (Attributes event) where
   (Style a) == (Style b) = a == b
@@ -263,8 +263,11 @@ on the frontend.
 onSubmit :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
-ident :: String -> Purview event m -> Purview event m
-ident = Attribute . Generic "id"
+id' :: String -> Purview event m -> Purview event m
+id' = Attribute . Generic "id"
+
+class' :: String -> Purview event m -> Purview event m
+class' = Attribute . Generic "id"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs

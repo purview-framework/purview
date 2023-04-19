@@ -17,8 +17,6 @@ clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
     event.stopPropagation();
 
-    console.log(event)
-
     var clickValue;
     try {
       clickLocation = JSON.parse(event.target.getAttribute("location"));
@@ -43,12 +41,20 @@ submitEventHandlingFunction = [r|
     event.preventDefault();
     event.stopPropagation();
 
+    var clickValue;
+    try {
+      clickLocation = JSON.parse(event.target.getAttribute("location"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      clickLocation = event.target.getAttribute("location");
+    }
+
     var form = new FormData(event.target);
-    var entries = Object.fromEntries(form.entries());
+    var entries = JSON.stringify(Object.fromEntries(form.entries()));
     var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
     if (entries) {
-      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "location": location }));
+      window.ws.send(JSON.stringify({ "event": "submit", "value": entries, "childLocation": clickLocation, "location": location }));
     }
   }
 |]
@@ -82,12 +88,30 @@ bindEvents htmlEventHandlers =
     <> "});"
     <> "};"
 
+-- TODO: revisit this
+-- bindLocations :: String
+-- bindLocations = [r|
+--   function bindLocations() {
+--     const locationAdder = (location) => (event) => {
+--       if (!event.target.getAttribute("location")) {
+--         event.target.setAttribute("location", location);
+--       }
+--     }
+--
+--     document.querySelectorAll("[location]").forEach(item => {
+--       item.removeEventListener("click", locationAdder(item.getAttribute("location")));
+--       item.addEventListener("click", locationAdder(item.getAttribute("location")));
+--     })
+--   }
+-- |]
+
 websocketScript :: String
 websocketScript = [r|
   var timeoutTime = -50;
   function connect() {
     timeoutTime += 50;
-    var ws = new WebSocket("ws://localhost:8001");
+    // TODO: adding the current path is kind of a hack
+    var ws = new WebSocket("ws://localhost:8001" + window.location.pathname);
 
     ws.onopen = () => {
       ws.send("initial from js");
@@ -96,13 +120,13 @@ websocketScript = [r|
 
     ws.onmessage = evt => {
       var m = evt.data;
-      console.log( m );
-      console.log(JSON.parse( m ));
       var event = JSON.parse(evt.data);
+
       if (event.event === "setHtml") {
         // cool enough for now
         event.message.map(command => setHtml(command));
         bindEvents();
+        // bindLocations();
       }
     };
 
@@ -148,6 +172,6 @@ wrapHtml htmlHead htmlEventHandlers body =
   <> "</head>"
   <> "<body>"
   <> body
-  <> "<script>bindEvents();</script>"
+  <> "<script>bindEvents(); // bindLocations();</script>"
   <> "</body>"
   <> "</html>"

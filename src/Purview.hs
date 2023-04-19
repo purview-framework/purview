@@ -86,6 +86,8 @@ module Purview
   , form
   , input
   , style
+  , id'
+  , class'
 
   -- ** Action producers
   , onClick
