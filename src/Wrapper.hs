@@ -95,28 +95,29 @@ bindEvents htmlEventHandlers =
     <> "};"
 
 -- TODO: revisit this
-bindLocations :: String
-bindLocations = [r|
-  function bindLocations() {
-    const locationAdder = (event) => {
-      if (!event.target.getAttribute("location")) {
-        event.target.setAttribute("location", item.getAttribute("location"))
-      }
-    }
-
-    document.querySelectorAll(\"[location]\").forEach(item => {
-      item.removeEventListener("click", locationAdder)
-      item.addEventListener("click", locationAdder)
-    })
-  }
-|]
+-- bindLocations :: String
+-- bindLocations = [r|
+--   function bindLocations() {
+--     const locationAdder = (location) => (event) => {
+--       if (!event.target.getAttribute("location")) {
+--         event.target.setAttribute("location", location);
+--       }
+--     }
+--
+--     document.querySelectorAll("[location]").forEach(item => {
+--       item.removeEventListener("click", locationAdder(item.getAttribute("location")));
+--       item.addEventListener("click", locationAdder(item.getAttribute("location")));
+--     })
+--   }
+-- |]
 
 websocketScript :: String
 websocketScript = [r|
   var timeoutTime = -50;
   function connect() {
     timeoutTime += 50;
-    var ws = new WebSocket("ws://localhost:8001");
+    // TODO: adding the current path is kind of a hack
+    var ws = new WebSocket("ws://localhost:8001" + window.location.pathname);
 
     ws.onopen = () => {
       ws.send("initial from js");
@@ -132,7 +133,7 @@ websocketScript = [r|
         // cool enough for now
         event.message.map(command => setHtml(command));
         bindEvents();
-        bindLocations();
+        // bindLocations();
       }
     };
 
@@ -173,11 +174,11 @@ wrapHtml htmlHead htmlEventHandlers body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> bindLocations <> "</script>"
+  <> "<script>" <> websocketScript <> bindEvents htmlEventHandlers <> "</script>"
   <> htmlHead
   <> "</head>"
   <> "<body>"
   <> body
-  <> "<script>bindEvents();</script>"
+  <> "<script>bindEvents(); // bindLocations();</script>"
   <> "</body>"
   <> "</html>"

@@ -263,8 +263,11 @@ on the frontend.
 onSubmit :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
 onSubmit = Attribute . On "submit" Nothing
 
-ident :: String -> Purview event m -> Purview event m
-ident = Attribute . Generic "id"
+id' :: String -> Purview event m -> Purview event m
+id' = Attribute . Generic "id"
+
+class' :: String -> Purview event m -> Purview event m
+class' = Attribute . Generic "id"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs
