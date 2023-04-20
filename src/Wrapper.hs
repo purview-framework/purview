@@ -12,6 +12,18 @@ data HtmlEventHandler = HtmlEventHandler
   , handlingFunction :: String -- receives the event and sends the event over the websocket
   }
 
+
+{-
+
+Loosely, for each type of event, check if it has a "clickLocation" "blurLocation" etc
+Each event would have its own location and if it doesn't, send nothing
+
+I think that actually does it?
+
+Might also want to move to using "clickId" etc, if you want to.
+
+-}
+
 clickEventHandlingFunction :: String
 clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
