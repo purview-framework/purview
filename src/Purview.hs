@@ -92,6 +92,8 @@ module Purview
   -- ** Action producers
   , onClick
   , onSubmit
+  , onBlur
+  , onChange
 
   -- ** For Testing
   , render

@@ -35,6 +35,56 @@ clickEventHandlingFunction = [r|
 clickEventHandler :: HtmlEventHandler
 clickEventHandler = HtmlEventHandler "click" "handleClickEvents" clickEventHandlingFunction
 
+blurEventHandlingFunction :: String
+blurEventHandlingFunction = [r|
+  function handleBlurEvents(event) {
+    event.stopPropagation();
+
+    var blurValue;
+    try {
+      blurLocation = JSON.parse(event.target.getAttribute("location"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      blurLocation = event.target.getAttribute("location");
+    }
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
+
+    var value = event.target.value;
+
+    if (blurLocation) {
+      window.ws.send(JSON.stringify({ "event": "blur", "value": value, "childLocation": blurLocation, "location": location }));
+    }
+  }
+|]
+
+blurEventHandler :: HtmlEventHandler
+blurEventHandler = HtmlEventHandler "blur" "handleBlurEvents" blurEventHandlingFunction
+
+changeEventHandlingFunction :: String
+changeEventHandlingFunction = [r|
+  function handleChangeEvents(event) {
+    event.stopPropagation();
+
+    var changeValue;
+    try {
+      changeLocation = JSON.parse(event.target.getAttribute("location"));
+    } catch (error) {
+      // if the action is just a string, parsing it as JSON would fail
+      changeLocation = event.target.getAttribute("location");
+    }
+    var location = JSON.parse(event.currentTarget.getAttribute("handler"))
+
+    var value = event.target.value;
+
+    if (changeLocation) {
+      window.ws.send(JSON.stringify({ "event": "change", "value": value, "childLocation": changeLocation, "location": location }));
+    }
+  }
+|]
+
+changeEventHandler :: HtmlEventHandler
+changeEventHandler = HtmlEventHandler "change" "handleChangeEvents" blurEventHandlingFunction
+
 submitEventHandlingFunction :: String
 submitEventHandlingFunction = [r|
   function handleFormEvents(event) {
@@ -65,6 +115,8 @@ submitEventHandler = HtmlEventHandler "submit" "handleFormEvents" submitEventHan
 defaultHtmlEventHandlers :: [HtmlEventHandler]
 defaultHtmlEventHandlers =
   [ clickEventHandler
+  , blurEventHandler
+  , changeEventHandler
   , submitEventHandler
   ]
 
