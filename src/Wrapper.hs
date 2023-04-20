@@ -24,6 +24,22 @@ Might also want to move to using "clickId" etc, if you want to.
 
 -}
 
+eventHandling :: String
+eventHandling = [r|
+  function eventHandling(event) {
+    event.stopPropagation();
+
+    const type = event.type;
+    // ie "clickLocation" or "blurLocation"
+    const locationCheck = `${type}Location`;
+
+    const possibleLocation = event.target.getAttribute(locationCheck);
+    if (possibleLocation) {
+      // send it
+    }
+  }
+|]
+
 clickEventHandlingFunction :: String
 clickEventHandlingFunction = [r|
   function handleClickEvents(event) {
