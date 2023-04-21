@@ -151,7 +151,7 @@ defaultConfiguration :: Configuration IO
 defaultConfiguration = Configuration
   { interpreter       = id
   , logger            = print
-  , htmlEventHandlers = [clickEventHandler, submitEventHandler]
+  , htmlEventHandlers = []
   , htmlHead          = ""
   , devMode           = False
   }
