@@ -32,7 +32,7 @@ renderAttributes attrs =
 
     listeners = filter isOn attrs
     renderedListeners = concatMap
-      (\(On name ident action) -> " location=" <> (unpack $ encode ident))
+      (\(On name ident action) -> " " <> name <> "Location=" <> unpack (encode ident))
       listeners
 
     generics = filter isGeneric attrs

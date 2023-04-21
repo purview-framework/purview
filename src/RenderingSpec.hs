@@ -11,6 +11,7 @@ import TreeGenerator
 import Component
 import Events
 import Rendering
+import Component (onSubmit)
 
 data SingleConstructor = SingleConstructor
   deriving (Show, Eq)
@@ -37,7 +38,7 @@ spec = parallel $ do
             $ Html "div" [Text "hello world"]
 
       render element `shouldBe`
-        "<div location=null>hello world</div>"
+        "<div clickLocation=null>hello world</div>"
 
     it "can add an id" $ do
       let element = id' "hello" $ div [text "it's a hello div"]
@@ -69,14 +70,25 @@ spec = parallel $ do
 
       render component
         `shouldBe`
-        "<form location=null><input name=\"name\"></input></form>"
+        "<form submitLocation=null><input name=\"name\"></input></form>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
 
       render element
         `shouldBe`
-        "<div location=null>click</div>"
+        "<div clickLocation=null>click</div>"
+
+    it "can render two typed actions of different form" $ do
+      let element
+            = onSubmit (const SingleConstructor)
+            $ onClick SingleConstructor
+            $ div [ text "click" ]
+
+      render element
+        `shouldBe`
+        "<div clickLocation=null submitLocation=null>click</div>"
+
 
     it "can render a style" $ do
       let element = style "color: blue;" $ div [ text "blue" ]
