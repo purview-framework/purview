@@ -68,7 +68,7 @@ eventHandling = [r|
     }
   }
 
-  const events = ["click", "blur", "change", "submit"];
+  const events = ["click", "focusout", "focusin", "change", "submit"];
 
   function bindEvents() {
     document.querySelectorAll("[handler]").forEach(item => {

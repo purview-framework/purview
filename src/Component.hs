@@ -264,7 +264,7 @@ onSubmit :: (Typeable event, Eq event, Show event) => (Maybe String -> event) ->
 onSubmit = Attribute . On "submit" Nothing
 
 onBlur :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
-onBlur = Attribute . On "blur" Nothing
+onBlur = Attribute . On "focusout" Nothing
 
 onChange :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
 onChange = Attribute . On "change" Nothing
