@@ -39,7 +39,11 @@ eventHandling = [r|
     const possibleLocation = event.target.getAttribute(locationCheck);
 
     if (possibleLocation) {
+      const childLocation = JSON.parse(possibleLocation)
+
       if (type === "submit") {
+        event.preventDefault();
+
         var form = new FormData(event.target);
         var entries = JSON.stringify(Object.fromEntries(form.entries()));
         var location = JSON.parse(event.currentTarget.getAttribute("handler"));
@@ -47,23 +51,24 @@ eventHandling = [r|
         window.ws.send(JSON.stringify({
           "event": "submit",
           "value": entries,
-          "childLocation": clickLocation,
+          "childLocation": childLocation,
           "location": location
         }));
       } else {
-        const value = event.target.value;
+        var value = event.target.value;
+        var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
         window.ws.send(JSON.stringify({
           "event": "submit",
           "value": value,
-          "childLocation": clickLocation,
+          "childLocation": childLocation,
           "location": location
         }));
       }
     }
   }
 
-  const events = ["click", "blur", "change"];
+  const events = ["click", "blur", "change", "submit"];
 
   function bindEvents() {
     document.querySelectorAll("[handler]").forEach(item => {
