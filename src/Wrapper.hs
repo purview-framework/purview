@@ -30,8 +30,8 @@ eventHandling = [r|
     event.stopPropagation();
 
     const type = event.type;
-    // ie "clickLocation" or "blurLocation"
-    const locationCheck = `${type}Location`;
+    // ie "click-location" or "blur-location"
+    const locationCheck = `${type}-location`;
 
     console.log(event);
     console.log(type);

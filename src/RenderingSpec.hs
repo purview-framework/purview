@@ -38,7 +38,7 @@ spec = parallel $ do
             $ Html "div" [Text "hello world"]
 
       render element `shouldBe`
-        "<div clickLocation=null>hello world</div>"
+        "<div click-location=null>hello world</div>"
 
     it "can add an id" $ do
       let element = id' "hello" $ div [text "it's a hello div"]
@@ -70,14 +70,14 @@ spec = parallel $ do
 
       render component
         `shouldBe`
-        "<form submitLocation=null><input name=\"name\"></input></form>"
+        "<form submit-location=null><input name=\"name\"></input></form>"
 
     it "can render a typed action" $ do
       let element = onClick SingleConstructor $ div [ text "click" ]
 
       render element
         `shouldBe`
-        "<div clickLocation=null>click</div>"
+        "<div click-location=null>click</div>"
 
     it "can render two typed actions of different form" $ do
       let element
@@ -87,7 +87,7 @@ spec = parallel $ do
 
       render element
         `shouldBe`
-        "<div clickLocation=null submitLocation=null>click</div>"
+        "<div click-location=null submit-location=null>click</div>"
 
 
     it "can render a style" $ do
