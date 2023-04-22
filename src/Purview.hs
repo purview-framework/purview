@@ -92,6 +92,8 @@ module Purview
   -- ** Action producers
   , onClick
   , onSubmit
+  , onBlur
+  , onChange
 
   -- ** For Testing
   , render
@@ -149,7 +151,7 @@ defaultConfiguration :: Configuration IO
 defaultConfiguration = Configuration
   { interpreter       = id
   , logger            = print
-  , htmlEventHandlers = [clickEventHandler, submitEventHandler]
+  , htmlEventHandlers = []
   , htmlHead          = ""
   , devMode           = False
   }
