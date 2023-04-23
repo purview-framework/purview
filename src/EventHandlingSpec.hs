@@ -58,8 +58,8 @@ spec = parallel $ do
   describe "applyNewState" $ do
     it "applies new state at the top level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
         clickHandler = handler [] 0 reducer
@@ -78,8 +78,8 @@ spec = parallel $ do
 
     it "applies new state at a lower level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview String IO
         clickHandler = handler [] 0 reducer
@@ -100,8 +100,8 @@ spec = parallel $ do
   describe "runEvent" $ do
     it "applies an event at the top level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
         clickHandler = handler [] (0 :: Int) reducer
@@ -120,14 +120,14 @@ spec = parallel $ do
 
     it "applies an event to the lower level" $ do
       let
-        reducerA "test" st = (const 1, [])
-        reducerA _      st = (const 0, [])
+        reducerA "test" st = (1, [])
+        reducerA _      st = (0, [])
 
         clickHandlerA :: (Int -> Purview String IO) -> Purview () IO
         clickHandlerA = handler [] (0 :: Int) reducerA
 
-        reducerB "test" st = (const 5, [])
-        reducerB _      st = (const 6, [])
+        reducerB "test" st = (5, [])
+        reducerB _      st = (6, [])
 
         clickHandlerB :: (Int -> Purview String IO) -> Purview String IO
         clickHandlerB = handler [] (0 :: Int) reducerB
@@ -152,7 +152,7 @@ spec = parallel $ do
         reducer _      st = (const 0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler [] (0 :: Int) reducer
+        clickHandler = handler' [] (0 :: Int) reducer
 
         tree = clickHandler $ const $ div [ onClick "test" $ div [ text "up" ] ]
         (_, treeWithLocations) = prepareTree tree

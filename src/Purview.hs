@@ -70,8 +70,9 @@ module Purview
   -- change state, or in the case of 'effectHandler', make API requests or call
   -- functions from your project.
   , handler
-  , defaultHandler
+  , handler'
   , effectHandler
+  , effectHandler'
 
   -- ** HTML helpers
   , div

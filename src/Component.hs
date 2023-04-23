@@ -5,6 +5,7 @@
 module Component where
 
 import           Data.Typeable
+import           Data.Bifunctor
 
 import           Events
 
@@ -144,12 +145,41 @@ handler
   -- ^ Initial events to fire
   -> state
   -- ^ The initial state
-  -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
+  -> (event -> state -> (state, [DirectedEvent parentEvent event]))
   -- ^ The reducer, or how the state should change for an event
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
 handler initEvents state reducer cont =
+  Handler Nothing Nothing initEvents state (constReducer reducer) cont
+  where constReducer reducer event state =
+          let (newState, events) = reducer event state
+          in (const newState, events)
+
+{-|
+
+The same as handler, except you have access to the state at
+application time.  Although rarely needed, if you have a long
+running pure calculation you may need to use this to avoid
+overwriting the state.
+
+-}
+handler'
+  :: ( Typeable event
+     , Show state
+     , Eq state
+     , Typeable state
+     )
+  => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
+  -> state
+  -- ^ The initial state
+  -> (event -> state -> (state -> state, [DirectedEvent parentEvent event]))
+  -- ^ The reducer, or how the state should change for an event
+  -> (state -> Purview event m)
+  -- ^ The continuation / component to connect to
+  -> Purview parentEvent m
+handler' initEvents state reducer cont =
   Handler Nothing Nothing initEvents state reducer cont
 
 {-|
@@ -174,6 +204,36 @@ effectHandler
      , Show state
      , Eq state
      , Typeable state
+     , Functor m
+     )
+  => [DirectedEvent parentEvent event]
+  -- ^ Initial events to fire
+  -> state
+  -- ^ initial state
+  -> (event -> state -> m (state, [DirectedEvent parentEvent event]))
+  -- ^ reducer (note the m!)
+  -> (state -> Purview event m)
+  -- ^ continuation
+  -> Purview parentEvent m
+effectHandler initEvents state reducer cont =
+  EffectHandler Nothing Nothing initEvents state (constReducer reducer) cont
+  where constReducer reducer event state = fmap (Data.Bifunctor.first const) (reducer event state)
+
+{-|
+
+The same as the effectHandler, except you have access to the state at
+application time.  This allows you to prevent overwriting with old
+state.
+
+You'll want to use this if you're making a bunch of API requests to
+build up a list of results.
+
+-}
+effectHandler'
+  :: ( Typeable event
+     , Show state
+     , Eq state
+     , Typeable state
      )
   => [DirectedEvent parentEvent event]
   -- ^ Initial events to fire
@@ -184,8 +244,9 @@ effectHandler
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler initEvents state reducer cont =
+effectHandler' initEvents state reducer cont =
   EffectHandler Nothing Nothing initEvents state reducer cont
+
 
 defaultHandler :: (() -> Purview () m) -> Purview () m
 defaultHandler =

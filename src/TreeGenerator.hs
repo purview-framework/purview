@@ -20,8 +20,8 @@ nicely.
 testHandler :: (String -> Purview String IO) -> Purview String IO
 testHandler = effectHandler [] ("" :: String) reducer
   where
-    reducer :: String -> String -> IO (String -> String, [DirectedEvent String String])
-    reducer action state = pure (const "", [])
+    reducer :: String -> String -> IO (String, [DirectedEvent String String])
+    reducer action state = pure ("", [])
 
 sizedArbExpr :: Int -> Gen (Purview String IO)
 sizedArbExpr 0 = do pure $ text "always present"

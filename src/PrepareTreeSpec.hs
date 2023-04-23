@@ -47,7 +47,7 @@ spec = parallel $ do
           handler' :: (String -> Purview String IO) -> Purview () IO
           handler' = handler [Self "up"] "" handle
 
-          handle "up" _ = (id, [])
+          handle "up" state = (state, [])
 
           (initialActions, component) = prepareTree (handler' (const $ div []))
 
@@ -63,7 +63,7 @@ spec = parallel $ do
         let
           handler' = effectHandler [Self "up"] "" handle
 
-          handle "up" _ = pure (id, []) :: IO (a -> a, [DirectedEvent () String])
+          handle "up" state = pure (state, []) :: IO (String, [DirectedEvent () String])
 
           (initialActions, component) = prepareTree (handler' (const $ div []))
 
@@ -80,7 +80,7 @@ spec = parallel $ do
           parentHandler = handler [] "" handle
           childHandler = handler [Self "to child", Parent "to parent"] "" handle
 
-          handle "" _ = (id, [])
+          handle "" state = (state, [])
 
           component :: Purview () IO
           component = parentHandler $ \_ -> childHandler $ \_ -> div []
@@ -94,13 +94,14 @@ spec = parallel $ do
 
     it "assigns a location to handlers" $ do
       let
-        timeHandler = effectHandler [] Nothing handle
+        timeHandler = effectHandler' [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
           time <- getCurrentTime
           pure (const $ Just time, [])
-        handle _         state = pure (const state, [])
+        handle _         state =
+          pure (const state, [])
 
         component = timeHandler (const (Text ""))
 
@@ -115,11 +116,12 @@ spec = parallel $ do
       let
         timeHandler = effectHandler [] Nothing handle
 
-        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
           time <- getCurrentTime
-          pure (const $ Just time, [])
-        handle _         state = pure (const state, [])
+          pure (Just time, [])
+        handle _         state =
+          pure (state, [])
 
         component = div
           [ timeHandler (const (Text ""))
@@ -136,11 +138,12 @@ spec = parallel $ do
       let
         timeHandler = effectHandler [] Nothing handle
 
-        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
+        handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
           time <- getCurrentTime
-          pure (const $ Just time, [])
-        handle _         state = pure (const state, [])
+          pure (Just time, [])
+        handle _         state =
+          pure (state, [])
 
         component =
           timeHandler (const (timeHandler (const (Text ""))))
