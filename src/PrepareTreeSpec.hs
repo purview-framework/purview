@@ -47,7 +47,7 @@ spec = parallel $ do
           handler' :: (String -> Purview String IO) -> Purview () IO
           handler' = handler [Self "up"] "" handle
 
-          handle "up" state = (state, [])
+          handle "up" state = (id, [])
 
           (initialActions, component) = prepareTree (handler' (const $ div []))
 
@@ -61,7 +61,7 @@ spec = parallel $ do
 
       it "works for effectHandler" $ do
         let
-          handler' = effectHandler [Self "up"] "" handle
+          handler' = effectHandler' [Self "up"] "" handle
 
           handle "up" state = pure (state, []) :: IO (String, [DirectedEvent () String])
 
@@ -77,8 +77,8 @@ spec = parallel $ do
 
       it "works for nested handlers" $ do
         let
-          parentHandler = handler [] "" handle
-          childHandler = handler [Self "to child", Parent "to parent"] "" handle
+          parentHandler = handler' [] "" handle
+          childHandler = handler' [Self "to child", Parent "to parent"] "" handle
 
           handle "" state = (state, [])
 
@@ -94,7 +94,7 @@ spec = parallel $ do
 
     it "assigns a location to handlers" $ do
       let
-        timeHandler = effectHandler' [] Nothing handle
+        timeHandler = effectHandler [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime -> Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -114,7 +114,7 @@ spec = parallel $ do
 
     it "assigns a different location to child handlers" $ do
       let
-        timeHandler = effectHandler [] Nothing handle
+        timeHandler = effectHandler' [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do
@@ -136,7 +136,7 @@ spec = parallel $ do
 
     it "assigns a different location to nested handlers" $ do
       let
-        timeHandler = effectHandler [] Nothing handle
+        timeHandler = effectHandler' [] Nothing handle
 
         handle :: String -> Maybe UTCTime -> IO (Maybe UTCTime, [DirectedEvent String String])
         handle "setTime" _     = do

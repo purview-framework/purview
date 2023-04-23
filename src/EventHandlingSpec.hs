@@ -62,14 +62,14 @@ spec = parallel $ do
         reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler [] 0 reducer
+        clickHandler = handler' [] 0 reducer
 
         (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
         event = StateChangeEvent (\state -> state + 1 :: Int) (Just [])
 
         appliedClickHandler :: (Int -> Purview String IO) -> Purview () IO
-        appliedClickHandler = handler [] 1 reducer
+        appliedClickHandler = handler' [] 1 reducer
 
         (_, applied) = prepareTree $ appliedClickHandler $ \state -> div [ text (show state) ]
 
@@ -82,14 +82,14 @@ spec = parallel $ do
         reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview String IO
-        clickHandler = handler [] 0 reducer
+        clickHandler = handler' [] 0 reducer
 
         (_, component) = prepareTree $ clickHandler $ \_ -> clickHandler $ \_ -> div []
 
         event = StateChangeEvent (\state -> state + 1 :: Int) (Just [0])
 
         appliedClickHandler :: (Int -> Purview String IO) -> Purview String IO
-        appliedClickHandler = handler [] 1 reducer
+        appliedClickHandler = handler' [] 1 reducer
 
         (_, applied) = prepareTree $ clickHandler $ \_ -> appliedClickHandler $ \_ -> div []
 
@@ -104,7 +104,7 @@ spec = parallel $ do
         reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler [] (0 :: Int) reducer
+        clickHandler = handler' [] (0 :: Int) reducer
 
         (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
@@ -124,13 +124,13 @@ spec = parallel $ do
         reducerA _      st = (0, [])
 
         clickHandlerA :: (Int -> Purview String IO) -> Purview () IO
-        clickHandlerA = handler [] (0 :: Int) reducerA
+        clickHandlerA = handler' [] (0 :: Int) reducerA
 
         reducerB "test" st = (5, [])
         reducerB _      st = (6, [])
 
         clickHandlerB :: (Int -> Purview String IO) -> Purview String IO
-        clickHandlerB = handler [] (0 :: Int) reducerB
+        clickHandlerB = handler' [] (0 :: Int) reducerB
 
         (_, component) = prepareTree $ clickHandlerA $ \_ -> clickHandlerB $ \_ -> div []
 
@@ -152,7 +152,7 @@ spec = parallel $ do
         reducer _      st = (const 0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler' [] (0 :: Int) reducer
+        clickHandler = handler [] (0 :: Int) reducer
 
         tree = clickHandler $ const $ div [ onClick "test" $ div [ text "up" ] ]
         (_, treeWithLocations) = prepareTree tree

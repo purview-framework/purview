@@ -135,7 +135,7 @@ For example, let's say you want to make a button that switches between saying
 > component = handler view
 
 -}
-handler
+handler'
   :: ( Typeable event
      , Show state
      , Eq state
@@ -150,7 +150,7 @@ handler
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler initEvents state reducer cont =
+handler' initEvents state reducer cont =
   Handler Nothing Nothing initEvents state (constReducer reducer) cont
   where constReducer reducer event state =
           let (newState, events) = reducer event state
@@ -164,7 +164,7 @@ running pure calculation you may need to use this to avoid
 overwriting the state.
 
 -}
-handler'
+handler
   :: ( Typeable event
      , Show state
      , Eq state
@@ -179,7 +179,7 @@ handler'
   -> (state -> Purview event m)
   -- ^ The continuation / component to connect to
   -> Purview parentEvent m
-handler' initEvents state reducer cont =
+handler initEvents state reducer cont =
   Handler Nothing Nothing initEvents state reducer cont
 
 {-|
@@ -199,7 +199,7 @@ a button:
 > component = handler view
 
 -}
-effectHandler
+effectHandler'
   :: ( Typeable event
      , Show state
      , Eq state
@@ -215,7 +215,7 @@ effectHandler
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler initEvents state reducer cont =
+effectHandler' initEvents state reducer cont =
   EffectHandler Nothing Nothing initEvents state (constReducer reducer) cont
   where constReducer reducer event state = fmap (Data.Bifunctor.first const) (reducer event state)
 
@@ -229,7 +229,7 @@ You'll want to use this if you're making a bunch of API requests to
 build up a list of results.
 
 -}
-effectHandler'
+effectHandler
   :: ( Typeable event
      , Show state
      , Eq state
@@ -244,7 +244,7 @@ effectHandler'
   -> (state -> Purview event m)
   -- ^ continuation
   -> Purview parentEvent m
-effectHandler' initEvents state reducer cont =
+effectHandler initEvents state reducer cont =
   EffectHandler Nothing Nothing initEvents state reducer cont
 
 

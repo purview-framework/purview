@@ -18,7 +18,7 @@ nicely.
 -}
 
 testHandler :: (String -> Purview String IO) -> Purview String IO
-testHandler = effectHandler [] ("" :: String) reducer
+testHandler = effectHandler' [] ("" :: String) reducer
   where
     reducer :: String -> String -> IO (String, [DirectedEvent String String])
     reducer action state = pure ("", [])
