@@ -34,11 +34,12 @@ renderAttributes attrs =
     renderedListeners = concatMap
       (\(On name ident action) -> " " <> name <> "-location=" <> unpack (encode ident))
       listeners
+    noticeToBind = if null listeners then "" else " bubbling-bound"
 
     generics = filter isGeneric attrs
     renderedGenerics = concatMap renderGeneric generics
   in
-    renderedStyle <> renderedListeners <> renderedGenerics
+    renderedStyle <> noticeToBind <> renderedListeners <> renderedGenerics
 
 {-|
 

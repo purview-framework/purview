@@ -82,6 +82,37 @@ eventHandling = [r|
   }
 |]
 
+{-
+
+This is so that event locations are added as events bubble past,
+reflecting how you'd expect them to work.
+
+Without this, for example, click events on a div beneath the one
+with the click-location would be ignored.
+
+-}
+eventBubblingHandling :: String
+eventBubblingHandling = [r|
+  function bindLocationEnrichment() {
+    document.querySelectorAll("[bubbling-bound]").forEach(item => {
+      const alreadyBound = item.getAttribute('bubbling-bound')
+
+      if (!alreadyBound) {
+        events.map(event => {
+          const eventLocation = item.getAttribute(`${event}-location`)
+
+          if (eventLocation) {
+            item.addEventListener(event, eventFromDOM => {
+              eventFromDOM.target.setAttribute(`${event}-location`, eventLocation)
+            })
+          }
+        })
+        item.setAttribute('bubbling-bound', true)
+      }
+    })
+  }
+|]
+
 websocketScript :: String
 websocketScript = [r|
   var timeoutTime = -50;
@@ -103,6 +134,7 @@ websocketScript = [r|
         // cool enough for now
         event.message.map(command => setHtml(command));
         bindEvents();
+        bindLocationEnrichment();
         // bindLocations();
       }
     };
@@ -144,11 +176,11 @@ wrapHtml htmlHead htmlEventHandlers body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> eventHandling <> "</script>"
+  <> "<script>" <> websocketScript <> eventHandling <> eventBubblingHandling <> "</script>"
   <> htmlHead
   <> "</head>"
   <> "<body>"
   <> body
-  <> "<script>bindEvents(); // bindLocations();</script>"
+  <> "<script>bindEvents(); bindLocationEnrichment();</script>"
   <> "</body>"
   <> "</html>"
