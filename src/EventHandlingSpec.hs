@@ -58,18 +58,18 @@ spec = parallel $ do
   describe "applyNewState" $ do
     it "applies new state at the top level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler [] 0 reducer
+        clickHandler = handler' [] 0 reducer
 
         (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
         event = StateChangeEvent (\state -> state + 1 :: Int) (Just [])
 
         appliedClickHandler :: (Int -> Purview String IO) -> Purview () IO
-        appliedClickHandler = handler [] 1 reducer
+        appliedClickHandler = handler' [] 1 reducer
 
         (_, applied) = prepareTree $ appliedClickHandler $ \state -> div [ text (show state) ]
 
@@ -78,18 +78,18 @@ spec = parallel $ do
 
     it "applies new state at a lower level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview String IO
-        clickHandler = handler [] 0 reducer
+        clickHandler = handler' [] 0 reducer
 
         (_, component) = prepareTree $ clickHandler $ \_ -> clickHandler $ \_ -> div []
 
         event = StateChangeEvent (\state -> state + 1 :: Int) (Just [0])
 
         appliedClickHandler :: (Int -> Purview String IO) -> Purview String IO
-        appliedClickHandler = handler [] 1 reducer
+        appliedClickHandler = handler' [] 1 reducer
 
         (_, applied) = prepareTree $ clickHandler $ \_ -> appliedClickHandler $ \_ -> div []
 
@@ -100,11 +100,11 @@ spec = parallel $ do
   describe "runEvent" $ do
     it "applies an event at the top level" $ do
       let
-        reducer "test" st = (const 1, [])
-        reducer _      st = (const 0, [])
+        reducer "test" st = (1, [])
+        reducer _      st = (0, [])
 
         clickHandler :: (Int -> Purview String IO) -> Purview () IO
-        clickHandler = handler [] (0 :: Int) reducer
+        clickHandler = handler' [] (0 :: Int) reducer
 
         (_, component) = prepareTree $ clickHandler $ \state -> div [ text (show state) ]
 
@@ -120,17 +120,17 @@ spec = parallel $ do
 
     it "applies an event to the lower level" $ do
       let
-        reducerA "test" st = (const 1, [])
-        reducerA _      st = (const 0, [])
+        reducerA "test" st = (1, [])
+        reducerA _      st = (0, [])
 
         clickHandlerA :: (Int -> Purview String IO) -> Purview () IO
-        clickHandlerA = handler [] (0 :: Int) reducerA
+        clickHandlerA = handler' [] (0 :: Int) reducerA
 
-        reducerB "test" st = (const 5, [])
-        reducerB _      st = (const 6, [])
+        reducerB "test" st = (5, [])
+        reducerB _      st = (6, [])
 
         clickHandlerB :: (Int -> Purview String IO) -> Purview String IO
-        clickHandlerB = handler [] (0 :: Int) reducerB
+        clickHandlerB = handler' [] (0 :: Int) reducerB
 
         (_, component) = prepareTree $ clickHandlerA $ \_ -> clickHandlerB $ \_ -> div []
 
