@@ -7,13 +7,11 @@ module Criterion where
 import Prelude hiding (div)
 import           Data.Aeson
 import           Data.Aeson.TH
+import           Data.ByteString.Lazy (ByteString)
 
-import Criterion.Main hiding (component)
+import Criterion.Main hiding (component, input)
 
 import Purview
-import EventHandling
-import PrepareTree (prepareTree)
-import Control.Concurrent.STM (newTChan)
 
 {-
 
@@ -21,7 +19,7 @@ Using the todo example since it's big
 
 -}
 
-input = Html "input"
+-- input = Html "input"
 ul = Html "ul"
 li = Html "li"
 
@@ -29,17 +27,15 @@ nameAttr = Attribute . Generic "name"
 typeAttr = Attribute . Generic "type"
 checkedAttr = Attribute . Generic "checked"
 
-data Fields = Fields { description :: String }
+data Fields = Fields { description :: ByteString }
+  deriving (Show, Eq)
 data Actions = Submit Fields | Toggle Int
+  deriving (Show, Eq)
 
-data Todo = Todo { description :: String, done :: Bool }
-  deriving (Eq)
+data Todo = Todo { description :: ByteString, done :: Bool }
+  deriving (Show, Eq)
 
-$(deriveJSON defaultOptions  ''Fields)
-$(deriveJSON defaultOptions  ''Actions)
-$(deriveJSON defaultOptions  ''Todo)
-
-handler = effectHandler [] action
+handler'' = effectHandler [] [] action
   where
     -- hmm, a little ungainly having to specify
     -- action :: Actions -> [Todo] -> IO ([Todo], [DirectedEvent Actions Actions])
@@ -77,33 +73,36 @@ submitButton = typeAttr "submit" $ button [ text "submit" ]
 
 defaultFields = Fields { description="" }
 
-formHandler = effectHandler ([] :: [String]) action
+formHandler = effectHandler [] ([] :: [String]) action
   where
     action newTodo state = pure (const state, [Parent (Submit newTodo)])
 
+toForm Nothing  = Fields ""
+toForm (Just _) = Fields ""
+
 addNewTodoForm =
   div
-    [ onSubmit defaultFields $
+    [ onSubmit toForm $
         form
           [ nameAttr "description" $ input []
           , submitButton
           ]
     ]
 
-component' :: Purview () b IO
-component' = handler view
+component' :: Purview () IO
+component' = handler'' view
 
-clickEvent = FromEvent { event="click", message="up", location=Nothing }
-
-newStateEvent = FromEvent { event="newState", message="up", location=Nothing }
+-- clickEvent = FromFrontendEvent { event="click", message="up", location=Nothing }
+--
+-- newStateEvent = FromFrontendEvent { event="newState", message="up", location=Nothing }
 
 main = defaultMain
   [ bgroup "render"
         [ bench "todo example"  $ whnf render component' ]
-  , bgroup "prepareTree"
-        [ bench "todo example" $ whnf prepareTree component' ]
-  , bgroup "apply event"
-        [ bench "todo example" $ whnf (runEvent clickEvent) component' ]
-  , bgroup "new state event"
-        [ bench "todo example" $ whnf (applyNewState clickEvent) component' ]
+--  , bgroup "prepareTree"
+--        [ bench "todo example" $ whnf prepareTree component' ]
+--  , bgroup "apply event"
+--        [ bench "todo example" $ whnf (runEvent clickEvent) component' ]
+--  , bgroup "new state event"
+--        [ bench "todo example" $ whnf (applyNewState clickEvent) component' ]
   ]

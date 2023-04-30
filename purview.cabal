@@ -130,5 +130,4 @@ benchmark purview-perf-test
     , stm >=2.5.0 && <2.6
     , text >=1.2.4.1 && <1.3
     , websockets >=0.12.7 && <0.13
-  buildable: False
   default-language: Haskell2010

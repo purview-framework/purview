@@ -87,7 +87,6 @@ benchmarks:
     purview-perf-test:
         main: Criterion.hs
         source-dirs: performance
-        buildable: false
         ghc-options:
         - -main-is Criterion
         dependencies:
