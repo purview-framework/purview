@@ -4,8 +4,12 @@
 {-# LANGUAGE GADTs #-}
 module Component where
 
+import Prelude hiding (unwords)
+
 import           Data.Typeable
 import           Data.Bifunctor
+import           Data.ByteString.Lazy (ByteString)
+import           Data.ByteString.Lazy.Char8 (unwords)
 
 import           Events
 
@@ -20,14 +24,14 @@ data Attributes event where
         , Typeable event
         , Show event
         )
-     => String
+     => ByteString
      -> Identifier
      -> (Maybe String -> event)  -- the string here is information from the browser
      -> Attributes event
         -- ^ part of creating handlers for different events, e.g. On "click"
-  Style :: String -> Attributes event
+  Style :: ByteString -> Attributes event
         -- ^ inline css
-  Generic :: String -> String -> Attributes event
+  Generic :: ByteString -> ByteString -> Attributes event
         -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
 
 instance Eq (Attributes event) where
@@ -55,8 +59,8 @@ what's happening behind the scenes.
 -}
 data Purview event m where
   Attribute :: Attributes event -> Purview event m -> Purview event m
-  Text :: String -> Purview event m
-  Html :: String -> [Purview event m] -> Purview event m
+  Text :: ByteString -> Purview event m
+  Html :: ByteString -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
 
   EffectHandler
@@ -112,8 +116,8 @@ instance Show (Purview event m) where
       <> show (cont state)
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
-  show (Html kind children) =
-    kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
+  show (Html kind children) = " "
+    -- kind <> " [ " <> concatMap ((<>) " " . show) children <> " ] "
   show (Value value) = show value
 
 instance Eq (Purview event m) where
@@ -292,7 +296,7 @@ form = Html "form"
 input :: [Purview event m] -> Purview event m
 input = Html "input"
 
-text :: String -> Purview event m
+text :: ByteString -> Purview event m
 text = Text
 
 {-|
@@ -303,7 +307,7 @@ For adding styles
 > blueButton = blue $ button [ text "I'm blue" ]
 
 -}
-style :: String -> Purview event m -> Purview event m
+style :: ByteString -> Purview event m -> Purview event m
 style = Attribute . Style
 
 {-|
@@ -330,11 +334,11 @@ onBlur = Attribute . On "focusout" Nothing
 onChange :: (Typeable event, Eq event, Show event) => (Maybe String -> event) -> Purview event m -> Purview event m
 onChange = Attribute . On "change" Nothing
 
-id' :: String -> Purview event m -> Purview event m
+id' :: ByteString -> Purview event m -> Purview event m
 id' = Attribute . Generic "id"
 
-class' :: String -> Purview event m -> Purview event m
+class' :: ByteString -> Purview event m -> Purview event m
 class' = Attribute . Generic "class"
 
-classes :: [String] -> Purview event m -> Purview event m
+classes :: [ByteString] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs
