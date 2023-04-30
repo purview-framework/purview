@@ -11,6 +11,7 @@ import           Control.Monad.STM
 import           Control.Monad
 import           Control.Concurrent
 import           Data.Typeable
+import           Data.ByteString.Lazy (ByteString)
 import           Data.Aeson (encode)
 import qualified Network.WebSockets as WebSockets
 
@@ -21,6 +22,8 @@ import           Events
 import           PrepareTree
 import           Rendering
 import Component (Purview(initialEvents))
+import qualified Network.WebSockets as WebSockets
+import Data.Text.Lazy.Encoding (decodeUtf8)
 
 type Log m = String -> m ()
 
@@ -82,7 +85,9 @@ eventLoop devMode runner log eventBus connection component = do
     -- for now it's just "Update", which the javascript handles as replacing
     -- the html beneath the handler.  I imagine it could be more exact, with
     -- Delete / Create events.
-    renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
+    renderedDiffs = fmap
+      (\(Update location graph) -> Update location (decodeUtf8 $ render graph))
+      diffs
 
   when devMode $ log $ "sending> " <> show renderedDiffs
 
@@ -95,7 +100,7 @@ eventLoop devMode runner log eventBus connection component = do
       when (devMode && kind == "init") $
         WebSockets.sendTextData
           connection
-          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
+          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (decodeUtf8 $ render newTree') ] })
     _ -> pure ()
 
   eventLoop devMode runner log eventBus connection newTree'

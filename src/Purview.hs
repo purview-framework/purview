@@ -107,8 +107,9 @@ module Purview
 where
 
 import           Prelude hiding (div, log, span)
-import           Blaze.ByteString.Builder.Char.Utf8
+-- import           Blaze.ByteString.Builder.Char.Utf8
 import           Data.ByteString.Builder.Internal
+import           Data.ByteString.Lazy (ByteString)
 import qualified Network.WebSockets as WebSocket
 import           Data.Typeable
 import           Data.Aeson
@@ -125,7 +126,7 @@ import           PrepareTree
 import           Rendering
 import           Wrapper
 import Network.HTTP.Types
-import Data.ByteString (ByteString)
+-- import Data.ByteString (ByteString)
 import Network.WebSockets (PendingConnection(pendingRequest))
 
 type Log m = String -> m ()
@@ -138,7 +139,7 @@ data Configuration m = Configuration
   , htmlEventHandlers :: [HtmlEventHandler]
   -- ^ For extending the handled events.  Have a look at 'defaultConfiguration' to see
   -- how to make your own.
-  , htmlHead          :: String
+  , htmlHead          :: ByteString
   -- ^ This is placed directly into the \<head\>, so that you can link to external
   -- CSS etc
   , devMode           :: Bool
@@ -168,10 +169,9 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 > main = run defaultConfiguration { component=view }
 
 -}
-renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
+renderFullPage :: Typeable action => Configuration m -> Purview action m -> ByteString
 renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
-  fromString
-  $ wrapHtml htmlHead htmlEventHandlers
+  wrapHtml htmlHead htmlEventHandlers
   $ render
   $ snd
   $ prepareTree component

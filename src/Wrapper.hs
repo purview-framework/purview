@@ -4,7 +4,7 @@ module Wrapper where
 
 import           Text.RawString.QQ (r)
 import           Data.Text (Text)
-
+import           Data.ByteString.Lazy (ByteString)
 
 data HtmlEventHandler = HtmlEventHandler
   { eventType :: String -- eg submit or click
@@ -24,7 +24,7 @@ Might also want to move to using "clickId" etc, if you want to.
 
 -}
 
-eventHandling :: String
+eventHandling :: ByteString
 eventHandling = [r|
   function eventHandler(event) {
     event.stopPropagation();
@@ -91,7 +91,7 @@ Without this, for example, click events on a div beneath the one
 with the click-location would be ignored.
 
 -}
-eventBubblingHandling :: String
+eventBubblingHandling :: ByteString
 eventBubblingHandling = [r|
   function bindLocationEnrichment() {
     document.querySelectorAll("[bubbling-bound]").forEach(item => {
@@ -113,7 +113,7 @@ eventBubblingHandling = [r|
   }
 |]
 
-websocketScript :: String
+websocketScript :: ByteString
 websocketScript = [r|
   var timeoutTime = -50;
   function connect() {
@@ -171,7 +171,7 @@ websocketScript = [r|
   }
 |]
 
-wrapHtml :: String -> [HtmlEventHandler] -> String -> String
+wrapHtml :: ByteString -> [HtmlEventHandler] -> ByteString -> ByteString
 wrapHtml htmlHead htmlEventHandlers body =
   "<!DOCTYPE html>"
   <> "<html>"
