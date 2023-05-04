@@ -59,6 +59,15 @@ data Purview event m where
   Html :: String -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
 
+  Javascript
+    :: { parentIdentifier :: ParentIdentifier
+       , identifier :: Identifier
+       , eventHandler :: String -> Maybe event  -- what to do with an event from the fn
+       , state :: state
+       , script :: String
+       }
+    -> Purview event m
+
   EffectHandler
     :: ( Show state
        , Eq state
