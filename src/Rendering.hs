@@ -73,4 +73,6 @@ render' attrs tree = case tree of
       render' attrs (unsafeCoerce continuation state) <>
     "</div>"
 
+  Receiver {} -> ""
+
   Value a -> show a

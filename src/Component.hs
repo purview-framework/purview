@@ -16,9 +16,9 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: ( Eq event
+  On :: ( Show event
+        , Eq event
         , Typeable event
-        , Show event
         )
      => String
      -> Identifier
@@ -59,12 +59,15 @@ data Purview event m where
   Html :: String -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
 
-  Javascript
-    :: { parentIdentifier :: ParentIdentifier
+  Receiver
+    :: ( Show event
+       , Eq event
+       , Typeable event
+       )
+    => { parentIdentifier :: ParentIdentifier
        , identifier :: Identifier
-       , eventHandler :: String -> Maybe event  -- what to do with an event from the fn
-       , state :: state
-       , script :: String
+       , name :: String
+       , eventHandler :: Maybe String -> event  -- what to do with an event from the fn
        }
     -> Purview event m
 
@@ -119,6 +122,11 @@ instance Show (Purview event m) where
       <> show location <> " "
       <> show state <> " "
       <> show (cont state)
+  show (Receiver parentLocation location name _) =
+    "Receiver "
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show name
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =

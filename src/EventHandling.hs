@@ -58,6 +58,8 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
   Attribute n cont ->
     Attribute n (applyNewState fromEvent cont)
 
+  receiver@Receiver {} -> receiver
+
   Text x -> Text x
 
   Value x -> Value x
@@ -87,6 +89,12 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
 
   Handler _ ident initEvents state _ cont ->
     findEvent event (cont state)
+
+  -- TODO: dunno how I feel about findEvent running anything
+  Receiver parentLocation location name eventHandler ->
+    if location == childLocation
+    then Just $ InternalEvent (eventHandler value) location parentLocation
+    else Nothing
 
   Text _ -> Nothing
 
@@ -120,6 +128,8 @@ runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
         Nothing -> pure []
     else
       runEvent internalEvent (cont state)
+
+  Receiver {} -> pure []
 
   Text _ -> pure []
 

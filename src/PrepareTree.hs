@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 module PrepareTree where
@@ -66,6 +67,9 @@ prepareTree' parentLocation location component = case component of
       ( fmap (directedEventToInternalEvent parentLocation location) initEvents <> childEvents
       , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
       )
+
+  Receiver { name, eventHandler } ->
+    ([], Receiver (Just parentLocation) (Just location) name eventHandler)
 
   Text val -> ([], Text val)
 
