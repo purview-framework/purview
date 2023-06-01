@@ -73,6 +73,9 @@ render' attrs tree = case tree of
       render' attrs (unsafeCoerce continuation state) <>
     "</div>"
 
-  Receiver {} -> ""
+  Receiver { identifier, name } ->
+    "<div handler=" <> (show . encode) identifier <>
+    " receiver-name=\"" <> name <> "\"" <>
+    "></div>"
 
   Value a -> show a

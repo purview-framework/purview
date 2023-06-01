@@ -66,7 +66,7 @@ data Purview event m where
        )
     => { parentIdentifier :: ParentIdentifier
        , identifier :: Identifier
-       , name :: String
+       , name :: String  -- the name to be used to send an event
        , eventHandler :: Maybe String -> event  -- what to do with an event from the fn
        }
     -> Purview event m
