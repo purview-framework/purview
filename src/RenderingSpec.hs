@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 module RenderingSpec where
 
 import Prelude hiding (div)
@@ -15,8 +14,6 @@ import Component (onSubmit)
 
 data SingleConstructor = SingleConstructor
   deriving (Show, Eq)
-
-$(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
 
 spec :: SpecWith ()
