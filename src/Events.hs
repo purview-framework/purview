@@ -61,6 +61,9 @@ data Event where
     :: ( Eq state, Show state, Typeable state )
     => (state -> state) -> Identifier -> Event
 
+  JavascriptCallEvent
+    :: String -> String -> Event
+
 instance Show Event where
   show (FromFrontendEvent event message location value) =
     show $ "{ event: "
@@ -81,6 +84,9 @@ instance Show Event where
     <> ", handlerId: " <> show handlerId
     <> " }"
 
+  show (JavascriptCallEvent name value) =
+    "{ event: \"callJS\" }"
+
 instance Eq Event where
   (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA, value=valueA })
     == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB, value=valueB }) =
@@ -94,6 +100,8 @@ instance Eq Event where
       Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
       Nothing        -> False
   (InternalEvent {}) == _ = False
+
+  (JavascriptCallEvent {}) == _ = False
 
 
 instance FromJSON Event where
@@ -110,3 +118,4 @@ or sent back in to the same handler.
 data DirectedEvent a b where
   Parent :: (Show a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Eq b) => b -> DirectedEvent a b
+  Browser :: String -> String -> DirectedEvent a b

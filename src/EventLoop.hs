@@ -24,6 +24,74 @@ import Component (Purview(initialEvents))
 
 type Log m = String -> m ()
 
+eventLoop'
+  :: (Monad m, Typeable event)
+  => Event
+  -> Bool
+  -> (m [Event] -> IO [Event])
+  -> Log IO
+  -> TChan Event
+  -> WebSockets.Connection
+  -> Purview event m
+  -> IO (Maybe (Purview event m))
+eventLoop' message devMode runner log eventBus connection component = do
+  let
+    -- this collects any actions that should run once and sets them
+    -- to "run" in the tree, while assigning locations / identifiers
+    -- to the event handlers
+    (initialEvents, newTree) = prepareTree component
+    event = findEvent message newTree
+
+  mapM_ (atomically . writeTChan eventBus) initialEvents
+  print $ "initialEvents: " <> show initialEvents
+  print $ "event: " <> show event
+
+  -- if it's special newState event, the state is replaced in the tree
+  let newTree' = case message of
+        FromFrontendEvent {}                 -> newTree
+        InternalEvent {}                     -> newTree
+        JavascriptCallEvent {}               -> newTree
+        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
+
+  -- this is where handlers are actually called, and their events are sent back into
+  -- this loop
+  void . forkIO $ do
+    newEvents <- case (event, message) of
+      (_, event'@InternalEvent {}) -> runner $ runEvent event' newTree'
+      (Just event', _)             -> runner $ runEvent event' newTree'
+      (Nothing,     _)             -> pure []
+    mapM_ (atomically . writeTChan eventBus) newEvents
+
+  let
+    -- collect diffs
+    location = case message of
+      (FromFrontendEvent { location }) -> location
+      (StateChangeEvent _ location)    -> location
+      (InternalEvent { handlerId })    -> handlerId
+      (JavascriptCallEvent {})         -> error "tried to get location off javascript call"
+
+    diffs = diff location [0] component newTree'
+    -- for now it's just "Update", which the javascript handles as replacing
+    -- the html beneath the handler.  I imagine it could be more exact, with
+    -- Delete / Create events.
+    renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
+
+  when devMode $ log $ "sending> " <> show renderedDiffs
+
+  WebSockets.sendTextData
+    connection
+    (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
+
+  pure (Just newTree')
+
+handleJavascriptCall :: String -> String -> WebSockets.Connection -> IO (Maybe (Purview event m))
+handleJavascriptCall name value connection = do
+  WebSockets.sendTextData
+    connection
+    (encode $ ForFrontEndEvent { event = "callJS", message = [name, value] })
+
+  pure Nothing
+
 --
 -- This is the main event loop of handling messages from the websocket
 --
@@ -45,57 +113,20 @@ eventLoop devMode runner log eventBus connection component = do
 
   when devMode $ log $ "received> " <> show message
 
-  let
-    -- this collects any actions that should run once and sets them
-    -- to "run" in the tree, while assigning locations / identifiers
-    -- to the event handlers
-    (initialEvents, newTree) = prepareTree component
-    event = findEvent message newTree
+  newTree <- case message of
+    JavascriptCallEvent name value -> handleJavascriptCall name value connection
+    _ -> eventLoop' message devMode runner log eventBus connection component
 
-  mapM_ (atomically . writeTChan eventBus) initialEvents
-  print $ "initialEvents: " <> show initialEvents
-  print $ "event: " <> show event
+  case newTree of
+    Just tree ->
+      case message of
+        (FromFrontendEvent { kind }) -> do
+          when (devMode && kind == "init") $
+            WebSockets.sendTextData
+            connection
+            (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render tree) ] })
 
-  -- if it's special newState event, the state is replaced in the tree
-  let newTree' = case message of
-        FromFrontendEvent {}                 -> newTree
-        InternalEvent {}                     -> newTree
-        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
-
-  -- this is where handlers are actually called, and their events are sent back into
-  -- this loop
-  void . forkIO $ do
-    newEvents <- case (event, message) of
-      (_, event'@InternalEvent {}) -> runner $ runEvent event' newTree'
-      (Just event', _)             -> runner $ runEvent event' newTree'
-      (Nothing,     _)             -> pure []
-    mapM_ (atomically . writeTChan eventBus) newEvents
-
-  let
-    -- collect diffs
-    location = case message of
-      (FromFrontendEvent { location }) -> location
-      (StateChangeEvent _ location)    -> location
-      (InternalEvent { handlerId })    -> handlerId
-
-    diffs = diff location [0] component newTree'
-    -- for now it's just "Update", which the javascript handles as replacing
-    -- the html beneath the handler.  I imagine it could be more exact, with
-    -- Delete / Create events.
-    renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
-
-  when devMode $ log $ "sending> " <> show renderedDiffs
-
-  WebSockets.sendTextData
-    connection
-    (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
-
-  case message of
-    (FromFrontendEvent { kind }) ->
-      when (devMode && kind == "init") $
-        WebSockets.sendTextData
-          connection
-          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
-    _ -> pure ()
-
-  eventLoop devMode runner log eventBus connection newTree'
+          eventLoop devMode runner log eventBus connection tree
+        _ ->
+          eventLoop devMode runner log eventBus connection tree
+    Nothing -> eventLoop devMode runner log eventBus connection component

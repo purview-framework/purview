@@ -136,6 +136,9 @@ websocketScript = [r|
         bindEvents();
         bindLocationEnrichment();
         // bindLocations();
+      } else if (event.event === "callJS") {
+        const [fnToCall, withValue] = event.message;
+        window[fnToCall](withValue);
       }
     };
 
@@ -194,8 +197,8 @@ sendEventHelper = [r|
   }
 |]
 
-wrapHtml :: String -> [HtmlEventHandler] -> [String] -> String -> String
-wrapHtml htmlHead htmlEventHandlers eventProducers body =
+wrapHtml :: String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
+wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
@@ -206,6 +209,9 @@ wrapHtml htmlHead htmlEventHandlers eventProducers body =
   <> "</script>"
   <> "<script>"
   <> concatMap (<> "\n") eventProducers
+  <> "</script>"
+  <> "<script>"
+  <> concatMap (<> "\n") eventListeners
   <> "</script>"
   <> "</head>"
   <> "<body>"
