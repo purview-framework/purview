@@ -171,9 +171,9 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 
 -}
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, htmlEventHandlers, eventProducers } component =
+renderFullPage Configuration { htmlHead, htmlEventHandlers, eventProducers, eventListeners } component =
   fromString
-  $ wrapHtml htmlHead htmlEventHandlers eventProducers
+  $ wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners
   $ render
   $ snd
   $ prepareTree component

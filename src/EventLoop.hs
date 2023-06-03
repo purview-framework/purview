@@ -33,7 +33,7 @@ eventLoop'
   -> TChan Event
   -> WebSockets.Connection
   -> Purview event m
-  -> IO (Maybe (Purview event m ))
+  -> IO (Maybe (Purview event m))
 eventLoop' message devMode runner log eventBus connection component = do
   let
     -- this collects any actions that should run once and sets them
@@ -50,6 +50,7 @@ eventLoop' message devMode runner log eventBus connection component = do
   let newTree' = case message of
         FromFrontendEvent {}                 -> newTree
         InternalEvent {}                     -> newTree
+        JavascriptCallEvent {}               -> newTree
         stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
 
   -- this is where handlers are actually called, and their events are sent back into
@@ -67,6 +68,7 @@ eventLoop' message devMode runner log eventBus connection component = do
       (FromFrontendEvent { location }) -> location
       (StateChangeEvent _ location)    -> location
       (InternalEvent { handlerId })    -> handlerId
+      (JavascriptCallEvent {})         -> error "tried to get location off javascript call"
 
     diffs = diff location [0] component newTree'
     -- for now it's just "Update", which the javascript handles as replacing
@@ -125,5 +127,6 @@ eventLoop devMode runner log eventBus connection component = do
             (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render tree) ] })
 
           eventLoop devMode runner log eventBus connection tree
-        _ -> pure ()
+        _ ->
+          eventLoop devMode runner log eventBus connection tree
     Nothing -> eventLoop devMode runner log eventBus connection component

@@ -84,6 +84,9 @@ instance Show Event where
     <> ", handlerId: " <> show handlerId
     <> " }"
 
+  show (JavascriptCallEvent name value) =
+    "{ event: \"callJS\" }"
+
 instance Eq Event where
   (FromFrontendEvent { childLocation=messageA, kind=eventA, location=locationA, value=valueA })
     == (FromFrontendEvent { childLocation=messageB, kind=eventB, location=locationB, value=valueB }) =
@@ -97,6 +100,8 @@ instance Eq Event where
       Just castEvent -> childId == childId' && handlerId == handlerId' && castEvent == event'
       Nothing        -> False
   (InternalEvent {}) == _ = False
+
+  (JavascriptCallEvent {}) == _ = False
 
 
 instance FromJSON Event where

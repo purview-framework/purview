@@ -137,6 +137,7 @@ websocketScript = [r|
         bindLocationEnrichment();
         // bindLocations();
       } else if (event.event === "callJS") {
+        console.log("hello")
         const [fnToCall, withValue] = event.message;
         window[fnToCall](withValue);
       }
