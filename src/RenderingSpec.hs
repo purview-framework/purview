@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 module RenderingSpec where
 
 import Prelude hiding (div)
@@ -15,8 +14,6 @@ import Component (onSubmit)
 
 data SingleConstructor = SingleConstructor
   deriving (Show, Eq)
-
-$(deriveJSON (defaultOptions{tagSingleConstructors=True}) ''SingleConstructor)
 
 
 spec :: SpecWith ()
@@ -105,6 +102,12 @@ spec = parallel $ do
         `shouldBe`
         "<div style=\"width: 50%; height: 50%;color: blue;\">box</div>"
 
+    it "can render a receiver" $ do
+      let receiver = Receiver (Just []) (Just [0, 1]) "test" (const "")
+
+      render receiver
+        `shouldBe`
+        "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"></div>"
 
 
 main :: IO ()

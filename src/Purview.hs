@@ -73,6 +73,7 @@ module Purview
   , handler'
   , effectHandler
   , effectHandler'
+  , receiver
 
   -- ** HTML helpers
   , div
@@ -124,9 +125,6 @@ import           Events
 import           PrepareTree
 import           Rendering
 import           Wrapper
-import Network.HTTP.Types
-import Data.ByteString (ByteString)
-import Network.WebSockets (PendingConnection(pendingRequest))
 
 type Log m = String -> m ()
 
@@ -146,6 +144,8 @@ data Configuration m = Configuration
   -- This enables you to use
   -- "ghcid --command 'stack ghci examples/Main.hs' --test :main`"
   -- to restart the server on file change, and get a kind of live reloading
+  , eventProducers    :: [String]
+  , eventListeners    :: [String]
   }
 
 defaultConfiguration :: Configuration IO
@@ -155,6 +155,8 @@ defaultConfiguration = Configuration
   , htmlEventHandlers = []
   , htmlHead          = ""
   , devMode           = False
+  , eventProducers    = []
+  , eventListeners    = []
   }
 
 {-|
@@ -169,9 +171,9 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 
 -}
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, htmlEventHandlers } component =
+renderFullPage Configuration { htmlHead, htmlEventHandlers, eventProducers } component =
   fromString
-  $ wrapHtml htmlHead htmlEventHandlers
+  $ wrapHtml htmlHead htmlEventHandlers eventProducers
   $ render
   $ snd
   $ prepareTree component

@@ -16,9 +16,9 @@ are applied during rendering.
 
 -}
 data Attributes event where
-  On :: ( Eq event
+  On :: ( Show event
+        , Eq event
         , Typeable event
-        , Show event
         )
      => String
      -> Identifier
@@ -58,6 +58,18 @@ data Purview event m where
   Text :: String -> Purview event m
   Html :: String -> [Purview event m] -> Purview event m
   Value :: Show a => a -> Purview event m
+
+  Receiver
+    :: ( Show event
+       , Eq event
+       , Typeable event
+       )
+    => { parentIdentifier :: ParentIdentifier
+       , identifier :: Identifier
+       , name :: String  -- the name to be used to send an event
+       , eventHandler :: Maybe String -> event  -- what to do with an event from the fn
+       }
+    -> Purview event m
 
   EffectHandler
     :: ( Show state
@@ -110,6 +122,11 @@ instance Show (Purview event m) where
       <> show location <> " "
       <> show state <> " "
       <> show (cont state)
+  show (Receiver parentLocation location name _) =
+    "Receiver "
+      <> show parentLocation <> " "
+      <> show location <> " "
+      <> show name
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =
@@ -255,6 +272,14 @@ defaultHandler =
 defaultEffectHandler :: Applicative m => (() -> Purview () m) -> Purview () m
 defaultEffectHandler =
   EffectHandler Nothing Nothing [] () (\event state -> pure (const (), []))
+
+receiver
+  :: ( Show event
+     , Eq event
+     , Typeable event
+     )
+  => String -> (Maybe String -> event) -> Purview event m
+receiver name eventParser = Receiver Nothing Nothing name eventParser
 
 {-
 
