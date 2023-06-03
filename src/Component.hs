@@ -273,6 +273,14 @@ defaultEffectHandler :: Applicative m => (() -> Purview () m) -> Purview () m
 defaultEffectHandler =
   EffectHandler Nothing Nothing [] () (\event state -> pure (const (), []))
 
+receiver
+  :: ( Show event
+     , Eq event
+     , Typeable event
+     )
+  => String -> (Maybe String -> event) -> Purview event m
+receiver name eventParser = Receiver Nothing Nothing name eventParser
+
 {-
 
 Helpers

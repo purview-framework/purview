@@ -171,13 +171,42 @@ websocketScript = [r|
   }
 |]
 
-wrapHtml :: String -> [HtmlEventHandler] -> String -> String
-wrapHtml htmlHead htmlEventHandlers body =
+sendEventHelper :: String
+sendEventHelper = [r|
+  const sendEvent = (receiverName, value) => {
+    const targets = document.querySelectorAll("[receiver-name=" + receiverName + "]")
+    if (targets.length > 1) {
+      console.error("too many")
+    } else if (targets.length == 0) {
+      console.error("none found")
+    } else {
+      var target = targets[0]
+      var location = JSON.parse(target.getAttribute("parent-handler"))
+      var childLocation = JSON.parse(target.getAttribute("handler"))
+
+      window.ws.send(JSON.stringify({
+        "event": "submit",
+        "value": value,
+        "childLocation": childLocation,
+        "location": location
+      }));
+    }
+  }
+|]
+
+wrapHtml :: String -> [HtmlEventHandler] -> [String] -> String -> String
+wrapHtml htmlHead htmlEventHandlers eventProducers body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
   <> "<script>" <> websocketScript <> eventHandling <> eventBubblingHandling <> "</script>"
   <> htmlHead
+  <> "<script>"
+  <> sendEventHelper
+  <> "</script>"
+  <> "<script>"
+  <> concatMap (<> "\n") eventProducers
+  <> "</script>"
   <> "</head>"
   <> "<body>"
   <> body
