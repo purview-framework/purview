@@ -74,7 +74,7 @@ render' attrs tree = case tree of
     "</div>"
 
   Receiver { parentIdentifier, identifier, name } ->
-    "<div " <>
+    "<div" <>
     " handler=" <> (show . encode) identifier <>
     " parent-handler=" <> (show . encode) parentIdentifier <>
     " receiver-name=\"" <> name <> "\"" <>

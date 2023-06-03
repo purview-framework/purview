@@ -107,7 +107,7 @@ spec = parallel $ do
 
       render receiver
         `shouldBe`
-        "<div handler=\"[0,1]\" receiver-name=\"test\"></div>"
+        "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"></div>"
 
 
 main :: IO ()
