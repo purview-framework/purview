@@ -24,27 +24,17 @@ import Component (Purview(initialEvents))
 
 type Log m = String -> m ()
 
---
--- This is the main event loop of handling messages from the websocket
---
--- pretty much just get a message, then run the message via the component
--- handler, and then send the "setHtml" back downstream to tell it to replace
--- the html with the new.
---
-eventLoop
+eventLoop'
   :: (Monad m, Typeable event)
-  => Bool
+  => Event
+  -> Bool
   -> (m [Event] -> IO [Event])
   -> Log IO
   -> TChan Event
   -> WebSockets.Connection
   -> Purview event m
-  -> IO ()
-eventLoop devMode runner log eventBus connection component = do
-  message <- atomically $ readTChan eventBus
-
-  when devMode $ log $ "received> " <> show message
-
+  -> IO (Maybe (Purview event m ))
+eventLoop' message devMode runner log eventBus connection component = do
   let
     -- this collects any actions that should run once and sets them
     -- to "run" in the tree, while assigning locations / identifiers
@@ -90,12 +80,50 @@ eventLoop devMode runner log eventBus connection component = do
     connection
     (encode $ ForFrontEndEvent { event = "setHtml", message = renderedDiffs })
 
-  case message of
-    (FromFrontendEvent { kind }) ->
-      when (devMode && kind == "init") $
-        WebSockets.sendTextData
-          connection
-          (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render newTree') ] })
-    _ -> pure ()
+  pure (Just newTree')
 
-  eventLoop devMode runner log eventBus connection newTree'
+handleJavascriptCall :: String -> String -> WebSockets.Connection -> IO (Maybe (Purview event m))
+handleJavascriptCall name value connection = do
+  WebSockets.sendTextData
+    connection
+    (encode $ ForFrontEndEvent { event = "callJS", message = [name, value] })
+
+  pure Nothing
+
+--
+-- This is the main event loop of handling messages from the websocket
+--
+-- pretty much just get a message, then run the message via the component
+-- handler, and then send the "setHtml" back downstream to tell it to replace
+-- the html with the new.
+--
+eventLoop
+  :: (Monad m, Typeable event)
+  => Bool
+  -> (m [Event] -> IO [Event])
+  -> Log IO
+  -> TChan Event
+  -> WebSockets.Connection
+  -> Purview event m
+  -> IO ()
+eventLoop devMode runner log eventBus connection component = do
+  message <- atomically $ readTChan eventBus
+
+  when devMode $ log $ "received> " <> show message
+
+  newTree <- case message of
+    JavascriptCallEvent name value -> handleJavascriptCall name value connection
+    _ -> eventLoop' message devMode runner log eventBus connection component
+
+  case newTree of
+    Just tree ->
+      case message of
+        (FromFrontendEvent { kind }) -> do
+          when (devMode && kind == "init") $
+            WebSockets.sendTextData
+            connection
+            (encode $ ForFrontEndEvent { event = "setHtml", message = [ Update [] (render tree) ] })
+
+          eventLoop devMode runner log eventBus connection tree
+        _ -> pure ()
+    Nothing -> eventLoop devMode runner log eventBus connection component

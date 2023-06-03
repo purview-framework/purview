@@ -61,6 +61,9 @@ data Event where
     :: ( Eq state, Show state, Typeable state )
     => (state -> state) -> Identifier -> Event
 
+  JavascriptCallEvent
+    :: String -> String -> Event
+
 instance Show Event where
   show (FromFrontendEvent event message location value) =
     show $ "{ event: "
@@ -110,3 +113,4 @@ or sent back in to the same handler.
 data DirectedEvent a b where
   Parent :: (Show a, Eq a) => a -> DirectedEvent a b
   Self :: (Show b, Eq b) => b -> DirectedEvent a b
+  Browser :: String -> String -> DirectedEvent a b

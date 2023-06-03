@@ -17,8 +17,9 @@ type Location = [Int]
 
 directedEventToInternalEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
 directedEventToInternalEvent parentLocation location directedEvent = case directedEvent of
-  Parent event -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
-  Self event   -> InternalEvent { event=event, childId=Nothing, handlerId=Just location }
+  Parent event       -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
+  Self event         -> InternalEvent { event=event, childId=Nothing, handlerId=Just location }
+  Browser name value -> JavascriptCallEvent name value
 
 {-|
 
