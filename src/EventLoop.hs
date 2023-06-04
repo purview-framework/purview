@@ -50,6 +50,10 @@ eventLoop' message devMode runner log eventBus connection component = do
     (initialEvents, css) = collectInitials locatedTree
     -- 3. removes captured css and initial events
     newTree' = cleanTree css locatedTree
+    -- why pass in the found css?  otherwise haskell will optimize by
+    -- putting the function that removes css into the tree, which results
+    -- in the css being removed before it's been found by collectInitials.
+    -- or at least, that's what seemed to be happening.  very funny.
 
     event = findEvent message newTree'
 
