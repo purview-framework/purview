@@ -22,16 +22,17 @@ spec = parallel $ do
   describe "prepareTree" $ do
 
     it "works across a variety of trees" $ do
-      property $ \x -> show (snd (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
+      property $ \x -> show ((\(_, _, it) -> it ) (prepareTree (x :: Purview String IO)))
+        `shouldContain` "always present"
 
     it "assigns an identifier to On actions" $ do
       let target = div
             [ onClick "setTime" $ div []
             , onClick "clearTime" $ div []
             ]
-          fixedTree = prepareTree target
+          (_, _, fixedTree) = prepareTree target
 
-      snd fixedTree
+      fixedTree
         `shouldBe`
         Html "div"
           [ Attribute (On "click" (Just [0]) (const "setTime") ) $ Html "div" []
@@ -49,13 +50,13 @@ spec = parallel $ do
 
           handle "up" state = (id, [])
 
-          (initialActions, component) = prepareTree (handler' (const $ div []))
+          (initialActions, _, component) = prepareTree (handler' (const $ div []))
 
         initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let
-          (initialActions', component') = prepareTree component
+          (initialActions', _, component') = prepareTree component
 
         initialActions' `shouldBe` []
 
@@ -65,13 +66,13 @@ spec = parallel $ do
 
           handle "up" state = pure (state, []) :: IO (String, [DirectedEvent () String])
 
-          (initialActions, component) = prepareTree (handler' (const $ div []))
+          (initialActions, _, component) = prepareTree (handler' (const $ div []))
 
         initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let
-          (initialActions', component') = prepareTree component
+          (initialActions', _, component') = prepareTree component
 
         initialActions' `shouldBe` []
 
@@ -85,7 +86,7 @@ spec = parallel $ do
           component :: Purview () IO
           component = parentHandler $ \_ -> childHandler $ \_ -> div []
 
-          (initialActions, _) = prepareTree component
+          (initialActions, _, _) = prepareTree component
 
         initialActions
           `shouldBe` [ InternalEvent "to child" Nothing (Just [0])
@@ -108,7 +109,7 @@ spec = parallel $ do
       component `shouldBe` (EffectHandler Nothing Nothing [] Nothing handle (const (Text "")))
 
       let
-        graphWithLocation = snd (prepareTree component)
+        (_, _, graphWithLocation) = prepareTree component
 
       graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) [] Nothing handle (const (Text "")))
 
@@ -128,7 +129,7 @@ spec = parallel $ do
           , timeHandler (const (Text ""))
           ]
 
-        graphWithLocation = snd (prepareTree component)
+        (_, _, graphWithLocation) = prepareTree component
 
       show graphWithLocation
         `shouldBe`
@@ -149,7 +150,7 @@ spec = parallel $ do
           timeHandler (const (timeHandler (const (Text ""))))
 
 
-        graphWithLocation = snd (prepareTree component)
+        (_, _, graphWithLocation) = prepareTree component
 
       show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] Nothing EffectHandler Just [] Just [0] Nothing \"\""
 

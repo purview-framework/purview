@@ -17,7 +17,7 @@ else to actually send the actions.
 It also assigns a location to message and effect handlers.
 
 -}
-prepareTree :: Typeable event => Purview event m -> ([Event], Purview event m)
+prepareTree :: Typeable event => Purview event m -> ([Event], [(Hash, String)], Purview event m)
 prepareTree = prepareTree' [] []
 
 type Location = [Int]
@@ -31,46 +31,55 @@ directedEventToInternalEvent :: (Typeable a, Typeable b) => Location -> Location
 directedEventToInternalEvent parentLocation location directedEvent = case directedEvent of
   Parent event -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
   Self event   -> InternalEvent { event=event, childId=Nothing, handlerId=Just location }
+  Browser {}   -> error "tried to turn a browser event into an internal event"
 
-prepareTree' :: Typeable event => Location -> Location -> Purview event m -> ([Event], Purview event m)
+prepareTree'
+  :: Typeable event
+  => Location
+  -> Location
+  -> Purview event m
+  -> ([Event], [(Hash, String)], Purview event m)
 prepareTree' parentLocation location component = case component of
   Attribute attr cont ->
     let
-      (events, child) = prepareTree' parentLocation (location <> [0]) cont
+      (events, css, child) = prepareTree' parentLocation (location <> [0]) cont
     in
-      (events, Attribute (addLocationToAttr location attr) child)
+      (events, css, Attribute (addLocationToAttr location attr) child)
 
   Html kind children ->
     let
       indexedChildren = zip [0..] children
       eventsAndChildren =
         fmap (\(location', child) -> prepareTree' parentLocation (location <> [location']) child) indexedChildren
-      events = concatMap fst eventsAndChildren
-      children' = fmap snd eventsAndChildren
+      events = concatMap (\(it, _, _) -> it) eventsAndChildren
+      css = concatMap (\(_, it, _) -> it) eventsAndChildren
+      children' = fmap (\(_, _, it) -> it) eventsAndChildren
     in
-      (events, Html kind children')
+      (events, css, Html kind children')
 
   EffectHandler _ploc _loc initEvents state handler cont ->
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
-      (childEvents, _) = cont' state
+      (childEvents, css, _) = cont' state
     in
       ( fmap (directedEventToInternalEvent parentLocation location) initEvents <> childEvents
-      , EffectHandler (Just parentLocation) (Just location) [] state handler (snd . cont')
+      , css
+      , EffectHandler (Just parentLocation) (Just location) [] state handler ((\(_, _, it) -> it) . cont')
       )
 
   Handler _ploc _loc initEvents state handler cont ->
     let
       cont' = fmap (prepareTree' location (location <> [0])) cont
-      (childEvents, _) = cont' state
+      (childEvents, css, _) = cont' state
     in
       ( fmap (directedEventToInternalEvent parentLocation location) initEvents <> childEvents
-      , Handler (Just parentLocation) (Just location) [] state handler (snd . cont')
+      , css
+      , Handler (Just parentLocation) (Just location) [] state handler ((\(_, _, it) -> it) . cont')
       )
 
   Receiver { name, eventHandler } ->
-    ([], Receiver (Just parentLocation) (Just location) name eventHandler)
+    ([], [], Receiver (Just parentLocation) (Just location) name eventHandler)
 
-  Text val -> ([], Text val)
+  Text val -> ([], [], Text val)
 
-  Value val -> ([], Value val)
+  Value val -> ([], [], Value val)

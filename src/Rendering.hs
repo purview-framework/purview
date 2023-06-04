@@ -16,8 +16,10 @@ isGeneric (Generic _ _) = True
 isGeneric _             = False
 
 getStyle :: Attributes a -> String
-getStyle (Style (hash, style')) = style'
-getStyle _              = ""
+getStyle (Style (hash, style')) =
+  -- inline styles are just given a hash of -1
+  if hash == "-1" then style' else ""
+getStyle _ = ""
 
 renderGeneric :: Attributes a -> String
 renderGeneric attr = case attr of
@@ -61,6 +63,7 @@ render' attrs tree = case tree of
   Text val -> val
 
   Attribute attr rest ->
+    -- collecting all the attributes till we hit html
     render' (attr:attrs) rest
 
   EffectHandler parentLocation location initEvents state _ cont ->
