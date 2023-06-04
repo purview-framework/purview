@@ -27,6 +27,14 @@ addLocationToAttr loc attr = case attr of
   On str _ event' -> On str (Just loc) event'
   _               -> attr
 
+getStyleFromAttr :: Attributes e -> (Maybe (Hash, String), Attributes e)
+getStyleFromAttr attr = case attr of
+  Style (hash, css) ->
+    if hash /= "-1"
+    then (Just (hash, css), Style (hash, ""))  -- set the css to empty since it's been caught
+    else (Nothing, attr)
+  _ -> (Nothing, attr)
+
 directedEventToInternalEvent :: (Typeable a, Typeable b) => Location -> Location -> DirectedEvent a b -> Event
 directedEventToInternalEvent parentLocation location directedEvent = case directedEvent of
   Parent event -> InternalEvent { event=event, childId=Nothing, handlerId=Just parentLocation }
@@ -43,8 +51,11 @@ prepareTree' parentLocation location component = case component of
   Attribute attr cont ->
     let
       (events, css, child) = prepareTree' parentLocation (location <> [0]) cont
+      (possibleCss, newAttr) = getStyleFromAttr $ addLocationToAttr location attr
     in
-      (events, css, Attribute (addLocationToAttr location attr) child)
+      case possibleCss of
+        Just newCss -> (events, newCss : css, Attribute (addLocationToAttr location attr) child)
+        Nothing     -> (events, css, Attribute newAttr child)
 
   Html kind children ->
     let

@@ -10,6 +10,7 @@ import TreeGenerator ()
 import Events
 import Component
 import PrepareTree
+import PrepareTree (prepareTree)
 
 type UTCTime = Integer
 
@@ -153,6 +154,13 @@ spec = parallel $ do
         (_, _, graphWithLocation) = prepareTree component
 
       show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] Nothing EffectHandler Just [] Just [0] Nothing \"\""
+
+    it "picks up css" $ do
+      let component = (Attribute $ Style ("123", "color: blue;")) $ div []
+          (_, css, _) = prepareTree component :: ([Event], [(Hash, String)], Purview () m)
+
+      css `shouldBe` [("123", "color: blue;")]
+
 
 
 main :: IO ()
