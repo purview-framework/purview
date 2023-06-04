@@ -6,7 +6,8 @@ module StyleSpec where
 
 import Test.Hspec
 
-import Style (Style (..), style)
+import Component (Attributes (Style))
+import Style (style)
 
 spec :: SpecWith ()
 spec = parallel $ do

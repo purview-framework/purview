@@ -9,6 +9,8 @@ import           Data.Bifunctor
 
 import           Events
 
+type Hash = String
+
 {-|
 
 Attributes are collected until an 'HTML' constructor is hit, where they
@@ -25,7 +27,7 @@ data Attributes event where
      -> (Maybe String -> event)  -- the string here is information from the browser
      -> Attributes event
         -- ^ part of creating handlers for different events, e.g. On "click"
-  Style :: String -> Attributes event
+  Style :: (Hash, String) -> Attributes event
         -- ^ inline css
   Generic :: String -> String -> Attributes event
         -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
@@ -322,14 +324,14 @@ text = Text
 
 {-|
 
-For adding styles
+For adding inline styles.  Good for dynamic parts of styling.
 
 > blue = style "color: \"blue\";"
 > blueButton = blue $ button [ text "I'm blue" ]
 
 -}
-style :: String -> Purview event m -> Purview event m
-style = Attribute . Style
+istyle :: String -> Purview event m -> Purview event m
+istyle str = Attribute $ Style ("-1", str)
 
 {-|
 

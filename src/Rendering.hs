@@ -16,7 +16,7 @@ isGeneric (Generic _ _) = True
 isGeneric _             = False
 
 getStyle :: Attributes a -> String
-getStyle (Style style') = style'
+getStyle (Style (hash, style')) = style'
 getStyle _              = ""
 
 renderGeneric :: Attributes a -> String

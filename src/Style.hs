@@ -3,7 +3,6 @@
 -- |
 module Style
   ( style
-  , Style (..)
   )
 where
 
@@ -13,10 +12,12 @@ import Language.Haskell.TH.Quote
 import Data.Bits
 import Data.List
 
+import Component (Attributes)
+
 -- thanks https://stackoverflow.com/questions/59399050/haskell-making-quasi-quoted-values-strict-evaluated-at-compile-time
 
-newtype Style = Style (String, String)
-  deriving (Show, Eq)
+-- newtype Style = Style (String, String)
+--   deriving (Show, Eq)
 
 style' :: String -> Q Exp
 style' css =

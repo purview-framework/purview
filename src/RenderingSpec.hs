@@ -88,15 +88,15 @@ spec = parallel $ do
 
 
     it "can render a style" $ do
-      let element = style "color: blue;" $ div [ text "blue" ]
+      let element = istyle "color: blue;" $ div [ text "blue" ]
 
       render element
         `shouldBe`
         "<div style=\"color: blue;\">blue</div>"
 
     it "can render composed styles" $ do
-      let blue = style "color: blue;"
-          halfSize = style "width: 50%; height: 50%;"
+      let blue = istyle "color: blue;"
+          halfSize = istyle "width: 50%; height: 50%;"
 
       render (blue . halfSize $ div [ text "box" ])
         `shouldBe`

@@ -87,7 +87,7 @@ module Purview
   , button
   , form
   , input
-  , style
+  , istyle
   , id'
   , class'
 
