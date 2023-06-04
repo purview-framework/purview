@@ -60,12 +60,10 @@ library
       src
   ghc-options: -Wincomplete-patterns
   build-depends:
-      QuickCheck
-    , aeson >=1.5.6 && <2.1
+      aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
-    , hspec
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
@@ -132,13 +130,11 @@ benchmark purview-perf-test
       performance
   ghc-options: -main-is Criterion
   build-depends:
-      QuickCheck
-    , aeson >=1.5.6 && <2.1
+      aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
     , criterion >=1.5.13 && <1.6
-    , hspec
     , http-types >=0.12.3 && <0.13
     , purview
     , raw-strings-qq ==1.1.*
