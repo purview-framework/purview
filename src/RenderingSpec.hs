@@ -88,15 +88,15 @@ spec = parallel $ do
 
 
     it "can render a style" $ do
-      let element = style "color: blue;" $ div [ text "blue" ]
+      let element = istyle "color: blue;" $ div [ text "blue" ]
 
       render element
         `shouldBe`
         "<div style=\"color: blue;\">blue</div>"
 
     it "can render composed styles" $ do
-      let blue = style "color: blue;"
-          halfSize = style "width: 50%; height: 50%;"
+      let blue = istyle "color: blue;"
+          halfSize = istyle "width: 50%; height: 50%;"
 
       render (blue . halfSize $ div [ text "box" ])
         `shouldBe`
@@ -109,6 +109,12 @@ spec = parallel $ do
         `shouldBe`
         "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"></div>"
 
+    it "can render a class based style" $ do
+      let component = (Attribute $ Style ("123", "")) $ div []
+
+      render component
+        `shouldBe`
+        "<div class=\"123\"></div>"
 
 main :: IO ()
 main = hspec spec

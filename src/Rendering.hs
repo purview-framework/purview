@@ -15,9 +15,20 @@ isGeneric :: Attributes a -> Bool
 isGeneric (Generic _ _) = True
 isGeneric _             = False
 
+isClass :: Attributes a -> Bool
+isClass (Generic "class" _) = True
+isClass _                   = False
+
 getStyle :: Attributes a -> String
-getStyle (Style style') = style'
-getStyle _              = ""
+getStyle (Style (hash, style')) =
+  -- inline styles are just given a hash of -1
+  if hash == "-1" then style' else ""
+getStyle _ = ""
+
+getClassBasedStyle :: Attributes a -> String
+getClassBasedStyle (Style (hash, style')) =
+  if style' == "" then hash else ""
+getClassBasedStyle _ = ""
 
 renderGeneric :: Attributes a -> String
 renderGeneric attr = case attr of
@@ -30,16 +41,26 @@ renderAttributes attrs =
     styles = concatMap getStyle attrs
     renderedStyle = if not (null styles) then " style=" <> show styles else ""
 
+    -- TODO: this is uggo
+    classStyles = filter (not . null) $ fmap getClassBasedStyle attrs
+    existingClasses = (\(Generic _ name) -> name) <$> filter isClass attrs
+    combinedClasses = classStyles <> existingClasses
+
+    renderedClasses =
+      if not (null combinedClasses)
+      then " class=\"" <> concatMap (\class' -> class') combinedClasses <> "\""
+      else ""
+
     listeners = filter isOn attrs
     renderedListeners = concatMap
       (\(On name ident action) -> " " <> name <> "-location=" <> unpack (encode ident))
       listeners
     noticeToBind = if null listeners then "" else " bubbling-bound"
 
-    generics = filter isGeneric attrs
+    generics = filter (not . isClass) $ filter isGeneric attrs
     renderedGenerics = concatMap renderGeneric generics
   in
-    renderedStyle <> noticeToBind <> renderedListeners <> renderedGenerics
+    renderedStyle <> noticeToBind <> renderedListeners <> renderedGenerics <> renderedClasses
 
 {-|
 
@@ -61,6 +82,7 @@ render' attrs tree = case tree of
   Text val -> val
 
   Attribute attr rest ->
+    -- collecting all the attributes till we hit html
     render' (attr:attrs) rest
 
   EffectHandler parentLocation location initEvents state _ cont ->

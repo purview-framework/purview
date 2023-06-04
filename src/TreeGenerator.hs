@@ -29,7 +29,7 @@ sizedArbExpr n = do
   es <- vectorOf 2 (sizedArbExpr (n-1))
   elements
     [ div es
-    , style "" $ div es
+    , istyle "" $ div es
     , testHandler (const $ div es)
     ]
 

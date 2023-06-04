@@ -139,6 +139,13 @@ websocketScript = [r|
       } else if (event.event === "callJS") {
         const [fnToCall, withValue] = event.message;
         window[fnToCall](withValue);
+      } else if (event.event === "setCSS") {
+        console.log(event.message);
+        var sheet = window.document.styleSheets[0];
+        event.message.map(cssRule => {
+            const [name, css] = cssRule;
+            sheet.insertRule('.' + name + '{ ' + css + ' }', sheet.cssRules.length);
+        })
       }
     };
 
@@ -197,8 +204,11 @@ sendEventHelper = [r|
   }
 |]
 
-wrapHtml :: String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
-wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners body =
+prepareCss :: [(String, String)] -> String
+prepareCss = concatMap (\(hash, css) -> "." <> hash <> " {" <> css <> "}\n")
+
+wrapHtml :: [(String, String)] -> String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
+wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
@@ -213,6 +223,9 @@ wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners body =
   <> "<script>"
   <> concatMap (<> "\n") eventListeners
   <> "</script>"
+  <> "<style>"
+  <> prepareCss css
+  <> "</style>"
   <> "</head>"
   <> "<body>"
   <> body

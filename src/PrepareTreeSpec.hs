@@ -10,6 +10,8 @@ import TreeGenerator ()
 import Events
 import Component
 import PrepareTree
+import CollectInitials (collectInitials)
+import CleanTree (cleanTree)
 
 type UTCTime = Integer
 
@@ -22,7 +24,8 @@ spec = parallel $ do
   describe "prepareTree" $ do
 
     it "works across a variety of trees" $ do
-      property $ \x -> show (snd (prepareTree (x :: Purview String IO))) `shouldContain` "always present"
+      property $ \x -> show (prepareTree (x :: Purview String IO))
+        `shouldContain` "always present"
 
     it "assigns an identifier to On actions" $ do
       let target = div
@@ -31,7 +34,7 @@ spec = parallel $ do
             ]
           fixedTree = prepareTree target
 
-      snd fixedTree
+      fixedTree
         `shouldBe`
         Html "div"
           [ Attribute (On "click" (Just [0]) (const "setTime") ) $ Html "div" []
@@ -49,13 +52,14 @@ spec = parallel $ do
 
           handle "up" state = (id, [])
 
-          (initialActions, component) = prepareTree (handler' (const $ div []))
+          preparedTree = prepareTree (handler' (const $ div []))
+          (initialActions, _) = collectInitials preparedTree
 
         initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let
-          (initialActions', component') = prepareTree component
+          (initialActions', _) = collectInitials $ cleanTree [] (prepareTree $ handler' (const $ div []))
 
         initialActions' `shouldBe` []
 
@@ -65,13 +69,14 @@ spec = parallel $ do
 
           handle "up" state = pure (state, []) :: IO (String, [DirectedEvent () String])
 
-          (initialActions, component) = prepareTree (handler' (const $ div []))
+          preparedTree = prepareTree (handler' (const $ div []))
+          (initialActions, _) =  collectInitials preparedTree
 
         initialActions `shouldBe` [InternalEvent "up" Nothing (Just [])]
 
         -- the next round there should be no initial actions
         let
-          (initialActions', component') = prepareTree component
+          (initialActions', _) = collectInitials $ cleanTree [] (prepareTree $ handler' (const $ div []))
 
         initialActions' `shouldBe` []
 
@@ -85,7 +90,8 @@ spec = parallel $ do
           component :: Purview () IO
           component = parentHandler $ \_ -> childHandler $ \_ -> div []
 
-          (initialActions, _) = prepareTree component
+          preparedTree = prepareTree component
+          (initialActions, _) = collectInitials preparedTree
 
         initialActions
           `shouldBe` [ InternalEvent "to child" Nothing (Just [0])
@@ -108,7 +114,7 @@ spec = parallel $ do
       component `shouldBe` (EffectHandler Nothing Nothing [] Nothing handle (const (Text "")))
 
       let
-        graphWithLocation = snd (prepareTree component)
+        graphWithLocation = prepareTree component
 
       graphWithLocation `shouldBe` (EffectHandler (Just []) (Just []) [] Nothing handle (const (Text "")))
 
@@ -128,7 +134,7 @@ spec = parallel $ do
           , timeHandler (const (Text ""))
           ]
 
-        graphWithLocation = snd (prepareTree component)
+        graphWithLocation = prepareTree component
 
       show graphWithLocation
         `shouldBe`
@@ -149,9 +155,19 @@ spec = parallel $ do
           timeHandler (const (timeHandler (const (Text ""))))
 
 
-        graphWithLocation = snd (prepareTree component)
+        graphWithLocation = prepareTree component
 
       show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] Nothing EffectHandler Just [] Just [0] Nothing \"\""
+
+    it "picks up css" $ do
+      let
+        component :: Purview () m
+        component = (Attribute $ Style ("123", "color: blue;")) $ div []
+
+        (_, css) = collectInitials component :: ([Event], [(Hash, String)])
+
+      css `shouldBe` [("123", "color: blue;")]
+
 
 
 main :: IO ()

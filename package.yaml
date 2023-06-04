@@ -45,6 +45,7 @@ dependencies:
 - websockets                    >= 0.12.7 && < 0.13
 - blaze-builder                 >= 0.4.2 && < 0.5
 - http-types                    >= 0.12.3 && < 0.13
+- template-haskell
 
 # - hspec #
 # - QuickCheck #
@@ -67,6 +68,8 @@ library:
       - PurviewSpec
       - RenderingSpec
       - EventsSpec
+      - StyleSpec
+      - CollectInitialSpec
       - Spec
 
 # executables:
