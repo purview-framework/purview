@@ -109,6 +109,12 @@ spec = parallel $ do
         `shouldBe`
         "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"></div>"
 
+    it "can render a class based style" $ do
+      let component = (Attribute $ Style ("123", "")) $ div []
+
+      render component
+        `shouldBe`
+        "<div class=\"123\"></div>"
 
 main :: IO ()
 main = hspec spec
