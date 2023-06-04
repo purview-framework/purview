@@ -15,8 +15,8 @@ type Location = [Int]
 getStyleFromAttr :: Attributes e -> Maybe (Hash, String)
 getStyleFromAttr attr = case attr of
   Style (hash, css) ->
-    if hash /= "-1"
-    then trace ("CHECK2: " <> hash <> " " <> css) (Just (hash, css))  -- set the css to empty since it's been caught
+    if hash /= "-1" && css /= ""
+    then Just (hash, css)  -- set the css to empty since it's been caught
     else Nothing
   _ -> Nothing
 

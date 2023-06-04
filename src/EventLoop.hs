@@ -78,7 +78,7 @@ eventLoop' message devMode runner log eventBus connection component = do
 
   when devMode $ log $ "sending> " <> show renderedDiffs
 
-  WebSockets.sendTextData
+  unless (null css) $ WebSockets.sendTextData
     connection
     (encode $ ForFrontEndEvent { event = "setCSS", message = css })
 
