@@ -36,8 +36,8 @@ eventLoop'
   -> IO (Maybe (Purview event m))
 eventLoop' message devMode runner log eventBus connection component = do
   let
-    -- this collects any actions that should run once and sets them
-    -- to "run" in the tree, while assigning locations / identifiers
+    -- this collects any actions that should run once
+    -- while assigning locations / identifiers
     -- to the event handlers
     (initialEvents, newTree) = prepareTree component
     event = findEvent message newTree
