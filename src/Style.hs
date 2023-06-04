@@ -12,17 +12,9 @@ import Language.Haskell.TH.Quote
 import Data.Bits
 import Data.List
 
-import Component (Attributes)
+import Component (Attributes ( Style ), Purview ( Attribute ))
 
 -- thanks https://stackoverflow.com/questions/59399050/haskell-making-quasi-quoted-values-strict-evaluated-at-compile-time
-
--- newtype Style = Style (String, String)
---   deriving (Show, Eq)
-
-style' :: String -> Q Exp
-style' css =
-  let hashed = show $ hash css
-  in [| Style (hashed, css) |]
 
 style :: QuasiQuoter
 style = QuasiQuoter
@@ -31,6 +23,12 @@ style = QuasiQuoter
   , quotePat = error "quotePat not implemented"
   , quoteExp = style'
   }
+
+style' :: String -> Q Exp
+style' css =
+  let hashed = show $ hash css
+  in [| Attribute (Style (hashed, css)) |]
+
 
 -- snagged from https://stackoverflow.com/a/9263004/1361890
 hash :: String -> Int
