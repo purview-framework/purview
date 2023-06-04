@@ -18,7 +18,7 @@ spec = parallel $ do
     it "produces a non-empty style" $ do
       let styled = [style|blue;|] component
 
-      show styled `shouldBe` "Attr Style (\"210629223392\",\"blue;\") div [  ] "
+      show styled `shouldBe` "Attr Style (\"p210629223392\",\"blue;\") div [  ] "
 
     it "produces the same hash for the same style" $ do
       let

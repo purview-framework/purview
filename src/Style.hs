@@ -26,7 +26,8 @@ style = QuasiQuoter
 
 style' :: String -> Q Exp
 style' css =
-  let hashed = show $ hash css
+  -- pretty funny, css needs a leading character (not number)
+  let hashed = 'p' : show (hash css)
   in [| Attribute (Style (hashed, css)) |]
 
 
