@@ -156,10 +156,12 @@ spec = parallel $ do
       show graphWithLocation `shouldBe` "EffectHandler Just [] Just [] Nothing EffectHandler Just [] Just [0] Nothing \"\""
 
     it "picks up css" $ do
-      let component = (Attribute $ Style ("123", "color: blue;")) $ div []
-          (_, css, _) = prepareTree component :: ([Event], [(Hash, String)], Purview () m)
+      let
+        component = (Attribute $ Style ("123", "color: blue;")) $ div []
+        (_, css, preparedTree) = prepareTree component :: ([Event], [(Hash, String)], Purview () m)
 
       css `shouldBe` [("123", "color: blue;")]
+      show preparedTree `shouldBe` "Attr Style (\"123\",\"\") div [  ] "
 
 
 

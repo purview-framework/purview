@@ -198,7 +198,7 @@ sendEventHelper = [r|
 |]
 
 prepareCss :: [(String, String)] -> String
-prepareCss = concatMap (\(hash, css) -> "." <> hash <> " {" <> css <> "}")
+prepareCss = concatMap (\(hash, css) -> "." <> hash <> " {" <> css <> "}\n")
 
 wrapHtml :: [(String, String)] -> String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
 wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners body =

@@ -75,6 +75,9 @@ module Purview
   , effectHandler'
   , receiver
 
+  -- ** QuasiQuoter for styling
+  , style
+
   -- ** HTML helpers
   , div
   , span
@@ -119,6 +122,7 @@ import           Control.Concurrent.STM.TChan
 import           Control.Monad.STM
 import           Control.Concurrent
 
+import           Style (style)
 import           Component
 import           EventLoop
 import           Events

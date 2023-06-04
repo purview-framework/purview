@@ -54,7 +54,7 @@ prepareTree' parentLocation location component = case component of
       (possibleCss, newAttr) = getStyleFromAttr $ addLocationToAttr location attr
     in
       case possibleCss of
-        Just newCss -> (events, newCss : css, Attribute (addLocationToAttr location attr) child)
+        Just newCss -> (events, newCss : css, Attribute newAttr child)
         Nothing     -> (events, css, Attribute newAttr child)
 
   Html kind children ->
