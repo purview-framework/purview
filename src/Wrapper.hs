@@ -197,8 +197,11 @@ sendEventHelper = [r|
   }
 |]
 
-wrapHtml :: String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
-wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners body =
+prepareCss :: [(String, String)] -> String
+prepareCss = concatMap (\(hash, css) -> "." <> hash <> " {" <> css <> "}")
+
+wrapHtml :: [(String, String)] -> String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
+wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
@@ -213,6 +216,9 @@ wrapHtml htmlHead htmlEventHandlers eventProducers eventListeners body =
   <> "<script>"
   <> concatMap (<> "\n") eventListeners
   <> "</script>"
+  <> "<style>"
+  <> prepareCss css
+  <> "</style>"
   <> "</head>"
   <> "<body>"
   <> body

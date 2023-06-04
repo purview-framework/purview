@@ -39,7 +39,7 @@ eventLoop' message devMode runner log eventBus connection component = do
     -- this collects any actions that should run once
     -- while assigning locations / identifiers
     -- to the event handlers
-    (initialEvents, newTree) = prepareTree component
+    (initialEvents, css, newTree) = prepareTree component
     event = findEvent message newTree
 
   mapM_ (atomically . writeTChan eventBus) initialEvents
