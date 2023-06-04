@@ -41,6 +41,7 @@ renderAttributes attrs =
     styles = concatMap getStyle attrs
     renderedStyle = if not (null styles) then " style=" <> show styles else ""
 
+    -- TODO: this is uggo
     classStyles = filter (not . null) $ fmap getClassBasedStyle attrs
     existingClasses = (\(Generic _ name) -> name) <$> filter isClass attrs
     combinedClasses = classStyles <> existingClasses

@@ -129,6 +129,8 @@ import           Events
 import           PrepareTree
 import           Rendering
 import           Wrapper
+import           CollectInitials
+import           CleanTree
 
 type Log m = String -> m ()
 
@@ -177,8 +179,9 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, htmlEventHandlers, eventProducers, eventListeners } component =
   let
-    (initialEvents, css, preparedComponent) = prepareTree component
-    rendered = render preparedComponent
+    locatedComponent = prepareTree component
+    (initialEvents, css) = collectInitials locatedComponent
+    rendered = render (cleanTree css locatedComponent)
     wrap = wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners
   in
     fromString $ wrap rendered

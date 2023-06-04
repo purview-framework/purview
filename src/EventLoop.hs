@@ -20,7 +20,8 @@ import           EventHandling
 import           Events
 import           PrepareTree
 import           Rendering
-import Component (Purview(initialEvents))
+import           CleanTree (cleanTree)
+import           CollectInitials (collectInitials)
 
 type Log m = String -> m ()
 
@@ -35,23 +36,22 @@ eventLoop'
   -> Purview event m
   -> IO (Maybe (Purview event m))
 eventLoop' message devMode runner log eventBus connection component = do
-  let
-    -- this collects any actions that should run once
-    -- while assigning locations / identifiers
-    -- to the event handlers
-    (initialEvents, css, newTree) = prepareTree component
-    event = findEvent message newTree
-
-  mapM_ (atomically . writeTChan eventBus) initialEvents
-  print $ "initialEvents: " <> show initialEvents
-  print $ "event: " <> show event
-
   -- if it's special newState event, the state is replaced in the tree
-  let newTree' = case message of
-        FromFrontendEvent {}                 -> newTree
-        InternalEvent {}                     -> newTree
-        JavascriptCallEvent {}               -> newTree
-        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent newTree
+  let newTree = case message of
+        FromFrontendEvent {}                 -> component
+        InternalEvent {}                     -> component
+        JavascriptCallEvent {}               -> component
+        stateChangeEvent@StateChangeEvent {} -> applyNewState stateChangeEvent component
+
+  let
+    -- 1. adds locations
+    locatedTree = prepareTree newTree
+    -- 2. collects css and initial events
+    (initialEvents, css) = collectInitials locatedTree
+    -- 3. removes captured css and initial events
+    newTree' = cleanTree css locatedTree
+
+    event = findEvent message newTree'
 
   -- this is where handlers are actually called, and their events are sent back into
   -- this loop
@@ -77,6 +77,10 @@ eventLoop' message devMode runner log eventBus connection component = do
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
   when devMode $ log $ "sending> " <> show renderedDiffs
+
+  WebSockets.sendTextData
+    connection
+    (encode $ ForFrontEndEvent { event = "setCSS", message = css })
 
   WebSockets.sendTextData
     connection

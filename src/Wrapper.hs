@@ -139,6 +139,13 @@ websocketScript = [r|
       } else if (event.event === "callJS") {
         const [fnToCall, withValue] = event.message;
         window[fnToCall](withValue);
+      } else if (event.event === "setCSS") {
+        console.log(event.message);
+        var sheet = window.document.styleSheets[0];
+        event.message.map(cssRule => {
+            const [name, css] = cssRule;
+            sheet.insertRule('.' + name + '{ ' + css + ' }', sheet.cssRules.length);
+        })
       }
     };
 

@@ -43,6 +43,9 @@ library
   exposed-modules:
       Purview
   other-modules:
+      CleanTree
+      CollectInitials
+      CollectInitialsSpec
       Component
       Diffing
       EventHandling
@@ -57,10 +60,12 @@ library
       src
   ghc-options: -Wincomplete-patterns
   build-depends:
-      aeson >=1.5.6 && <2.1
+      QuickCheck
+    , aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
+    , hspec
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
@@ -73,6 +78,9 @@ test-suite purview-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CleanTree
+      CollectInitials
+      CollectInitialsSpec
       Component
       ComponentSpec
       Diffing
@@ -124,11 +132,13 @@ benchmark purview-perf-test
       performance
   ghc-options: -main-is Criterion
   build-depends:
-      aeson >=1.5.6 && <2.1
+      QuickCheck
+    , aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
     , criterion >=1.5.13 && <1.6
+    , hspec
     , http-types >=0.12.3 && <0.13
     , purview
     , raw-strings-qq ==1.1.*
