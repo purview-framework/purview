@@ -50,6 +50,7 @@ library
       Events
       PrepareTree
       Rendering
+      Style
       Wrapper
       Paths_purview
   hs-source-dirs:
@@ -63,6 +64,7 @@ library
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
+    , template-haskell
     , text >=1.2.4.1 && <1.3
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
@@ -86,6 +88,8 @@ test-suite purview-test
       PurviewSpec
       Rendering
       RenderingSpec
+      Style
+      StyleSpec
       TreeGenerator
       Wrapper
       Paths_purview
@@ -105,6 +109,7 @@ test-suite purview-test
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
+    , template-haskell
     , text >=1.2.4.1 && <1.3
     , time >=1.9.3 && <1.12
     , websockets >=0.12.7 && <0.13
@@ -128,6 +133,7 @@ benchmark purview-perf-test
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
+    , template-haskell
     , text >=1.2.4.1 && <1.3
     , websockets >=0.12.7 && <0.13
   buildable: False
