@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, DeriveLift, QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- |
 module Style
