@@ -68,8 +68,8 @@ spec = parallel $ do
           handler1 :: (String -> Purview String IO) -> Purview String IO
           handler1 = effectHandler [] "initial state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
           handler2 = effectHandler [] "different state" (\action state -> pure $ (const $ state <> action, ([] :: [DirectedEvent String String])))
-          oldTree = snd . prepareTree $ div [ handler1 . const $ handler1 (const (text "the original")) ]
-          newTree = snd . prepareTree $ div [ handler1 . const $ handler2 (const (text "this is different")) ]
+          oldTree = prepareTree $ div [ handler1 . const $ handler1 (const (text "the original")) ]
+          newTree = prepareTree $ div [ handler1 . const $ handler2 (const (text "this is different")) ]
 
         diff (Just [0, 0]) [] oldTree newTree `shouldBe`
           [ Update [0, 0] (EffectHandler

@@ -45,7 +45,6 @@ library
   other-modules:
       CleanTree
       CollectInitials
-      CollectInitialsSpec
       Component
       Diffing
       EventHandling
@@ -78,7 +77,6 @@ test-suite purview-test
   other-modules:
       CleanTree
       CollectInitials
-      CollectInitialsSpec
       Component
       ComponentSpec
       Diffing
