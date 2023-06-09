@@ -116,5 +116,21 @@ spec = parallel $ do
         `shouldBe`
         "<div class=\"123\"></div>"
 
+    it "can render multile class based style" $ do
+      let style = Attribute $ Style ("123", "")
+          component = style $ style (div [])
+
+      render component
+        `shouldBe`
+        "<div class=\"123 123\"></div>"
+
+    it "can combine an existing class and class based style" $ do
+      let style = Attribute $ Style ("123", "")
+          component = class' "abc" $ style (div [])
+
+      render component
+        `shouldBe`
+        "<div class=\"123 abc\"></div>"
+
 main :: IO ()
 main = hspec spec

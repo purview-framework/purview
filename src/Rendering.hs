@@ -48,7 +48,7 @@ renderAttributes attrs =
 
     renderedClasses =
       if not (null combinedClasses)
-      then " class=\"" <> concatMap (\class' -> class') combinedClasses <> "\""
+      then " class=\"" <> unwords combinedClasses <> "\""
       else ""
 
     listeners = filter isOn attrs
