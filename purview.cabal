@@ -75,29 +75,30 @@ test-suite purview-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ComponentSpec
+      DiffingSpec
+      EventHandlingSpec
+      EventsSpec
+      PrepareTreeSpec
+      PurviewSpec
+      RenderingSpec
+      StyleSpec
+      TreeGenerator
       CleanTree
       CollectInitials
       Component
-      ComponentSpec
       Diffing
-      DiffingSpec
       EventHandling
-      EventHandlingSpec
       EventLoop
       Events
-      EventsSpec
       PrepareTree
-      PrepareTreeSpec
       Purview
-      PurviewSpec
       Rendering
-      RenderingSpec
       Style
-      StyleSpec
-      TreeGenerator
       Wrapper
       Paths_purview
   hs-source-dirs:
+      test
       src
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is Spec
   build-tool-depends:

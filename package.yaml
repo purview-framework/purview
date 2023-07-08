@@ -100,7 +100,9 @@ benchmarks:
 tests:
   purview-test:
     main:                Spec.hs
-    source-dirs:         src
+    source-dirs:
+    - test
+    - src
     ghc-options:
     - -threaded
     - -rtsopts
