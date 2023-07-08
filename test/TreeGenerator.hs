@@ -7,6 +7,7 @@ import Test.QuickCheck hiding (once)
 import Control.Monad.IO.Class
 
 import Component
+import ComponentHelpers
 import Events
 
 {-

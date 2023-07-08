@@ -8,6 +8,7 @@ import Prelude hiding (div)
 import Test.Hspec
 
 import Component
+import ComponentHelpers
 import Style (style)
 
 spec :: SpecWith ()

@@ -16,6 +16,7 @@ import Data.Aeson.TH
 
 import TreeGenerator
 import Component
+import ComponentHelpers
 import EventHandling
 import Events
 import PrepareTree

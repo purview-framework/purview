@@ -123,7 +123,8 @@ import           Control.Monad.STM
 import           Control.Concurrent
 
 import           Style (style)
-import           Component
+import           Component (Purview (Attribute), Attributes(..))
+import           ComponentHelpers
 import           EventLoop
 import           Events
 import           PrepareTree
