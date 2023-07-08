@@ -15,8 +15,6 @@ description:    A framework for building server rendered, interactive websites.
                 .
                 * State can be broken up into small components.
                 .
-                * The approach is to provide useful atoms, with the user building up a kind of AST.
-                .
                 * Attributes flow down to concrete HTML, events bubble up to state handlers.
                 .
                 It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
