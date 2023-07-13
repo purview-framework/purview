@@ -6,13 +6,6 @@ import           Text.RawString.QQ (r)
 import           Data.Text (Text)
 
 
-data HtmlEventHandler = HtmlEventHandler
-  { eventType :: String -- eg submit or click
-  , functionName :: String -- called whenever the event happens
-  , handlingFunction :: String -- receives the event and sends the event over the websocket
-  }
-
-
 {-
 
 Loosely, for each type of event, check if it has a "clickLocation" "blurLocation" etc
@@ -24,8 +17,8 @@ Might also want to move to using "clickId" etc, if you want to.
 
 -}
 
-eventHandling :: String
-eventHandling = [r|
+eventHandlerFn :: String
+eventHandlerFn = [r|
   function eventHandler(event) {
     event.stopPropagation();
 
@@ -67,9 +60,10 @@ eventHandling = [r|
       }
     }
   }
+|]
 
-  const events = ["click", "focusout", "focusin", "change", "submit"];
-
+bindEventsFn :: String
+bindEventsFn = [r|
   function bindEvents() {
     document.querySelectorAll("[handler]").forEach(item => {
       if (!item.getAttribute("bound")) {
@@ -81,6 +75,11 @@ eventHandling = [r|
     })
   }
 |]
+
+eventHandling :: [String] -> String
+eventHandling eventsList =
+  let eventsToWatch = "const events = " <> show eventsList
+  in eventsToWatch <> "\n" <> eventHandlerFn <> "\n" <> bindEventsFn
 
 {-
 
@@ -207,12 +206,23 @@ sendEventHelper = [r|
 prepareCss :: [(String, String)] -> String
 prepareCss = concatMap (\(hash, css) -> "." <> hash <> " {" <> css <> "}\n")
 
-wrapHtml :: [(String, String)] -> String -> [HtmlEventHandler] -> [String] -> [String] -> String -> String
-wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners body =
+wrapHtml
+  :: [(String, String)]
+  -> String
+  -> [String]
+  -> [String]
+  -> [String]
+  -> String
+  -> String
+wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
-  <> "<script>" <> websocketScript <> eventHandling <> eventBubblingHandling <> "</script>"
+  <> "<script>"
+  <> websocketScript
+  <> eventHandling eventsToListenTo
+  <> eventBubblingHandling
+  <> "</script>"
   <> htmlHead
   <> "<script>"
   <> sendEventHelper

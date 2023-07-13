@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveAnyClass #-}
 module PrepareTreeSpec where
 
 import Prelude hiding (div)
@@ -9,6 +7,7 @@ import Test.QuickCheck
 import TreeGenerator ()
 import Events
 import Component
+import ComponentHelpers
 import PrepareTree
 import CollectInitials (collectInitials)
 import CleanTree (cleanTree)

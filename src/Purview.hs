@@ -123,7 +123,8 @@ import           Control.Monad.STM
 import           Control.Concurrent
 
 import           Style (style)
-import           Component
+import           Component (Purview (Attribute), Attributes(..))
+import           ComponentHelpers
 import           EventLoop
 import           Events
 import           PrepareTree
@@ -139,9 +140,8 @@ data Configuration m = Configuration
   -- ^ How to run your algebraic effects or other.  This will apply to all `effectHandler`s.
   , logger            :: String -> IO ()
   -- ^ Specify what to do with logs
-  , htmlEventHandlers :: [HtmlEventHandler]
-  -- ^ For extending the handled events.  Have a look at 'defaultConfiguration' to see
-  -- how to make your own.
+  , eventsToListenTo :: [String]
+  -- ^ For extending the handled events.  By default it covers the usual click, change, focus(in/out)
   , htmlHead          :: String
   -- ^ This is placed directly into the \<head\>, so that you can link to external
   -- CSS etc
@@ -158,7 +158,7 @@ defaultConfiguration :: Configuration IO
 defaultConfiguration = Configuration
   { interpreter       = id
   , logger            = print
-  , htmlEventHandlers = []
+  , eventsToListenTo  = [ "click", "focusout", "focusin", "change", "submit" ]
   , htmlHead          = ""
   , devMode           = False
   , eventProducers    = []
@@ -177,12 +177,12 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 
 -}
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, htmlEventHandlers, eventProducers, eventListeners } component =
+renderFullPage Configuration { htmlHead, eventsToListenTo, eventProducers, eventListeners } component =
   let
     locatedComponent = prepareTree component
     (initialEvents, css) = collectInitials locatedComponent
     rendered = render (cleanTree css locatedComponent)
-    wrap = wrapHtml css htmlHead htmlEventHandlers eventProducers eventListeners
+    wrap = wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners
   in
     fromString $ wrap rendered
 

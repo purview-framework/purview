@@ -8,9 +8,9 @@ import Test.QuickCheck hiding (classes, once)
 
 import TreeGenerator
 import Component
+import ComponentHelpers
 import Events
 import Rendering
-import Component (onSubmit)
 
 data SingleConstructor = SingleConstructor
   deriving (Show, Eq)

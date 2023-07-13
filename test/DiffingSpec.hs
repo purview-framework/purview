@@ -5,6 +5,7 @@ import Test.Hspec
 
 import PrepareTree
 import Purview
+import Component
 import Diffing
 
 type DefaultAction = DirectedEvent String String
