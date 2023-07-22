@@ -111,27 +111,14 @@ module Purview
 where
 
 import           Prelude hiding (div, log, span)
-import           Blaze.ByteString.Builder.Char.Utf8
-import           Data.ByteString.Builder.Internal
-import qualified Network.WebSockets as WebSocket
-import           Data.Typeable
-import           Data.Aeson
-
-import           Control.Concurrent.STM.TChan
-import           Control.Monad.STM
-import           Control.Concurrent
 
 import           Style (style)
 import           Component (Purview (Attribute), Attributes(..))
 import           ComponentHelpers
-import           EventLoop
 import           Events
-import           PrepareTree
 import           Rendering
-import           Wrapper
-import           CollectInitials
-import           CleanTree
 import           Configuration
+import           Server
 
 
 defaultConfiguration :: Configuration IO
@@ -145,52 +132,3 @@ defaultConfiguration = Configuration
   , eventListeners    = []
   }
 
-{-|
-
-This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
-
-> import Purview
->
-> view = p [ text "hello world" ]
->
-> main = run defaultConfiguration { component=view }
-
--}
-renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, eventsToListenTo, eventProducers, eventListeners } component =
-  let
-    locatedComponent = prepareTree component
-    (initialEvents, css) = collectInitials locatedComponent
-    rendered = render (cleanTree css locatedComponent)
-    wrap = wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners
-  in
-    fromString $ wrap rendered
-
-startWebSocketLoop
-  :: (Monad m, Typeable action)
-  => Configuration m
-  -> Purview action m
-  -> WebSocket.Connection
-  -> IO ()
-startWebSocketLoop Configuration { devMode, interpreter, logger } component connection = do
-  eventBus <- newTChanIO
-
-  atomically
-    $ writeTChan eventBus
-    $ FromFrontendEvent { kind = "init", childLocation = Nothing, location = Nothing, value = Nothing }
-
-  WebSocket.withPingThread connection 30 (pure ()) $ do
-    _ <- forkIO $ webSocketMessageHandler eventBus connection
-    eventLoop devMode interpreter logger eventBus connection component
-
-webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
-webSocketMessageHandler eventBus websocketConnection = do
-  message' <- WebSocket.receiveData websocketConnection
-
-  print (show message')
-
-  case decode message' of
-    Just fromEvent -> atomically $ writeTChan eventBus fromEvent
-    Nothing -> pure ()
-
-  webSocketMessageHandler eventBus websocketConnection
