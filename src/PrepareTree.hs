@@ -6,9 +6,9 @@ module PrepareTree where
 import Data.Typeable
 
 import Component
-import Events
 
-import Debug.Trace
+
+
 
 {-|
 

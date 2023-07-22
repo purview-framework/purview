@@ -55,7 +55,7 @@ library:
   exposed-modules:
     - Purview
   ghc-options:
-    - -Wall
+    - -Wincomplete-patterns
   when:
   - condition: false
     other-modules:

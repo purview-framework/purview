@@ -8,7 +8,7 @@ import Data.List
 
 import Component
 
-import Debug.Trace
+
 
 removeClassCSS :: [(Hash, String)] -> Attributes e -> Attributes e
 removeClassCSS foundCSS attr = case attr of

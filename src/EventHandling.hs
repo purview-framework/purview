@@ -4,8 +4,8 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 module EventHandling where
 
-import           Control.Concurrent.STM.TChan
-import           Data.Aeson
+
+
 import           Data.Typeable
 import           Data.Maybe
 
