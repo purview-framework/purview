@@ -3,7 +3,6 @@
 module Wrapper where
 
 import           Text.RawString.QQ (r)
-import           Data.Text (Text)
 
 
 {-

@@ -45,18 +45,20 @@ library
       CollectInitials
       Component
       ComponentHelpers
+      Configuration
       Diffing
       EventHandling
       EventLoop
       Events
       PrepareTree
       Rendering
+      Server
       Style
       Wrapper
       Paths_purview
   hs-source-dirs:
       src
-  ghc-options: -Wincomplete-patterns
+  ghc-options: -Wall
   build-depends:
       aeson >=1.5.6 && <2.1
     , base >=4.7 && <5
@@ -67,6 +69,9 @@ library
     , stm >=2.5.0 && <2.6
     , template-haskell >=2.16.0 && <2.19
     , text >=1.2.4.1 && <1.3
+    , wai >=3.2.0 && <3.3
+    , wai-websockets >=3.0.1 && <3.1
+    , warp >=3.3.0 && <3.4
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
 
@@ -87,6 +92,7 @@ test-suite purview-test
       CollectInitials
       Component
       ComponentHelpers
+      Configuration
       Diffing
       EventHandling
       EventLoop
@@ -94,6 +100,7 @@ test-suite purview-test
       PrepareTree
       Purview
       Rendering
+      Server
       Style
       Wrapper
       Paths_purview
@@ -117,6 +124,9 @@ test-suite purview-test
     , template-haskell >=2.16.0 && <2.19
     , text >=1.2.4.1 && <1.3
     , time >=1.9.3 && <1.12
+    , wai >=3.2.0 && <3.3
+    , wai-websockets >=3.0.1 && <3.1
+    , warp >=3.3.0 && <3.4
     , websockets >=0.12.7 && <0.13
   default-language: Haskell2010
 
@@ -140,6 +150,9 @@ benchmark purview-perf-test
     , stm >=2.5.0 && <2.6
     , template-haskell >=2.16.0 && <2.19
     , text >=1.2.4.1 && <1.3
+    , wai >=3.2.0 && <3.3
+    , wai-websockets >=3.0.1 && <3.1
+    , warp >=3.3.0 && <3.4
     , websockets >=0.12.7 && <0.13
   buildable: False
   default-language: Haskell2010
