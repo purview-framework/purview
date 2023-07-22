@@ -45,9 +45,10 @@ dependencies:
 - http-types                    >= 0.12.3 && < 0.13
 - template-haskell              >= 2.16.0 && < 2.19
 
-- warp
-- wai
-- wai-websockets
+# server dependencies
+- wai                           >= 3.2.0 && < 3.3
+- wai-websockets                >= 3.0.1 && < 3.1
+- warp                          >= 3.3.0 && < 3.4
 
 library:
   source-dirs: src
