@@ -45,12 +45,16 @@ dependencies:
 - http-types                    >= 0.12.3 && < 0.13
 - template-haskell              >= 2.16.0 && < 2.19
 
+- warp
+- wai
+- wai-websockets
+
 library:
   source-dirs: src
   exposed-modules:
     - Purview
   ghc-options:
-    - -Wincomplete-patterns
+    - -Wall
   when:
   - condition: false
     other-modules:
