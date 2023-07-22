@@ -2,7 +2,6 @@
 module Diffing where
 
 import GHC.Generics
-import Data.Typeable
 import Data.Aeson
 
 import Component

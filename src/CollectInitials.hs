@@ -8,8 +8,6 @@ import Data.Typeable
 import Component
 import Events
 
-import Debug.Trace
-
 type Location = [Int]
 
 getStyleFromAttr :: Attributes e -> Maybe (Hash, String)
