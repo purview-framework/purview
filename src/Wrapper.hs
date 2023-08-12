@@ -114,7 +114,7 @@ websocketScript = [r|
   function connect() {
     timeoutTime += 50;
     // TODO: adding the current path is kind of a hack
-    var ws = new WebSocket("ws://localhost:8001" + window.location.pathname);
+    var ws = new WebSocket("ws://" + window.location.host + window.location.pathname);
 
     ws.onopen = () => {
       ws.send("initial from js");
