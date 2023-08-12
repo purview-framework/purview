@@ -25,9 +25,6 @@ eventHandlerFn = [r|
     // ie "click-location" or "blur-location"
     const locationCheck = `${type}-location`;
 
-    console.log(event);
-    console.log(type);
-
     const possibleLocation = event.target.getAttribute(locationCheck);
 
     if (possibleLocation) {
@@ -133,12 +130,10 @@ websocketScript = [r|
         event.message.map(command => setHtml(command));
         bindEvents();
         bindLocationEnrichment();
-        // bindLocations();
       } else if (event.event === "callJS") {
         const [fnToCall, withValue] = event.message;
         window[fnToCall](withValue);
       } else if (event.event === "setCSS") {
-        console.log(event.message);
         var sheet = window.document.styleSheets[0];
         event.message.map(cssRule => {
             const [name, css] = cssRule;
@@ -175,7 +170,12 @@ websocketScript = [r|
     const command = message.message;
     const [location, newHtml] = message.contents;
     const targetNode = getNode(location);
-    targetNode.outerHTML = newHtml;
+    // hacky fix for https://github.com/purview-framework/purview/issues/123
+    if (targetNode.tagName === "BODY") {
+      targetNode.innerHTML = newHtml;
+    } else {
+      targetNode.outerHTML = newHtml;
+    }
   }
 |]
 
@@ -217,12 +217,12 @@ wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
+  <> htmlHead
   <> "<script>"
   <> websocketScript
   <> eventHandling eventsToListenTo
   <> eventBubblingHandling
   <> "</script>"
-  <> htmlHead
   <> "<script>"
   <> sendEventHelper
   <> "</script>"
