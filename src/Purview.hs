@@ -133,5 +133,5 @@ defaultConfiguration = Configuration
   , devMode           = False
   , eventProducers    = []
   , eventListeners    = []
+  , port              = 8001
   }
-

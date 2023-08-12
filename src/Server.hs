@@ -42,10 +42,10 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 serve :: Monad m => Configuration m -> (String -> Purview () m) -> IO ()
 serve config component =
   let
-    port = 8001
-    settings = Warp.setPort port Warp.defaultSettings
+    port' = port config
+    settings = Warp.setPort port' Warp.defaultSettings
   in do
-    logger config $ "Starting on port " <> show port
+    logger config $ "Starting on port " <> show port'
 
     Warp.runSettings settings
       $ WaiWebSocket.websocketsOr

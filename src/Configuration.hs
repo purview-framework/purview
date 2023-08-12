@@ -19,4 +19,6 @@ data Configuration m = Configuration
   -- to restart the server on file change, and get a kind of live reloading
   , eventProducers    :: [String]
   , eventListeners    :: [String]
+  , port :: Int
+  -- ^ the port to run on
   }
