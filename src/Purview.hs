@@ -64,6 +64,7 @@ module Purview
   , defaultConfiguration
   , renderFullPage
   , startWebSocketLoop
+  , serve
 
   -- ** Handlers
   -- | These are how you can catch events sent from things like 'onClick' and
@@ -88,9 +89,11 @@ module Purview
   , h4
   , text
   , button
+  , a
   , form
   , input
   , istyle
+  , href
   , id'
   , class'
 
@@ -124,7 +127,7 @@ import           Server
 defaultConfiguration :: Configuration IO
 defaultConfiguration = Configuration
   { interpreter       = id
-  , logger            = print
+  , logger            = putStrLn
   , eventsToListenTo  = [ "click", "focusout", "focusin", "change", "submit" ]
   , htmlHead          = ""
   , devMode           = False

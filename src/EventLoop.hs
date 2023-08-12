@@ -80,8 +80,6 @@ eventLoop' message devMode runner log eventBus connection component = do
     -- Delete / Create events.
     renderedDiffs = fmap (\(Update location graph) -> Update location (render graph)) diffs
 
-  when devMode $ log $ "sending> " <> show renderedDiffs
-
   unless (null css) $ WebSockets.sendTextData
     connection
     (encode $ ForFrontEndEvent { event = "setCSS", message = css })

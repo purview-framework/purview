@@ -28,17 +28,30 @@ import           CleanTree
 import           Configuration
 
 
+{-|
+
+This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
+
+> import Purview
+>
+> view _ = p [ text "hello world" ]
+>
+> main = serve defaultConfiguration view
+
+-}
 serve :: Monad m => Configuration m -> (String -> Purview () m) -> IO ()
 serve config component =
   let
     port = 8001
     settings = Warp.setPort port Warp.defaultSettings
-  in
-   Warp.runSettings settings
-     $ WaiWebSocket.websocketsOr
-         WebSocket.defaultConnectionOptions
-         (webSocketHandler config component)
-         (httpHandler config component)
+  in do
+    logger config $ "Starting on port " <> show port
+
+    Warp.runSettings settings
+      $ WaiWebSocket.websocketsOr
+          WebSocket.defaultConnectionOptions
+          (webSocketHandler config component)
+          (httpHandler config component)
 
 webSocketHandler
   :: Monad m
@@ -66,17 +79,6 @@ httpHandler config component request respond =
           [("Content-Type", "text/html")]
           (renderFullPage config render)
 
-{-|
-
-This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
-
-> import Purview
->
-> view = p [ text "hello world" ]
->
-> main = run defaultConfiguration { component=view }
-
--}
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
 renderFullPage Configuration { htmlHead, eventsToListenTo, eventProducers, eventListeners } component =
   let

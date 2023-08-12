@@ -178,6 +178,9 @@ h4 = Html "h4"
 p :: [Purview event m] -> Purview event m
 p = Html "p"
 
+a :: [Purview event m] -> Purview event m
+a = Html "a"
+
 button :: [Purview event m] -> Purview event m
 button = Html "button"
 
@@ -233,3 +236,6 @@ class' = Attribute . Generic "class"
 
 classes :: [String] -> Purview event m -> Purview event m
 classes xs = Attribute . Generic "class" $ unwords xs
+
+href :: String -> Purview event m -> Purview event m
+href = Attribute . Generic "href"
