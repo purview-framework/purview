@@ -5,46 +5,35 @@ A framework to build interactive UIs with Haskell.  It's inspired by Phoenix Liv
 The main points:
 * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
 * State can be broken up into small components.
-* The approach is to provide useful atoms, with the user building up a kind of AST.
 * Attributes flow down to concrete HTML, events bubble up to state handlers.
 
 It's still in early development so expect things to break or be missing!
 
 ## What it looks like
 
-Here's what a component looks like (see `experiments/Counter.hs`):
-
 ```haskell
-
 module Main where
 
 import Prelude hiding (div)
-import Data.Aeson
-import Data.Aeson.TH
+import Purview 
 
-import Purview
 
-data Direction = Up | Down
-
-$(deriveJSON defaultOptions ''Direction)
-
-upButton = onClick Up $ div [ text "up" ]
-downButton = onClick Down $ div [ text "down" ]
-
-countHandler = handler (0 :: Int) reducer
-  where
-    reducer Up   state = (const $ state + 1, [])
-    reducer Down state = (const $ state - 1, [])
-
-counter state = div
-  [ upButton
-  , text $ "count: " <> show state
-  , downButton
+view count = div
+  [ h1 [ text (show count) ]
+  , div [ onClick "increment" $ button [ text "increment" ]
+        , onClick "decrement" $ button [ text "decrement" ]
+        ]
   ]
 
-view = countHandler counter
+-- arguments are initial actions, initial state, and then the reducer
+countHandler = handler' [] (0 :: Int) reducer
+  where
+    reducer "increment" state = (state + 1, [])
+    reducer "decrement" state = (state - 1, [])
 
-main = Purview.run defaultConfiguration { component=view }
+component __ = countHandler view
+
+main = serve defaultConfiguration component
 ```
 
 ## Overview
@@ -101,8 +90,8 @@ Now `render view` will produce `<button>click</button>`.  Like all the built in 
 ### Events
 
 At the core of Purview are event handlers:
-1. `handler`: Used for just returning a new state.  No messages or effects.
-2. `effectHandler`: Used when you need the above and access to IO / your monad stack / algebraic effects.
+1. `handler`: Used for pure functions.
+2. `effectHandler`: Used when you need to IO / your monad stack / algebraic effects.
 
 The first one is just some sugar around `effectHandler`.
 
@@ -116,14 +105,15 @@ reducer action state = case action of
       time <- getCurrentTime
       pure (const $ Just time, [])
 
-handler = effectHandler Nothing reducer
+-- arguments are initial actions, initial state, and then the reducer
+timeHandler = effectHandler [] Nothing reducer
 
 view time = div 
   [ onClick "getTime" $ button [ text "check time" ]
   , p [ text (show time) ]
   ]
   
-component = handler view
+component = timeHandler view
 ```
 
 Some things to note:
@@ -162,7 +152,6 @@ The roadmap is, loosely, determined by adding things required to build real webs
 
 1. Install [stack](https://docs.haskellstack.org/en/stable/README/)
 2. `stack build`
-3. `stack exec purview-exe` for just running the example above
 
 ### Running Tests
 
