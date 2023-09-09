@@ -93,7 +93,7 @@ spec = parallel $ do
         result `shouldBe`[("","width: 500px;"),("div ","width: 666px;"),("li ","padding: 0 20px;")]
 
         let joined = handleCSS "width: 500px;\n\n div {\nwidth: 666px;\n}\n li {\n padding: 0 20px;\n}\n"
-        joined `shouldBe` []
+        joined `shouldBe` [("","width: 500px;"),("div ","width: 666px;"),("li ","padding: 0 20px;")]
 
 
 main :: IO ()
