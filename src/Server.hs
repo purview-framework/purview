@@ -110,8 +110,6 @@ webSocketMessageHandler :: TChan Event -> WebSocket.Connection -> IO ()
 webSocketMessageHandler eventBus websocketConnection = do
   message' <- WebSocket.receiveData websocketConnection
 
-  print (show message')
-
   case decode message' of
     Just fromEvent -> atomically $ writeTChan eventBus fromEvent
     Nothing -> pure ()
