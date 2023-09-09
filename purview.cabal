@@ -67,7 +67,7 @@ library
     , http-types >=0.12.3 && <0.13
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , template-haskell >=2.16.0 && <2.19
+    , template-haskell >=2.16.0 && <2.21
     , text >=1.2.4.1 && <1.3
     , wai >=3.2.0 && <3.3
     , wai-websockets >=3.0.1 && <3.1
@@ -121,7 +121,7 @@ test-suite purview-test
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , template-haskell >=2.16.0 && <2.19
+    , template-haskell >=2.16.0 && <2.21
     , text >=1.2.4.1 && <1.3
     , time >=1.9.3 && <1.12
     , wai >=3.2.0 && <3.3
@@ -148,7 +148,7 @@ benchmark purview-perf-test
     , purview
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
-    , template-haskell >=2.16.0 && <2.19
+    , template-haskell >=2.16.0 && <2.21
     , text >=1.2.4.1 && <1.3
     , wai >=3.2.0 && <3.3
     , wai-websockets >=3.0.1 && <3.1
