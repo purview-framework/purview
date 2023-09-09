@@ -91,14 +91,15 @@ toAttributes :: String -> String -> (Purview event m -> Purview event m)
 toAttributes hashed css =
   let ((_, baseCss):rest) = handleCSS css
   in foldr
-      (\(newClass, newCss) acc -> acc . Attribute (Style (hashed <> newClass, newCss)))
+      (\(newClass, newCss) acc -> acc . Attribute (Style (hashed <> " " <> newClass, newCss)))
       (Attribute (Style (hashed, baseCss))) rest
 
 style' :: String -> Q Exp
 style' css =
   -- pretty funny, css needs a leading character (not number)
-  let hashed = 'p' : show (hash css)
-  in [| Attribute (Style (hashed, css)) |]
+  let
+    hashed = 'p' : show (hash css)
+  in [| toAttributes hashed css |]
 
 -- snagged from https://stackoverflow.com/a/9263004/1361890
 hash :: String -> Int

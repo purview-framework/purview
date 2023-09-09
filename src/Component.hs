@@ -26,7 +26,7 @@ data Attributes event where
      -> Attributes event
         -- ^ part of creating handlers for different events, e.g. On "click"
   Style :: (Hash, String) -> Attributes event
-        -- ^ inline css
+        -- ^ hash of the css, the css
   Generic :: String -> String -> Attributes event
         -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
 

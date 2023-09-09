@@ -88,6 +88,13 @@ spec = parallel $ do
         let result = parseCSS [] "ul { width: 150px;\nli { padding: 15px; } }"
         result `shouldBe` [("ul ","width: 150px;"),("ul li ","padding: 15px;")]
 
+      it "works with two nested rules" $ do
+        let result = parseCSS [] "width: 500px;\n\n div {\nwidth: 666px;\n}\n li {\n padding: 0 20px;\n}\n"
+        result `shouldBe`[("","width: 500px;"),("div ","width: 666px;"),("li ","padding: 0 20px;")]
+
+        let joined = handleCSS "width: 500px;\n\n div {\nwidth: 666px;\n}\n li {\n padding: 0 20px;\n}\n"
+        joined `shouldBe` []
+
 
 main :: IO ()
 main = hspec spec

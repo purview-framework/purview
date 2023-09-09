@@ -27,7 +27,10 @@ getStyle _ = ""
 
 getClassBasedStyle :: Attributes a -> String
 getClassBasedStyle (Style (hash, style')) =
-  if style' == "" then hash else ""
+  -- earlier we set the style' to "" to say it's been captured
+  -- also filter out things like "p123 li", which are created
+  -- by nested rules in [style||] templates
+  if style' == "" && not (' ' `elem` hash) then hash else ""
 getClassBasedStyle _ = ""
 
 renderGeneric :: Attributes a -> String
