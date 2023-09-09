@@ -90,6 +90,8 @@ module Purview
   , text
   , button
   , a
+  , ul
+  , li
   , form
   , input
   , istyle
@@ -116,7 +118,7 @@ where
 import           Prelude hiding (div, log, span)
 
 import           Style (style)
-import           Component (Purview (Attribute), Attributes(..))
+import           Component (Purview (Attribute, Html), Attributes(..))
 import           ComponentHelpers
 import           Events
 import           Rendering

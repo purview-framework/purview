@@ -1,3 +1,4 @@
+{-# LANGUAGE NoFieldSelectors #-}
 module Configuration where
 
 import Events

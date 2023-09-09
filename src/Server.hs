@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Server where
 
@@ -27,7 +28,6 @@ import           CollectInitials
 import           CleanTree
 import           Configuration
 
-
 {-|
 
 This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
@@ -42,10 +42,10 @@ This starts up the Warp server.  As a tiny example, to display some text saying 
 serve :: Monad m => Configuration m -> (String -> Purview () m) -> IO ()
 serve config component =
   let
-    port' = port config
+    port' = config.port
     settings = Warp.setPort port' Warp.defaultSettings
   in do
-    logger config $ "Starting on port " <> show port'
+    config.logger $ "Starting on port " <> show port'
 
     Warp.runSettings settings
       $ WaiWebSocket.websocketsOr
