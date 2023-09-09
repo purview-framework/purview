@@ -134,15 +134,6 @@ effectHandler
 effectHandler initEvents state reducer cont =
   EffectHandler Nothing Nothing initEvents state reducer cont
 
-
-defaultHandler :: (() -> Purview () m) -> Purview () m
-defaultHandler =
-  Handler Nothing Nothing [] () (\event state -> (const (), []))
-
-defaultEffectHandler :: Applicative m => (() -> Purview () m) -> Purview () m
-defaultEffectHandler =
-  EffectHandler Nothing Nothing [] () (\event state -> pure (const (), []))
-
 receiver
   :: ( Show event
      , Eq event
@@ -180,6 +171,12 @@ p = Html "p"
 
 a :: [Purview event m] -> Purview event m
 a = Html "a"
+
+ul :: [Purview event m] -> Purview event m
+ul = Html "ul"
+
+li :: [Purview event m] -> Purview event m
+li = Html "li"
 
 button :: [Purview event m] -> Purview event m
 button = Html "button"

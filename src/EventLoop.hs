@@ -117,7 +117,7 @@ eventLoop
 eventLoop devMode runner log eventBus connection component = do
   message <- atomically $ readTChan eventBus
 
-  when devMode $ log $ "received> " <> show message
+  when devMode $ log $ show message
 
   newTree <- case message of
     JavascriptCallEvent name value -> handleJavascriptCall name value connection
