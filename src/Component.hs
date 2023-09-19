@@ -68,6 +68,7 @@ data Purview event m where
        , identifier :: Identifier
        , name :: String  -- the name to be used to send an event
        , eventHandler :: Maybe String -> event  -- what to do with an event from the fn
+       , child :: Purview event m
        }
     -> Purview event m
 
@@ -122,11 +123,12 @@ instance Show (Purview event m) where
       <> show location <> " "
       <> show state <> " "
       <> show (cont state)
-  show (Receiver parentLocation location name _) =
+  show (Receiver parentLocation location name _ child) =
     "Receiver "
       <> show parentLocation <> " "
       <> show location <> " "
-      <> show name
+      <> show name <> " "
+      <> show child
   show (Attribute attrs cont) = "Attr " <> show attrs <> " " <> show cont
   show (Text str) = show str
   show (Html kind children) =

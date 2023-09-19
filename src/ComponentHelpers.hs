@@ -139,7 +139,7 @@ receiver
      , Eq event
      , Typeable event
      )
-  => String -> (Maybe String -> event) -> Purview event m
+  => String -> (Maybe String -> event) -> Purview event m -> Purview event m
 receiver name eventParser = Receiver Nothing Nothing name eventParser
 
 {-

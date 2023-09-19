@@ -103,7 +103,7 @@ spec = parallel $ do
         "<div style=\"width: 50%; height: 50%;color: blue;\">box</div>"
 
     it "can render a receiver" $ do
-      let receiver = Receiver (Just []) (Just [0, 1]) "test" (const "")
+      let receiver = Receiver (Just []) (Just [0, 1]) "test" (const "") (div [])
 
       render receiver
         `shouldBe`
