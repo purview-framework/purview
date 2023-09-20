@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -20,23 +19,24 @@ here's a counter that we'll then go through.
 >   , decrementButton
 >   ]
 >
-> handler :: (Integer -> Purview String any IO) -> Purview () any IO
-> handler = simpleHandler (0 :: Integer) reducer
+> handler :: (Integer -> Purview event m) -> Purview event m
+> handler = handler' [] (0 :: Integer) reducer
 >
 > reducer action state = case action of
->   "increment" -> state + 1
->   "decrement" -> state - 1
+>   "increment" -> (state + 1, [])
+>   "decrement" -> (state - 1, [])
 >
-> top = handler view
+> component' = handler view
 >
-> main = run defaultConfiguration { component=top, devMode=True }
+> main = run defaultConfiguration { component=component', devMode=True }
 
-First we define two buttons, each which have action producers ('onClick').
+First we define two buttons, each which have event producers ('onClick').
 
 When rendered, this tells Purview that when either is clicked it'd like to receive
 a message ('increment' or 'decrement').
 
-Then we define a handler, which takes an initial state ("0"), and a reducer.
+Then we define a handler, which takes a list of initial actions, an initial
+state ("0"), and a reducer.
 
 The reducer defines how we're supposed to handle the events received, and it passes
 down the new state to components.

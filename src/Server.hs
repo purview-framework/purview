@@ -110,6 +110,9 @@ webSocketMessageHandler eventBus websocketConnection = do
 
   case decode message' of
     Just fromEvent -> atomically $ writeTChan eventBus fromEvent
-    Nothing -> pure ()
+    Nothing -> do
+      print $ "error: failed to decode event: " <> message'
+      print "this may be an error in Purview so feel free to open an issue"
+      pure ()
 
   webSocketMessageHandler eventBus websocketConnection

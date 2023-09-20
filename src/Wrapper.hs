@@ -47,9 +47,11 @@ eventHandlerFn = [r|
         var value = event.target.value;
         var location = JSON.parse(event.currentTarget.getAttribute("handler"))
 
+        var wrappedValue = typeof value === 'string' ? value : `${value}`;
+
         window.ws.send(JSON.stringify({
-          "event": "submit",
-          "value": value,
+          "event": type,
+          "value": wrappedValue,
           "childLocation": childLocation,
           "location": location
         }));
