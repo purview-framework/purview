@@ -95,6 +95,21 @@ spec = parallel $ do
         let joined = handleCSS "width: 500px;\n\n div {\nwidth: 666px;\n}\n li {\n padding: 0 20px;\n}\n"
         joined `shouldBe` [("","width: 500px;"),("div ","width: 666px;"),("li ","padding: 0 20px;")]
 
+      it "works with nested pseudo selectors" $ do
+        let result = parseCSS [] "width: 500px;\nli {\n&:hover { pointer: cursor; }}"
+        result `shouldBe` [("","width: 500px;"),("li &:hover ","pointer: cursor;")]
+
+        let joined = handleCSS "width: 500px;\nli {\n&:hover { pointer: cursor; }}"
+        joined `shouldBe` [("", "width: 500px;"), ("li &:hover ", "pointer: cursor;")]
+
+      it "works with a psuedo selector" $ do
+        let result = parseCSS [] "&:hover { color: green; }"
+        result `shouldBe` [("&:hover ","color: green;")]
+
+        let result = handleCSS "&:hover { color: green; }"
+        result `shouldBe` [("&:hover ","color: green;")]
+
+
 
 main :: IO ()
 main = hspec spec

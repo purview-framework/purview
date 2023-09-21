@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- |
@@ -13,6 +14,7 @@ where
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 
+import Data.Text (pack, unpack, replace)
 import Data.Bits
 import Data.List
 
@@ -87,11 +89,25 @@ handleCSS :: String -> [(String, String)]
 handleCSS css =
   fmap joinOnClass $ groupBy (\a b -> fst a == fst b) $ sortOn fst $ parseCSS [] css
 
+-- for handling top level pseudos
+handlePseudo hash ('&':newClass) =
+  hash <> newClass
+-- for the nested pseudos
+handlePseudo hash newClass =
+  hash <> " " <> (unpack $ replace " &:" ":" (pack newClass))
+
+combineClasses hash newClass =
+  if '&' `elem` newClass
+  then handlePseudo hash newClass
+  else hash <> " " <> newClass
+
 toAttributes :: String -> String -> (Purview event m -> Purview event m)
 toAttributes hashed css =
   let ((_, baseCss):rest) = handleCSS css
   in foldr
-      (\(newClass, newCss) acc -> acc . Attribute (Style (hashed <> " " <> newClass, newCss)))
+      (\(newClass, newCss) acc ->
+         acc . Attribute (Style (combineClasses hashed newClass, newCss))
+      )
       (Attribute (Style (hashed, baseCss))) rest
 
 style' :: String -> Q Exp
