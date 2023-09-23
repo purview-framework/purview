@@ -193,6 +193,7 @@ jsMessageAdder = [r|
     const messagesBlock = document.querySelector("#messages");
     messagesBlock.innerHTML = value;
   }
+  -- important, otherwise it won't be able to find the function
   window.addMessage = addMessage;
 |]
 

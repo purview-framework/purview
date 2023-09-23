@@ -23,7 +23,7 @@ view direction = onClick "toggle" $ button [ text direction ]
 toggleHandler = handler [] "up" reducer
   where reducer "toggle" state =
           let newState = if state == "up" then "down" else "up"
-          in (newState, [])
+          in (const newState, [])
 
 component = toggleHandler view
 @
@@ -31,12 +31,15 @@ component = toggleHandler view
 Or typed out in longer form:
 
 @
-reducer :: String -> String -> (String -> String, [DirectedEvent parentEvent String])
+type State = String
+type Event = String
+
+reducer :: Event -> State -> (State -> State, [DirectedEvent parentEvent Event])
 reducer event state = case event of
   "up"   -> (const "down", [])
   "down" -> (const "up", [])
 
-toggleHandler :: (String -> Purview String m) -> Purview parentEvent m
+toggleHandler :: (State -> Purview Event m) -> Purview parentEvent m
 toggleHandler = handler [] "up" reducer
 
 component :: Purview parentEvent m
@@ -81,34 +84,16 @@ the state on each event.
 
 __Example__:
 
-Let's say you want to make a button that switches between saying
-"up" or "down":
-
 @
 view direction = onClick "toggle" $ button [ text direction ]
 
-toggleHandler = handler [] "up" reducer
+toggleHandler = handler' [] "up" reducer
   where reducer "toggle" state =
           let newState = if state == "up" then "down" else "up"
+          -- note it's just newState, not const newState
           in (newState, [])
 
 component = toggleHandler view
-@
-
-Or typed out in longer form:
-
-@
-reducer :: String -> String -> (String -> String, [DirectedEvent parentEvent String])
-reducer event state = case event of
-  "up"   -> (const "down", [])
-  "down" -> (const "up", [])
-
-toggleHandler :: (String -> Purview String m) -> Purview parentEvent m
-toggleHandler = handler [] "up" reducer
-
-component :: Purview parentEvent m
-component = toggleHandler view
-@
 -}
 handler'
   :: ( Typeable event

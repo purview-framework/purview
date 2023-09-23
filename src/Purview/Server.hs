@@ -44,6 +44,7 @@ defaultConfiguration = Configuration
   , devMode           = False
   , javascript        = ""
   , port              = 8001
+  , secure            = False
   }
 
 {-|
@@ -101,12 +102,12 @@ httpHandler config component request respond =
           (renderFullPage config render)
 
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, eventsToListenTo, javascript } component =
+renderFullPage Configuration { htmlHead, eventsToListenTo, javascript, secure } component =
   let
     locatedComponent = prepareTree component
     (initialEvents, css) = collectInitials locatedComponent
     rendered = render (cleanTree css locatedComponent)
-    wrap = wrapHtml css htmlHead eventsToListenTo javascript
+    wrap = wrapHtml css htmlHead eventsToListenTo javascript secure
   in
     fromString $ wrap rendered
 

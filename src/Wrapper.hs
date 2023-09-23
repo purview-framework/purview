@@ -110,13 +110,17 @@ eventBubblingHandling = [r|
   }
 |]
 
-websocketScript :: String
-websocketScript = [r|
+websocketScript :: Bool -> String
+websocketScript secure =
+  let connectionPath = if secure
+        then "var ws = new WebSocket('wss://' + window.location.host + window.location.pathname);"
+        else "var ws = new WebSocket('ws://' + window.location.host + window.location.pathname);"
+  in
+    connectionPath <> [r|
   var timeoutTime = -50;
   function connect() {
     timeoutTime += 50;
     // TODO: adding the current path is kind of a hack
-    var ws = new WebSocket("ws://" + window.location.host + window.location.pathname);
 
     ws.onopen = () => {
       timeoutTime = 0;
@@ -211,15 +215,16 @@ wrapHtml
   -> String
   -> [String]
   -> String
+  -> Bool
   -> String
   -> String
-wrapHtml css htmlHead eventsToListenTo javascript body =
+wrapHtml css htmlHead eventsToListenTo javascript secure body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
   <> htmlHead
   <> "<script>"
-  <> websocketScript
+  <> websocketScript secure
   <> eventHandling eventsToListenTo
   <> eventBubblingHandling
   <> "</script>"
