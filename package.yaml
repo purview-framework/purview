@@ -11,7 +11,7 @@ extra-source-files:
 - ChangeLog.md
 
 # Metadata used when publishing your package
-synopsis:            Build server rendered, interactive websites
+synopsis:            A simple, fun way to build websites
 category:            Library, Web
 
 # To avoid duplicated efforts in documentation and dealing with the
@@ -26,13 +26,11 @@ description: |
 
   * State can be broken up into small components.
 
-  * Attributes flow down to concrete HTML, events bubble up to state handlers.
+  * Attributes flow down to concrete HTML, events bubble up to handlers.
 
   * Handlers can send further events to a parent handler or themselves
 
   It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
-
-  For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
 
 
 dependencies:

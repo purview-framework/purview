@@ -64,9 +64,10 @@ data Event where
   JavascriptCallEvent
     :: String -> String -> Event
 
+
 instance Show Event where
   show (FromFrontendEvent event message location value) =
-    show $ "{ event: "
+      "{ event: "
       <> show event
       <> ", childLocation: "
       <> show message

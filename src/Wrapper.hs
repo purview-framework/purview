@@ -119,7 +119,6 @@ websocketScript = [r|
     var ws = new WebSocket("ws://" + window.location.host + window.location.pathname);
 
     ws.onopen = () => {
-      ws.send("initial from js");
       timeoutTime = 0;
     };
 
