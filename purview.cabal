@@ -60,7 +60,7 @@ library
       src
   ghc-options: -Wincomplete-patterns
   build-depends:
-      aeson >=1.5.6 && <2.1
+      aeson >=1.5.6 && <2.3
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
@@ -68,11 +68,11 @@ library
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
     , template-haskell >=2.15.0 && <2.21
-    , text >=1.2.4.1 && <1.3
+    , text >=1.2.4.1 && <2.1
     , wai >=3.2.0 && <3.3
     , wai-websockets >=3.0.1 && <3.1
     , warp >=3.3.0 && <3.4
-    , websockets >=0.12.7 && <0.13
+    , websockets ==0.12.*
   default-language: Haskell2010
 
 test-suite purview-test
@@ -112,7 +112,7 @@ test-suite purview-test
       hspec-discover:hspec-discover ==2.*
   build-depends:
       QuickCheck >=2.14.2 && <2.15
-    , aeson >=1.5.6 && <2.1
+    , aeson >=1.5.6 && <2.3
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
@@ -122,12 +122,12 @@ test-suite purview-test
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
     , template-haskell >=2.15.0 && <2.21
-    , text >=1.2.4.1 && <1.3
+    , text >=1.2.4.1 && <2.1
     , time >=1.9.3 && <1.12
     , wai >=3.2.0 && <3.3
     , wai-websockets >=3.0.1 && <3.1
     , warp >=3.3.0 && <3.4
-    , websockets >=0.12.7 && <0.13
+    , websockets ==0.12.*
   default-language: Haskell2010
 
 benchmark purview-perf-test
@@ -139,7 +139,7 @@ benchmark purview-perf-test
       performance
   ghc-options: -main-is Criterion
   build-depends:
-      aeson >=1.5.6 && <2.1
+      aeson >=1.5.6 && <2.3
     , base >=4.7 && <5
     , blaze-builder >=0.4.2 && <0.5
     , bytestring >=0.10.12.0 && <0.12
@@ -149,10 +149,10 @@ benchmark purview-perf-test
     , raw-strings-qq ==1.1.*
     , stm >=2.5.0 && <2.6
     , template-haskell >=2.15.0 && <2.21
-    , text >=1.2.4.1 && <1.3
+    , text >=1.2.4.1 && <2.1
     , wai >=3.2.0 && <3.3
     , wai-websockets >=3.0.1 && <3.1
     , warp >=3.3.0 && <3.4
-    , websockets >=0.12.7 && <0.13
+    , websockets ==0.12.*
   buildable: False
   default-language: Haskell2010

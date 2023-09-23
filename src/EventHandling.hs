@@ -66,11 +66,13 @@ applyNewState fromEvent@(StateChangeEvent newStateFn location) component = case 
   Value x -> Value x
 applyNewState (FromFrontendEvent {}) component = component
 applyNewState (InternalEvent {}) component = component
+applyNewState (JavascriptCallEvent {}) component = component
 
 
 findEvent :: Event -> Purview event m -> Maybe Event
 findEvent (StateChangeEvent {}) _ = Nothing
 findEvent (InternalEvent {}) _ = Nothing
+findEvent (JavascriptCallEvent {}) _ = Nothing
 findEvent event@FromFrontendEvent { childLocation=childLocation, location=handlerLocation, value=value } tree = case tree of
   Attribute attr cont -> case attr of
     On _ ident evt ->
@@ -102,8 +104,9 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
   Value _ -> Nothing
 
 runEvent :: (Typeable event, Monad m) => Event -> Purview event m -> m [Event]
-runEvent (FromFrontendEvent {}) _ = pure []
-runEvent (StateChangeEvent {})  _ = pure []
+runEvent (FromFrontendEvent {})   _ = pure []
+runEvent (StateChangeEvent {})    _ = pure []
+runEvent (JavascriptCallEvent {}) _ = pure []
 runEvent internalEvent@InternalEvent { event, handlerId } tree = case tree of
   Attribute attr cont ->
     runEvent internalEvent cont
