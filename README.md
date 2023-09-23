@@ -32,6 +32,8 @@ view count = div
         ]
   ]
 
+-- passes state down to the child and maintains type safety of actions
+countHandler :: (Int -> Purview CountEvent m) -> Purview () m
 -- arguments are initial actions, initial state, and then the reducer
 countHandler = handler' [] (0 :: Int) reducer
   where
@@ -48,21 +50,20 @@ More detailed docs on the use and particulars of Purview are mainly on [Hackage]
 
 ### Overview of how it works
 
-Using an example of getting the time, here's how events flow when the user clicks "check time"
+Using an imagined example of getting the time, here's how events flow when the user clicks "check time"
 
 1. The event is sent from the browser in a form like
 
-   ```{ event: click, message: "checkTime", location: [0] }```
+   ```{ event: click, value: undefined, location: [0], childLocation: [0,0] }```
 2. The event is put onto the channel for the event loop to process
-3. By going down the tree it applies the event to the matched handler
-
-   a. Any HTML changes are sent to the browser, completing the loop
+3. It goes down the tree to find the event in Haskell by childLocation
+4. It takes that event and applies it to the handler found by location
 5. The handler does its work in a green thread, creating a new event that looks like
    
    ```{ event: stateChange, fn: state -> state, location: [0] }```
-7. The state change event is put onto the channel for the event loop to process
-8. By going down the tree it applies the state change fn to the latest state in the tree, returning a new tree
-9. Any HTML changes are sent to the browser, completing the loop
+6. The state change event is put onto the channel for the event loop to process
+7. By going down the tree it applies the state change fn to the latest state in the tree, returning a new tree
+8. Any HTML changes are sent to the browser, completing the loop
 
 ### Contributing
 
