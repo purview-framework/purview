@@ -53,6 +53,7 @@ library
       Events
       PrepareTree
       Rendering
+      RenderingSpec
       Style
       Wrapper
       Paths_purview
@@ -101,6 +102,7 @@ test-suite purview-test
       Purview
       Purview.Server
       Rendering
+      RenderingSpec
       Style
       Wrapper
       Paths_purview

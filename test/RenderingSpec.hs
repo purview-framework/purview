@@ -103,11 +103,11 @@ spec = parallel $ do
         "<div style=\"width: 50%; height: 50%;color: blue;\">box</div>"
 
     it "can render a receiver" $ do
-      let receiver = Receiver (Just []) (Just [0, 1]) "test" (const "") (div [])
+      let receiver = Receiver (Just []) (Just [0, 1]) "test" (const "") (const (div []))
 
-      render receiver
+      render (receiver ())
         `shouldBe`
-        "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"></div>"
+        "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"><div></div></div>"
 
     it "can render a class based style" $ do
       let component = (Attribute $ Style ("123", "")) $ div []
