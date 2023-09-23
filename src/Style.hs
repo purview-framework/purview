@@ -22,6 +22,40 @@ import Component (Attributes ( Style ), Purview ( Attribute ))
 
 -- thanks https://stackoverflow.com/questions/59399050/haskell-making-quasi-quoted-values-strict-evaluated-at-compile-time
 
+{-|
+Components styled with this QuasiQuoter will have a class added
+to them and the CSS added to the stylesheet.  Basic support is
+provided for easily styling nested components and for pseudo
+selectors.
+
+__Examples:__
+
+Styling a button:
+
+@
+blue = [style|
+  background-color: blue;
+|]
+
+blueButton = blue $ button []
+@
+
+Styling a list with a pseudo selector to get the right cursor on hover:
+
+@
+listStyle = [style|
+  width: 250px;
+  li {
+    padding: 25px;
+    &:hover {
+      cursor: pointer;
+    }
+  }
+|]
+
+list = listStyle $ ul [ li [ text "an item" ] ]
+@
+-}
 style :: QuasiQuoter
 style = QuasiQuoter
   { quoteDec = error "quoteDec not implemented"

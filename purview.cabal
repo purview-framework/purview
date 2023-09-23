@@ -7,7 +7,7 @@ cabal-version: 1.12
 name:           purview
 version:        0.1.0.0
 synopsis:       Build server rendered, interactive websites
-description:    A framework for building server rendered, interactive websites.
+description:    A simple, fun way to build websites with Haskell.
                 .
                 The main points:
                 .
@@ -17,6 +17,8 @@ description:    A framework for building server rendered, interactive websites.
                 .
                 * Attributes flow down to concrete HTML, events bubble up to state handlers.
                 .
+                * Handlers can send further events to a parent handler or themselves
+                .
                 It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
                 .
                 For the full readme, please see https://github.com/purview-framework/purview/blob/main/README.md
@@ -25,7 +27,7 @@ homepage:       https://github.com/purview-framework/purview#readme
 bug-reports:    https://github.com/purview-framework/purview/issues
 author:         Ian Davidson
 maintainer:     bontaq@gmail.com
-copyright:      2022 Ian Davidson
+copyright:      2023 Ian Davidson
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -40,6 +42,7 @@ source-repository head
 library
   exposed-modules:
       Purview
+      Purview.Server
   other-modules:
       CleanTree
       CollectInitials
@@ -52,7 +55,6 @@ library
       Events
       PrepareTree
       Rendering
-      Server
       Style
       Wrapper
       Paths_purview
@@ -99,8 +101,8 @@ test-suite purview-test
       Events
       PrepareTree
       Purview
+      Purview.Server
       Rendering
-      Server
       Style
       Wrapper
       Paths_purview

@@ -17,8 +17,7 @@ data Configuration m = Configuration
   -- This enables you to use
   -- "ghcid --command 'stack ghci examples/Main.hs' --test :main`"
   -- to restart the server on file change, and get a kind of live reloading
-  , eventProducers    :: [String]
-  , eventListeners    :: [String]
+  , javascript        :: String
   , port :: Int
   -- ^ the port to run on
   }

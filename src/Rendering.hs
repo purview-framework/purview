@@ -98,11 +98,13 @@ render' attrs tree = case tree of
       render' attrs (unsafeCoerce continuation state) <>
     "</div>"
 
-  Receiver { parentIdentifier, identifier, name } ->
+  Receiver { parentIdentifier, identifier, name, child, state } ->
     "<div" <>
     " handler=" <> (show . encode) identifier <>
     " parent-handler=" <> (show . encode) parentIdentifier <>
     " receiver-name=\"" <> name <> "\"" <>
-    "></div>"
+    ">" <>
+      render' attrs (child state) <>
+    "</div>"
 
   Value a -> show a

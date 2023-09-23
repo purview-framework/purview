@@ -1,11 +1,12 @@
 # Purview
 
-A framework to build interactive UIs with Haskell.  It's inspired by Phoenix LiveView, React, and Redux + Sagas.
+A simple, fun way to build websites with Haskell.  It's inspired by Phoenix LiveView, React, and Redux + Sagas.
 
 The main points:
 * It's server side rendered and uses websockets to communicate HTML updates and to receive events.
 * State can be broken up into small components.
 * Attributes flow down to concrete HTML, events bubble up to state handlers.
+* Handlers can send further events to a parent handler or themselves
 
 It's still in early development so expect things to break or be missing!
 
@@ -15,118 +16,41 @@ It's still in early development so expect things to break or be missing!
 module Main where
 
 import Prelude hiding (div)
+
 import Purview 
+import Purview.Server
 
 
+data CountEvent = Increment | Decrement
+  deriving (Show, Eq)
+
+view :: Int -> Purview CountEvent m
 view count = div
   [ h1 [ text (show count) ]
-  , div [ onClick "increment" $ button [ text "increment" ]
-        , onClick "decrement" $ button [ text "decrement" ]
+  , div [ onClick Increment $ button [ text "increment" ]
+        , onClick Decrement $ button [ text "decrement" ]
         ]
   ]
 
 -- arguments are initial actions, initial state, and then the reducer
 countHandler = handler' [] (0 :: Int) reducer
   where
-    reducer "increment" state = (state + 1, [])
-    reducer "decrement" state = (state - 1, [])
+    reducer Increment state = (state + 1, [])  -- new events can be added in the []
+    reducer Decrement state = (state - 1, [])
 
-component __ = countHandler view
+-- url is passed in to the top level component by `serve`
+component url = countHandler view
 
 main = serve defaultConfiguration component
 ```
 
-## Overview
-
-### Adding attributes to HTML elements
-
-Attributes flow down to concrete HTML.
-
-For example, if you wanted to add a `style="color: blue;"` to a `div`:
-
-``` haskell
-blue = style "color: blue;"
-
-blueDiv = blue (div [])
-```
-
-Calling `render blueDiv` will produce `<div style="color: blue;"></div>"`
-
-If you wanted to have a blue div that's 50% of the width,
-
-``` haskell
-blue = style "color: blue;"
-halfWidth = style "width: 50%;"
-
-view = blue (halfWidth (div [])
-```
-
-Now `render view` will produce `<div style="color: blue; width: 50%;></div>`
-
-As purview is non-prescriptive in what attributes you can give a `div`, or any other HTML element, you can create your own.
-
-If you need `name` attribute put on `div`s or other HTML, you can do:
-
-``` haskell
-nameAttr = Attribute . Generic "name"
-
-namedDiv = nameAttr "wumbo" (div [])
-```
-
-And `render namedDiv` will produce `<div name="wumbo"></div>`.  Eventually there will be more attributes-by-default like `style`, but for now expect to build up what you need!
-
-### Creating new HTML elements
-
-Just like you can add new attributes, you can also add new html elements.  For example, if you need a button
-
-``` haskell
-button = Html "button"
-
-view = button [ text "click" ]
-```
-
-Now `render view` will produce `<button>click</button>`.  Like all the built in ones, attributes will flow down and be added to the button.
-
-### Events
-
-At the core of Purview are event handlers:
-1. `handler`: Used for pure functions.
-2. `effectHandler`: Used when you need to IO / your monad stack / algebraic effects.
-
-The first one is just some sugar around `effectHandler`.
-
-Handlers take an initial state and a reducer.  The reducer receives actions from anywhere below them in the tree, and returns the new state with a list of actions to send either to itself or up the tree to the parent.  The handler passes down the state to its child.  This is the core idea to make it all interactive.
-
-For example, if we wanted to build something that fetched the server time on each click:
-
-``` haskell
-reducer action state = case action of
-  "getTime" -> do
-      time <- getCurrentTime
-      pure (const $ Just time, [])
-
--- arguments are initial actions, initial state, and then the reducer
-timeHandler = effectHandler [] Nothing reducer
-
-view time = div 
-  [ onClick "getTime" $ button [ text "check time" ]
-  , p [ text (show time) ]
-  ]
-  
-component = timeHandler view
-```
-
-Some things to note:
-* The state is passed down to children.
-* Events bubble up to the nearest handler where they are captured.
-* `onClick` can wrap anything -- like other attributes it flows down to concrete HTML.
-* The reducer is run in its own thread when an event is received, so you don't have to worry about slow operations locking the page.
+More detailed docs on the use and particulars of Purview are mainly on [Hackage](https://hackage.haskell.org/package/purview).
 
 ### Overview of how it works
 
-Using the above example of getting the time, here's how events flow when the user clicks "check time"
+Using an example of getting the time, here's how events flow when the user clicks "check time"
 
-1. The event is sent from the browser in a form like `
+1. The event is sent from the browser in a form like
 
    ```{ event: click, message: "checkTime", location: [0] }```
 2. The event is put onto the channel for the event loop to process

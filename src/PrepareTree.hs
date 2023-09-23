@@ -63,11 +63,11 @@ prepareTree' parentLocation location component = case component of
     in
       Handler (Just parentLocation) (Just location) initEvents state handler cont'
 
-  Receiver { name, eventHandler, child } ->
+  Receiver { name, eventHandler, child, state } ->
     let
-      child' = prepareTree' location (location <> [0]) child
+      child' = fmap (prepareTree' location (location <> [0])) child
     in
-      Receiver (Just parentLocation) (Just location) name eventHandler child'
+      Receiver (Just parentLocation) (Just location) name eventHandler child' state
 
   Text val -> Text val
 

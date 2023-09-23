@@ -92,10 +92,10 @@ findEvent event@FromFrontendEvent { childLocation=childLocation, location=handle
     findEvent event (cont state)
 
   -- TODO: dunno how I feel about findEvent running anything
-  Receiver parentLocation location name eventHandler child ->
+  Receiver parentLocation location name eventHandler child state ->
     if location == childLocation
     then Just $ InternalEvent (eventHandler value) location parentLocation
-    else findEvent event child
+    else findEvent event (child state)
 
   Text _ -> Nothing
 

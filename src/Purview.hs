@@ -3,12 +3,16 @@
 
 {-|
 
-Purview aims to be pretty straightforward to work with.  As an example,
-here's a counter that we'll then go through.
+Purview follows the usual pattern of action -> state -> state, with
+events flowing up from event producers to handlers where they are
+captured.  State is passed from handler to the continuation.
+
+Here's a quick example with a counter:
 
 > module Main where
 >
 > import Purview
+> import Purview.Server (serve, defaultConfiguration)
 >
 > incrementButton = onClick "increment" $ button [ text "+" ]
 > decrementButton = onClick "decrement" $ button [ text "-" ]
@@ -22,30 +26,17 @@ here's a counter that we'll then go through.
 > handler :: (Integer -> Purview event m) -> Purview event m
 > handler = handler' [] (0 :: Integer) reducer
 >
-> reducer action state = case action of
+> reducer event state = case event of
 >   "increment" -> (state + 1, [])
 >   "decrement" -> (state - 1, [])
 >
 > component' = handler view
 >
-> main = run defaultConfiguration { component=component', devMode=True }
-
-First we define two buttons, each which have event producers ('onClick').
-
-When rendered, this tells Purview that when either is clicked it'd like to receive
-a message ('increment' or 'decrement').
-
-Then we define a handler, which takes a list of initial actions, an initial
-state ("0"), and a reducer.
-
-The reducer defines how we're supposed to handle the events received, and it passes
-down the new state to components.
-
-Then we put it together ("handler view"), and run it.
+> main = serve defaultConfiguration { component=component', devMode=True }
 
 Note the "devMode=True": this tells Purview to send the whole
-tree over again when the websocket reconnects.  This is really handy
-if you're re-running the server in ghci, although I really recommend
+tree over again when the websocket reconnects.  This is handy
+if you're re-running the server in ghci, although I recommend
 using ghcid so you can do:
 
 > ghcid --command 'stack ghci yourProject/Main.hs' --test :main
@@ -58,28 +49,60 @@ the [examples](https://github.com/purview-framework/purview/tree/main/examples) 
 -}
 
 module Purview
-  (
-  -- ** Server
-  Configuration (..)
-  , defaultConfiguration
-  , renderFullPage
-  , startWebSocketLoop
-  , serve
-
   -- ** Handlers
-  -- | These are how you can catch events sent from things like 'onClick' and
-  -- change state, or in the case of 'effectHandler', make API requests or call
-  -- functions from your project.
-  , handler
-  , handler'
+  {-|
+These are how you can catch events sent from things like 'onClick' and
+change state, or in the case of 'effectHandler', make API requests or call
+functions from your project.
+
+In addition they can send events to themself, to a parent, call a
+function in the browser, or all three.
+
+Note because of the typeable constraints Haskell will yell at you until
+it knows the types of the event and state.
+  -}
+  ( handler
   , effectHandler
+  , handler'
   , effectHandler'
-  , receiver
 
-  -- ** QuasiQuoter for styling
+  -- ** Styling
   , style
+  , istyle
 
-  -- ** HTML helpers
+  -- ** HTML
+  {-|
+These are some of the more common HTML nodes and some attributes to get you
+started, but you'll want to create your own as well.  Here's how:
+
+__Examples:__
+
+If you wanted to create a <code> node:
+
+@
+import Purview ( Purview( Html ), text )
+
+code :: [Purview event m] -> Purview event m
+code = Html "code"
+
+helloCode :: Purview event m
+helloCode = code [ text "it's some code" ]
+-- renders as <code>it's some code</code>
+@
+
+If you wanted to create a new attribute for adding test-ids to nodes:
+
+@
+import Purview ( Purview( Attribute ), Attributes( Generic ), button, text )
+
+testId :: String -> Purview event m -> Purview event m
+testId = Attribute . Generic "test-id"
+
+testableButton :: Purview event m
+testableButton = testId "cool-button" $ button [ text "testable!" ]
+-- renders as <button test-id="cool-button">testable!</button>
+@
+  -}
   , div
   , span
   , p
@@ -94,18 +117,92 @@ module Purview
   , li
   , form
   , input
-  , istyle
   , href
   , id'
   , class'
 
-  -- ** Action producers
+  -- ** Events
+  {-|
+Event creators work similar to attributes in that they are bound to
+the eventual concrete HTML.  When triggered they create an event
+that flows up to a handler.  They can have a value, in which case
+you'll need to provide a function to transform that value into
+an event your handler can handle.
+
+To create your own:
+
+__Examples:__
+
+To add an event creator for keydown:
+
+@
+import Purview ( Purview( Attribute ), Attributes( On ) )
+import Data.Typeable
+
+onKeyDown
+  :: ( Typeable event
+     , Eq event
+     , Show event
+     )
+  => (Maybe String -> event) -> Purview event m -> Purview event m
+onKeyDown = Attribute . On "keydown" Nothing
+@
+
+In addition to this, you'll need to add "keydown" to the list of events
+listened for in the configuration at the top like so:
+
+@
+import Purview.Server (defaultConfiguration, serve, Configuration( eventsToListenTo ))
+
+newConfig =
+  let events = eventsToListenTo defaultConfiguration
+  in defaultConfiguration { eventsToListenTo="keydown":events }
+
+main = serve newConfig $ const $ div []
+@
+
+This is hopefully short-lived and going away in a coming version.
+  -}
   , onClick
   , onSubmit
   , onBlur
   , onChange
 
-  -- ** For Testing
+  -- ** Interop
+  {-|
+While the receiver covers receiving events, here's how you can call javascript
+functions:
+
+__Example:__
+
+Here whenever "increment" is received by the handler, it produces a new
+Browser event.  This calls window.addMessage in the browser, with an
+argument of the "show newState" -- so, a String.
+
+@
+countHandler = handler' [] (0 :: Int) reducer
+  where
+    reducer "increment" state =
+      let newState = state + 1
+      -- this being the important bit, you can call any function in javascript
+      -- with the Brower fnName value event.
+      in (newState, [Browser "addMessage" (show newState)])
+
+jsMessageAdder = [r|
+  const addMessage = (value) => {
+    const messagesBlock = document.querySelector("#messages");
+    messagesBlock.innerHTML = value;
+  }
+  window.addMessage = addMessage;
+|]
+
+main = serve (defaultConfiguration { javascript=jsMessageAdder }
+@
+
+  -}
+  , receiver
+
+  -- ** Testing
   , render
 
   -- ** AST
@@ -123,17 +220,3 @@ import           ComponentHelpers
 import           Events
 import           Rendering
 import           Configuration
-import           Server
-
-
-defaultConfiguration :: Configuration IO
-defaultConfiguration = Configuration
-  { interpreter       = id
-  , logger            = putStrLn
-  , eventsToListenTo  = [ "click", "focusout", "focusin", "change", "submit" ]
-  , htmlHead          = ""
-  , devMode           = False
-  , eventProducers    = []
-  , eventListeners    = []
-  , port              = 8001
-  }

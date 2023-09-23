@@ -211,11 +211,10 @@ wrapHtml
   :: [(String, String)]
   -> String
   -> [String]
-  -> [String]
-  -> [String]
   -> String
   -> String
-wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners body =
+  -> String
+wrapHtml css htmlHead eventsToListenTo javascript body =
   "<!DOCTYPE html>"
   <> "<html>"
   <> "<head>"
@@ -229,10 +228,7 @@ wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners body =
   <> sendEventHelper
   <> "</script>"
   <> "<script>"
-  <> concatMap (<> "\n") eventProducers
-  <> "</script>"
-  <> "<script>"
-  <> concatMap (<> "\n") eventListeners
+  <> javascript
   <> "</script>"
   <> "<style>"
   <> prepareCss css

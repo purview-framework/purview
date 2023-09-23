@@ -4,7 +4,7 @@ github:              "purview-framework/purview"
 license:             BSD3
 author:              "Ian Davidson"
 maintainer:          "bontaq@gmail.com"
-copyright:           "2022 Ian Davidson"
+copyright:           "2023 Ian Davidson"
 
 extra-source-files:
 - README.md
@@ -18,7 +18,7 @@ category:            Library, Web
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
 description: |
-  A framework for building server rendered, interactive websites.
+  A simple, fun way to build websites with Haskell.
 
   The main points:
 
@@ -27,6 +27,8 @@ description: |
   * State can be broken up into small components.
 
   * Attributes flow down to concrete HTML, events bubble up to state handlers.
+
+  * Handlers can send further events to a parent handler or themselves
 
   It's inspired by Phoenix LiveView, React, Redux, and Redux-Sagas.
 
@@ -54,22 +56,9 @@ library:
   source-dirs: src
   exposed-modules:
     - Purview
+    - Purview.Server
   ghc-options:
     - -Wincomplete-patterns
-  when:
-  - condition: false
-    other-modules:
-      - ComponentSpec
-      - DiffingSpec
-      - TreeGenerator
-      - EventHandlingSpec
-      - PrepareTreeSpec
-      - PurviewSpec
-      - RenderingSpec
-      - EventsSpec
-      - StyleSpec
-      - CollectInitialSpec
-      - Spec
 
 benchmarks:
     purview-perf-test:

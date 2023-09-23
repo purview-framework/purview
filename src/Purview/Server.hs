@@ -1,6 +1,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Server where
+
+module Purview.Server
+  ( serve
+  , Configuration (..)
+  , defaultConfiguration
+  , renderFullPage
+  , startWebSocketLoop
+  )
+where
 
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Network.Wai as Wai
@@ -27,15 +35,30 @@ import           CollectInitials
 import           CleanTree
 import           Configuration
 
+defaultConfiguration :: Configuration IO
+defaultConfiguration = Configuration
+  { interpreter       = id
+  , logger            = putStrLn
+  , eventsToListenTo  = [ "click", "focusout", "focusin", "change", "submit" ]
+  , htmlHead          = ""
+  , devMode           = False
+  , javascript        = ""
+  , port              = 8001
+  }
+
 {-|
 
-This starts up the Warp server.  As a tiny example, to display some text saying "hello world":
+This starts up the Warp server.
 
-> import Purview
->
-> view _ = p [ text "hello world" ]
->
-> main = serve defaultConfiguration view
+__Example:__
+
+@
+import Purview.Server
+
+view url = p [ text "hello world" ]
+
+main = serve defaultConfiguration view
+@
 
 -}
 serve :: Monad m => Configuration m -> (String -> Purview () m) -> IO ()
@@ -78,12 +101,12 @@ httpHandler config component request respond =
           (renderFullPage config render)
 
 renderFullPage :: Typeable action => Configuration m -> Purview action m -> Builder
-renderFullPage Configuration { htmlHead, eventsToListenTo, eventProducers, eventListeners } component =
+renderFullPage Configuration { htmlHead, eventsToListenTo, javascript } component =
   let
     locatedComponent = prepareTree component
     (initialEvents, css) = collectInitials locatedComponent
     rendered = render (cleanTree css locatedComponent)
-    wrap = wrapHtml css htmlHead eventsToListenTo eventProducers eventListeners
+    wrap = wrapHtml css htmlHead eventsToListenTo javascript
   in
     fromString $ wrap rendered
 
