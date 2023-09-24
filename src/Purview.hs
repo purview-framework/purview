@@ -10,7 +10,7 @@ captured.  State is passed from handler to the continuation.
 Here's a quick example with a counter:
 
 > module Main where
->
+> import Prelude hiding (div)
 > import Purview
 > import Purview.Server (serve, defaultConfiguration)
 >
@@ -23,16 +23,16 @@ Here's a quick example with a counter:
 >   , decrementButton
 >   ]
 >
-> handler :: (Integer -> Purview event m) -> Purview event m
-> handler = handler' [] (0 :: Integer) reducer
+> countHandler :: (Integer -> Purview String m) -> Purview () m
+> countHandler = handler' [] (0 :: Integer) reducer
 >
 > reducer event state = case event of
 >   "increment" -> (state + 1, [])
 >   "decrement" -> (state - 1, [])
 >
-> component' = handler view
+> component' _ = countHandler view
 >
-> main = serve defaultConfiguration { component=component', devMode=True }
+> main = serve defaultConfiguration { devMode=True } component'
 
 Note the "devMode=True": this tells Purview to send the whole
 tree over again when the websocket reconnects.  This is handy
