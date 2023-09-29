@@ -1,5 +1,5 @@
 name:                purview
-version:             0.2.0.1
+version:             0.2.0.2
 github:              "purview-framework/purview"
 license:             BSD3
 author:              "Ian Davidson"
@@ -57,17 +57,6 @@ library:
     - Purview.Server
   ghc-options:
     - -Wincomplete-patterns
-
-benchmarks:
-    purview-perf-test:
-        main: Criterion.hs
-        source-dirs: performance
-        buildable: false
-        ghc-options:
-        - -main-is Criterion
-        dependencies:
-        - purview
-        - criterion                     >= 1.5.13 && < 1.6
 
 tests:
   purview-test:
