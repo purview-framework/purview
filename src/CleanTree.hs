@@ -9,15 +9,14 @@ import Data.List
 import Component
 
 
+{-
 
+I think I can just remove this special handling?
+
+-}
 removeClassCSS :: [(Hash, String)] -> Attributes e -> Attributes e
 removeClassCSS foundCSS attr = case attr of
-  Style (hash, css) ->
-    if hash /= "-1"
-    then case find (== (hash, css)) foundCSS of
-      Just _  -> Style (hash, "")
-      Nothing -> Style (hash, css)
-    else attr
+  style@Style {} -> style { captured=True }
   _ -> attr
 
 cleanTree :: Typeable event => [(Hash, String)] -> Purview event m -> Purview event m

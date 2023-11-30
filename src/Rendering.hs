@@ -20,17 +20,17 @@ isClass (Generic "class" _) = True
 isClass _                   = False
 
 getStyle :: Attributes a -> String
-getStyle (Style (hash, style')) =
+getStyle (Style { hash, css }) =
   -- inline styles are just given a hash of -1
-  if hash == "-1" then style' else ""
+  if hash == "-1" then css else ""
 getStyle _ = ""
 
 getClassBasedStyle :: Attributes a -> String
-getClassBasedStyle (Style (hash, style')) =
-  -- earlier we set the style' to "" to say it's been captured
+getClassBasedStyle (Style { hash, css }) =
+  -- earlier we set the css to "" to say it's been captured
   -- also filter out things like "p123 li", which are created
   -- by nested rules in [style||] templates
-  if style' == "" && not (' ' `elem` hash) then hash else ""
+  if css == "" && not (' ' `elem` hash) then hash else ""
 getClassBasedStyle _ = ""
 
 renderGeneric :: Attributes a -> String

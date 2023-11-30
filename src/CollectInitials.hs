@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 -- |
 
@@ -12,7 +13,7 @@ type Location = [Int]
 
 getStyleFromAttr :: Attributes e -> Maybe (Hash, String)
 getStyleFromAttr attr = case attr of
-  Style (hash, css) ->
+  Style { hash, css } ->
     if hash /= "-1" && css /= ""
     then Just (hash, css)  -- set the css to empty since it's been caught
     else Nothing

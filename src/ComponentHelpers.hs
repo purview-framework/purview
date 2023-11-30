@@ -307,7 +307,7 @@ submitButton valid =
 @
 -}
 istyle :: String -> Purview event m -> Purview event m
-istyle str = Attribute $ Style ("-1", str)
+istyle = Attribute . Generic "style"
 
 {-|
 

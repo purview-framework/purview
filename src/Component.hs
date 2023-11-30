@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -8,6 +9,7 @@ import           Data.Typeable
 import           Events
 
 type Hash = String
+type Captured = Bool
 
 {-|
 
@@ -25,14 +27,17 @@ data Attributes event where
      -> (Maybe String -> event)  -- the string here is information from the browser
      -> Attributes event
         -- ^ part of creating handlers for different events, e.g. On "click"
-  Style :: (Hash, String) -> Attributes event
-        -- ^ hash of the css, the css
+  Style :: { captured :: Bool
+           , hash :: String
+           , css :: String
+           } -> Attributes event
+        -- ^ used only for class based css, inline css is just a generic
   Generic :: String -> String -> Attributes event
         -- ^ for creating new Attributes to put on HTML, e.g. Generic "type" "radio" for type="radio".
 
 instance Eq (Attributes event) where
-  (Style a) == (Style b) = a == b
-  (Style _) == _ = False
+  (Style { hash=hashA }) == (Style { hash=hashB }) = hashA == hashB
+  (Style {}) == _ = False
 
   (On kind ident _event) == (On kind' ident' _event') =
     kind == kind' && ident == ident'
@@ -43,7 +48,7 @@ instance Eq (Attributes event) where
 
 instance Show (Attributes event) where
   show (On kind ident evt) = "On " <> show kind <> " " <> show ident
-  show (Style str) = "Style " <> show str
+  show (Style { hash }) = "Style " <> show hash
   show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
 {-|
