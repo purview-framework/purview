@@ -140,9 +140,9 @@ toAttributes hashed css =
   let ((_, baseCss):rest) = handleCSS css
   in foldr
       (\(newClass, newCss) acc ->
-         acc . Attribute (Style (combineClasses hashed newClass, newCss))
+         acc . Attribute (Style False (combineClasses hashed newClass) newCss)
       )
-      (Attribute (Style (hashed, baseCss))) rest
+      (Attribute (Style False hashed baseCss)) rest
 
 style' :: String -> Q Exp
 style' css =

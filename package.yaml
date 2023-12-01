@@ -70,7 +70,6 @@ tests:
     - -with-rtsopts=-N
     - -main-is Spec
     dependencies:
-    - purview
     - QuickCheck                    >= 2.14.2 && < 2.15
     - hspec                         >= 2.7.10 && < 2.12
     - time                          >= 1.9.3 && < 1.14

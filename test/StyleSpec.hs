@@ -109,6 +109,10 @@ spec = parallel $ do
         let result = handleCSS "&:hover { color: green; }"
         result `shouldBe` [("&:hover ","color: green;")]
 
+      it "works with only a subnode style" $ do
+        let result = parseCSS [] "\na { color: blue; }"
+        result `shouldBe` [("a ", "color: blue;")]
+
 
 
 main :: IO ()
