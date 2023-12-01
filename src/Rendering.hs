@@ -19,18 +19,19 @@ isClass :: Attributes a -> Bool
 isClass (Generic "class" _) = True
 isClass _                   = False
 
-getStyle :: Attributes a -> String
-getStyle (Style { hash, css }) =
-  -- inline styles are just given a hash of -1
-  if hash == "-1" then css else ""
-getStyle _ = ""
+isInlineStyle :: Attributes a -> Bool
+isInlineStyle (Generic "style" _) = True
+isInlineStyle _                   = False
+
+getInlineStyle :: Attributes a -> String
+getInlineStyle (Generic "style" css) = css
+getInlineStyle _                     = ""
 
 getClassBasedStyle :: Attributes a -> String
 getClassBasedStyle (Style { hash, css }) =
-  -- earlier we set the css to "" to say it's been captured
-  -- also filter out things like "p123 li", which are created
+  -- filter out things like "p123 li", which are created
   -- by nested rules in [style||] templates
-  if css == "" && not (' ' `elem` hash) then hash else ""
+  if ' ' `notElem` hash then hash else ""
 getClassBasedStyle _ = ""
 
 renderGeneric :: Attributes a -> String
@@ -41,7 +42,8 @@ renderGeneric attr = case attr of
 renderAttributes :: [Attributes a] -> String
 renderAttributes attrs =
   let
-    styles = concatMap getStyle attrs
+    -- doesn't work like this anymore
+    styles = concatMap getInlineStyle attrs
     renderedStyle = if not (null styles) then " style=" <> show styles else ""
 
     -- TODO: this is uggo
@@ -60,7 +62,7 @@ renderAttributes attrs =
       listeners
     noticeToBind = if null listeners then "" else " bubbling-bound"
 
-    generics = filter (not . isClass) $ filter isGeneric attrs
+    generics = filter (not . (\v -> isClass v || isInlineStyle v)) $ filter isGeneric attrs
     renderedGenerics = concatMap renderGeneric generics
   in
     renderedStyle <> noticeToBind <> renderedListeners <> renderedGenerics <> renderedClasses

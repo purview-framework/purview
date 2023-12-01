@@ -110,14 +110,14 @@ spec = parallel $ do
         "<div handler=\"[0,1]\" parent-handler=\"[]\" receiver-name=\"test\"><div></div></div>"
 
     it "can render a class based style" $ do
-      let component = (Attribute $ Style ("123", "")) $ div []
+      let component = (Attribute $ Style { captured=False, hash="123", css="" }) $ div []
 
       render component
         `shouldBe`
         "<div class=\"123\"></div>"
 
     it "can render multile class based style" $ do
-      let style = Attribute $ Style ("123", "")
+      let style = Attribute $ Style { captured=False, hash="123", css="" }
           component = style $ style (div [])
 
       render component
@@ -125,7 +125,7 @@ spec = parallel $ do
         "<div class=\"123 123\"></div>"
 
     it "can combine an existing class and class based style" $ do
-      let style = Attribute $ Style ("123", "")
+      let style = Attribute $ Style { captured=False, hash="123", css="" }
           component = class' "abc" $ style (div [])
 
       render component

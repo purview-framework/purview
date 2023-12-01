@@ -111,7 +111,7 @@ spec = parallel $ do
 
       it "works with only a subnode style" $ do
         let result = parseCSS [] "\na { color: blue; }"
-        result `shouldBe` []
+        result `shouldBe` [("a ", "color: blue;")]
 
 
 

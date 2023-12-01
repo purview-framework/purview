@@ -161,7 +161,7 @@ spec = parallel $ do
     it "picks up css" $ do
       let
         component :: Purview () m
-        component = (Attribute $ Style ("123", "color: blue;")) $ div []
+        component = (Attribute $ Style { captured=False, hash="123", css="color: blue;" }) $ div []
 
         (_, css) = collectInitials component :: ([Event], [(Hash, String)])
 

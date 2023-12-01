@@ -48,7 +48,7 @@ instance Eq (Attributes event) where
 
 instance Show (Attributes event) where
   show (On kind ident evt) = "On " <> show kind <> " " <> show ident
-  show (Style { hash }) = "Style " <> show hash
+  show (Style { hash, css }) = "Style " <> show (hash, css)
   show (Generic attrKey attrValue) = "Generic " <> show attrKey <> show attrValue
 
 {-|
